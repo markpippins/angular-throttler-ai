@@ -7,7 +7,7 @@ import * as fsClient from '../lib/fs-client';
   providedIn: 'root',
 })
 export class RemoteFileSystemService implements FileSystemProvider {
-  private alias = 'C:';
+  private alias = 'Home:';
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {
     const response: any = await fsClient.listFiles(this.alias, path);
