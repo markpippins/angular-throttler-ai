@@ -1,0 +1,35 @@
+<aside 
+  class="relative flex flex-col bg-gray-100 dark:bg-gray-800/50 border-r border-gray-200 dark:border-gray-700 ease-in-out"
+  [class.transition-all]="!isResizing()"
+  [class.duration-300]="!isResizing()"
+  [style.width.px]="isCollapsed() ? 64 : width()">
+
+  @if (!isCollapsed()) {
+    <!-- EXPANDED VIEW -->
+    <div class="flex-1 overflow-hidden">
+      <app-tab-control (collapseClick)="toggleCollapse()">
+        <app-tab title="News">
+          <app-newsfeed></app-newsfeed>
+        </app-tab>
+        <app-tab title="Search">
+          <app-search></app-search>
+        </app-tab>
+        <app-tab title="Info">
+          <div class="p-4 text-sm text-gray-600 dark:text-gray-400">
+            <p>This is another tab for future use.</p>
+          </div>
+        </app-tab>
+      </app-tab-control>
+    </div>
+    
+    <!-- Resizer Handle -->
+    <div 
+      class="absolute top-0 right-0 h-full w-1.5 cursor-col-resize group z-10"
+      (mousedown)="startResize($event)">
+        <div class="w-0.5 h-full mx-auto bg-transparent group-hover:bg-blue-500/50 transition-colors duration-200"></div>
+    </div>
+  } @else {
+    <!-- COLLAPSED VIEW -->
+    <app-vertical-toolbar (expandClick)="toggleCollapse()"></app-vertical-toolbar>
+  }
+</aside>

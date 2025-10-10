@@ -4,6 +4,7 @@ import { FileSystemNode } from '../../models/file-system.model';
 import { FILE_SYSTEM_PROVIDER, FileSystemProvider } from '../../services/file-system-provider';
 import { ImageService } from '../../services/image.service';
 import { ToolbarComponent } from '../toolbar/toolbar.component';
+import { SidebarComponent } from '../sidebar/sidebar.component';
 
 interface FileSystemState {
   status: 'loading' | 'success' | 'error';
@@ -14,7 +15,7 @@ interface FileSystemState {
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, NgOptimizedImage, ToolbarComponent],
+  imports: [CommonModule, NgOptimizedImage, ToolbarComponent, SidebarComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent {
