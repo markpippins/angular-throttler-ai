@@ -44,8 +44,8 @@
               @for (item of state().items; track item.name) {
                 <div (click)="openItem(item)" (dblclick)="openItem(item)" (contextmenu)="onContextMenu($event, item)" class="flex flex-col items-center p-2 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer transition-colors duration-150 group">
                   @let iconUrl = getIconUrl(item);
-                  @if(iconUrl) {
-                    <img [ngSrc]="iconUrl" [alt]="item.type" width="64" height="64" class="h-16 w-16 object-contain" />
+                  @if(iconUrl && !failedImageItems().has(item.name)) {
+                    <img [ngSrc]="iconUrl" [alt]="item.type" width="64" height="64" class="h-16 w-16 object-contain" (error)="onImageError(item.name)" />
                   } @else {
                     @if (item.type === 'folder') {
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">

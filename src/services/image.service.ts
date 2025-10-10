@@ -1,5 +1,4 @@
-import { inject, Injectable } from '@angular/core';
-import { IS_DEBUG_MODE } from './app-config';
+import { Injectable } from '@angular/core';
 import { FileSystemNode } from '../models/file-system.model';
 import * as imageClient from '../../lib/image-client';
 
@@ -7,8 +6,6 @@ import * as imageClient from '../../lib/image-client';
   providedIn: 'root',
 })
 export class ImageService {
-  private isDebugMode = inject(IS_DEBUG_MODE);
-
   private getFileExtension(filename: string): string | null {
     const lastDot = filename.lastIndexOf('.');
     if (lastDot === -1 || lastDot === 0) {
@@ -18,10 +15,6 @@ export class ImageService {
   }
 
   getIconUrl(item: FileSystemNode): string | null {
-    if (this.isDebugMode) {
-      return null; // In debug mode, we'll use the default SVGs in the component.
-    }
-
     if (item.type === 'folder') {
       return imageClient.getImageUrlByName('folder');
     }

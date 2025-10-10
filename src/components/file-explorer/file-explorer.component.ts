@@ -28,6 +28,8 @@ export class FileExplorerComponent {
   
   previewItem = signal<FileSystemNode | null>(null);
 
+  failedImageItems = signal<Set<string>>(new Set());
+
   constructor() {
     effect(() => {
       this.loadContents(this.currentPath());
@@ -36,6 +38,7 @@ export class FileExplorerComponent {
 
   async loadContents(path: string[]): Promise<void> {
     this.state.update(s => ({ ...s, status: 'loading' }));
+    this.failedImageItems.set(new Set()); // Reset failed images on navigation
     try {
       const items = await this.fileSystemProvider.getContents(path);
       this.state.set({ status: 'success', items });
@@ -98,6 +101,14 @@ export class FileExplorerComponent {
 
   closeContextMenu(): void {
     this.contextMenu.set(null);
+  }
+
+  onImageError(itemName: string): void {
+    this.failedImageItems.update(currentSet => {
+      const newSet = new Set(currentSet);
+      newSet.add(itemName);
+      return newSet;
+    });
   }
 
   async createFolder(): Promise<void> {
