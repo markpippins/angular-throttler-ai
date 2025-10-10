@@ -1,17 +1,23 @@
-import { Component, ChangeDetectionStrategy, signal, inject, Renderer2, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject, Renderer2, OnDestroy, input, output } from '@angular/core';
 import { TabControlComponent } from '../tabs/tab-control.component';
 import { TabComponent } from '../tabs/tab.component';
 import { NewsfeedComponent } from '../newsfeed/newsfeed.component';
 import { VerticalToolbarComponent } from '../vertical-toolbar/vertical-toolbar.component';
 import { SearchComponent } from '../search/search.component';
+import { FileSystemNode } from '../../models/file-system.model';
+import { TreeViewComponent } from '../tree-view/tree-view.component';
 
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.component.html',
-  imports: [TabControlComponent, TabComponent, NewsfeedComponent, VerticalToolbarComponent, SearchComponent],
+  imports: [TabControlComponent, TabComponent, NewsfeedComponent, VerticalToolbarComponent, SearchComponent, TreeViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnDestroy {
+  folderTree = input<FileSystemNode | null>(null);
+  currentPath = input<string[]>([]);
+  pathChange = output<string[]>();
+
   isCollapsed = signal(false);
   width = signal(288); // Default width is 288px (w-72)
   isResizing = signal(false);
@@ -44,6 +50,9 @@ export class SidebarComponent implements OnDestroy {
     event.preventDefault();
 
     this.unlistenMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+      if (!this.isResizing()) {
+        return;
+      }
       const dx = e.clientX - startX;
       let newWidth = startWidth + dx;
       
@@ -70,6 +79,10 @@ export class SidebarComponent implements OnDestroy {
       this.unlistenMouseUp();
       this.unlistenMouseUp = null;
     }
+  }
+
+  onTreeViewPathChange(path: string[]): void {
+    this.pathChange.emit(path);
   }
 
   ngOnDestroy(): void {

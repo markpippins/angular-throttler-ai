@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { FileSystemProvider } from './file-system-provider';
+import { FileSystemProvider, ItemReference } from './file-system-provider';
 import { FileSystemNode } from '../models/file-system.model';
 import { FsService } from './fs.service';
 
@@ -48,6 +48,14 @@ export class RemoteFileSystemService implements FileSystemProvider {
     });
   }
 
+  getFolderTree(): Promise<FileSystemNode> {
+    // In a real implementation, this would call a new backend endpoint
+    // that returns the entire folder hierarchy.
+    console.warn('getFolderTree not implemented in live mode.');
+    // For now, return a minimal tree to prevent errors.
+    return Promise.resolve({ name: this.alias, type: 'folder', children: [] });
+  }
+
   createDirectory(path: string[], name: string): Promise<void> {
     return this.fsService.createDirectory(this.alias, [...path, name]);
   }
@@ -66,5 +74,25 @@ export class RemoteFileSystemService implements FileSystemProvider {
 
   rename(path: string[], oldName: string, newName: string): Promise<void> {
     return this.fsService.rename(this.alias, [...path, oldName], newName);
+  }
+
+  uploadFile(path: string[], file: File): Promise<void> {
+    // This would be implemented to upload to a remote server
+    console.warn(`File upload not implemented in live mode. File: ${file.name}, Path: ${path.join('/')}`);
+    return Promise.resolve();
+  }
+
+  move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    console.warn('Move not implemented in live mode.');
+    // In a real implementation, you might call a backend service like this:
+    // return this.fsService.move(this.alias, sourcePath, destPath, items);
+    return Promise.resolve();
+  }
+
+  copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    console.warn('Copy not implemented in live mode.');
+    // In a real implementation, you might call a backend service like this:
+    // return this.fsService.copy(this.alias, sourcePath, destPath, items);
+    return Promise.resolve();
   }
 }

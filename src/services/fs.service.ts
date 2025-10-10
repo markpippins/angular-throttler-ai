@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { BrokerService } from './broker.service';
 import { FileSystemNode } from '../models/file-system.model';
+import { ItemReference } from './file-system-provider';
 
 const SERVICE_NAME = 'restFsService';
 
@@ -36,5 +37,13 @@ export class FsService {
 
   rename(alias: string, path: string[], newName: string): Promise<any> {
     return this.brokerService.submitRequest(SERVICE_NAME, 'rename', { alias, path, newName });
+  }
+
+  move(alias: string, sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    return this.brokerService.submitRequest(SERVICE_NAME, 'move', { alias, sourcePath, destPath, items });
+  }
+
+  copy(alias: string, sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    return this.brokerService.submitRequest(SERVICE_NAME, 'copy', { alias, sourcePath, destPath, items });
   }
 }

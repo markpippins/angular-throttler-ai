@@ -1,16 +1,21 @@
 <div 
-  (click)="onOpen()" 
-  (dblclick)="onOpen()" 
-  (contextmenu)="onContextMenu($event)" 
-  class="flex flex-col items-center p-2 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer transition-colors duration-150 group">
+  (contextmenu)="onContextMenu($event)"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+  class="flex flex-col items-center p-2 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer transition-colors duration-150 group"
+  [class.bg-blue-200]="isSelected() && !isDragOver()"
+  [class.dark:bg-blue-800/50]="isSelected() && !isDragOver()"
+  [class.bg-blue-300]="isDragOver()"
+  [class.dark:bg-blue-700]="isDragOver()">
   
   @if(iconUrl() && !hasFailedToLoadImage()) {
-    <img [ngSrc]="iconUrl()!" [alt]="item().type" width="64" height="64" class="h-16 w-16 object-contain" (error)="onImageError()" />
+    <img [ngSrc]="iconUrl()!" [alt]="item().type" width="64" height="64" class="h-16 w-16 object-contain pointer-events-none" (error)="onImageError()" />
   } @else {
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-yellow-500 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
       <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
     </svg>
   }
   
-  <span class="mt-2 text-center text-xs break-all truncate w-full text-gray-700 dark:text-gray-300 group-hover:text-blue-800 dark:group-hover:text-blue-300">{{ item().name }}</span>
+  <span class="mt-2 text-center text-xs break-all truncate w-full text-gray-700 dark:text-gray-300 group-hover:text-blue-800 dark:group-hover:text-blue-300 pointer-events-none">{{ item().name }}</span>
 </div>

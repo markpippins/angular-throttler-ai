@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { FileSystemNode } from '../models/file-system.model';
-import { FileSystemProvider } from './file-system-provider';
+import { FileSystemProvider, ItemReference } from './file-system-provider';
 
 @Injectable({
   providedIn: 'root',
@@ -79,17 +79,42 @@ export class FileSystemService implements FileSystemProvider {
     return currentNode || null;
   }
 
+  private deepClone<T>(obj: T): T {
+    return JSON.parse(JSON.stringify(obj));
+  }
+
   getContents(path: string[]): Promise<FileSystemNode[]> {
     const node = this.getNode(path);
     if (node && node.type === 'folder' && node.children) {
-      const sortedChildren = [...node.children].sort((a, b) => {
-        if (a.type === 'folder' && b.type !== 'folder') return -1;
-        if (a.type !== 'folder' && b.type === 'folder') return 1;
-        return a.name.localeCompare(b.name);
-      });
-      return Promise.resolve(sortedChildren);
+      return Promise.resolve([...node.children]);
     }
     return Promise.resolve([]);
+  }
+
+  getFolderTree(): Promise<FileSystemNode> {
+    const cloneNode = (node: FileSystemNode): FileSystemNode | null => {
+      if (node.type !== 'folder') {
+        return null;
+      }
+      
+      const newNode: FileSystemNode = {
+        name: node.name,
+        type: 'folder',
+        modified: node.modified,
+        children: []
+      };
+
+      if (node.children) {
+        newNode.children = node.children
+          .map(child => cloneNode(child))
+          .filter((child): child is FileSystemNode => child !== null);
+      }
+      
+      return newNode;
+    };
+    
+    const folderTree = cloneNode(this.root);
+    return Promise.resolve(folderTree!);
   }
   
   createDirectory(path: string[], name: string): Promise<void> {
@@ -141,6 +166,92 @@ export class FileSystemService implements FileSystemProvider {
         item.name = newName;
       }
     }
+    return Promise.resolve();
+  }
+
+  uploadFile(path: string[], file: File): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const parent = this.getNode(path);
+      if (!parent || parent.type !== 'folder' || !parent.children) {
+        return reject(new Error('Target directory not found.'));
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e: ProgressEvent<FileReader>) => {
+        // Check if file already exists and remove it to simulate overwrite
+        const existingIndex = parent.children!.findIndex(c => c.name === file.name);
+        if (existingIndex !== -1) {
+          parent.children!.splice(existingIndex, 1);
+        }
+
+        const newNode: FileSystemNode = {
+          name: file.name,
+          type: 'file',
+          content: e.target?.result as string,
+          modified: new Date().toISOString().split('T')[0]
+        };
+        parent.children!.push(newNode);
+        resolve();
+      };
+
+      reader.onerror = (error) => reject(error);
+
+      // Read images as data URLs for preview, otherwise read as text
+      if (file.type.startsWith('image/')) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.readAsText(file);
+      }
+    });
+  }
+
+  async move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    const sourceNode = this.getNode(sourcePath);
+    const destNode = this.getNode(destPath);
+    
+    if (!sourceNode || !destNode || !sourceNode.children || !destNode.children) {
+        return Promise.reject(new Error("Invalid source or destination path."));
+    }
+    
+    for (const item of items) {
+        if (sourcePath.join('/') === destPath.join('/') && sourceNode.children.find(child => child.name === item.name)) {
+          continue; // moving to the same directory is a no-op
+        }
+
+        if (destNode.children.some(child => child.name === item.name)) {
+            return Promise.reject(new Error(`Item "${item.name}" already exists in the destination.`));
+        }
+        
+        const itemIndex = sourceNode.children.findIndex(child => child.name === item.name);
+        if (itemIndex > -1) {
+            const [itemToMove] = sourceNode.children.splice(itemIndex, 1);
+            destNode.children.push(itemToMove);
+        }
+    }
+    
+    return Promise.resolve();
+  }
+
+  async copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    const sourceNode = this.getNode(sourcePath);
+    const destNode = this.getNode(destPath);
+    
+    if (!sourceNode || !destNode || !sourceNode.children || !destNode.children) {
+        return Promise.reject(new Error("Invalid source or destination path."));
+    }
+    
+    for (const item of items) {
+        if (destNode.children.some(child => child.name === item.name)) {
+            return Promise.reject(new Error(`Item "${item.name}" already exists in the destination.`));
+        }
+        
+        const itemToCopy = sourceNode.children.find(child => child.name === item.name);
+        if (itemToCopy) {
+            const newItem = this.deepClone(itemToCopy);
+            destNode.children.push(newItem);
+        }
+    }
+    
     return Promise.resolve();
   }
 }

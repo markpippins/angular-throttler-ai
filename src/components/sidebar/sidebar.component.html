@@ -8,6 +8,17 @@
     <!-- EXPANDED VIEW -->
     <div class="flex-1 overflow-hidden">
       <app-tab-control (collapseClick)="toggleCollapse()">
+        <app-tab title="Explorer">
+          @if(folderTree(); as tree) {
+            <app-tree-view 
+              [rootNode]="tree"
+              [currentPath]="currentPath()"
+              (pathChange)="onTreeViewPathChange($event)">
+            </app-tree-view>
+          } @else {
+            <div class="p-4 text-center text-gray-500 text-sm">Loading tree...</div>
+          }
+        </app-tab>
         <app-tab title="News">
           <app-newsfeed></app-newsfeed>
         </app-tab>
