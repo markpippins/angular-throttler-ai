@@ -23,6 +23,8 @@
         </div>
       </div>
 
+      <app-toolbar (newFolderClick)="createFolder()" (newFileClick)="createFile()"></app-toolbar>
+
       <!-- Main Content Area -->
       <div class="flex-1 p-4 overflow-y-auto relative" (contextmenu)="onContextMenu($event)">
         @switch (state().status) {

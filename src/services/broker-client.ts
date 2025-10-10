@@ -1,6 +1,7 @@
 // broker-client.ts
+declare const process: any;
 
-const BROKER_URL = 'http://localhost:8080/api/broker/submitRequest';
+const BROKER_URL = (process && process.env.BROKER_URL) || 'http://localhost:8080/api/broker/submitRequest';
 
 /**
  * Generates a UUID.

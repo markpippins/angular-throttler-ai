@@ -8,7 +8,7 @@
 import * as http from 'http';
 import * as url from 'url';
 
-const PORT = 8081;
+const PORT = process.env.IMAGE_SERVER_PORT || 8081;
 
 // --- SVG Generation Helpers ---
 const generateSvg = (text: string, bgColor: string, textColor: string = '#FFFFFF') => {
