@@ -52,10 +52,13 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   getFolderTree(): Promise<FileSystemNode> {
-    // In a real implementation, this would call a new backend endpoint
-    // that returns the entire folder hierarchy.
+    // API SHORTCOMING: The current backend API lacks an efficient endpoint
+    // to retrieve the entire folder hierarchy in a single call.
+    // A proper implementation would require a dedicated `getTree` operation
+    // in the `restFsService` to avoid making numerous recursive `listFiles` calls,
+    // which would be slow and inefficient.
     console.warn('getFolderTree not implemented in live mode. It should be.');
-    // For now, return a minimal tree to prevent errors.
+    // For now, return a minimal tree to prevent errors and keep the UI functional.
     const rootName = this.profileService.activeProfile()?.name ?? this.alias;
     return Promise.resolve({ name: rootName, type: 'folder', children: [] });
   }

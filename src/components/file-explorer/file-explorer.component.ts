@@ -5,17 +5,12 @@ import { FileSystemProvider, ItemReference } from '../../services/file-system-pr
 import { ImageService } from '../../services/image.service';
 import { ToolbarComponent, SortCriteria } from '../toolbar/toolbar.component';
 import { FolderComponent } from '../folder/folder.component';
+import { ClipboardService } from '../../services/clipboard.service';
 
 interface FileSystemState {
   status: 'loading' | 'success' | 'error';
   items: FileSystemNode[];
   error?: string;
-}
-
-interface Clipboard {
-  operation: 'cut' | 'copy';
-  sourcePath: string[];
-  items: FileSystemNode[];
 }
 
 @Component({
@@ -27,6 +22,7 @@ interface Clipboard {
 export class FileExplorerComponent implements OnDestroy {
   private imageService = inject(ImageService);
   private renderer = inject(Renderer2);
+  private clipboardService = inject(ClipboardService);
 
   // Inputs & Outputs for multi-pane communication
   id = input.required<number>();
@@ -47,9 +43,8 @@ export class FileExplorerComponent implements OnDestroy {
   failedImageItems = signal<Set<string>>(new Set());
   isDragOverMainArea = signal(false);
 
-  // Selection & Clipboard
+  // Selection
   selectedItems = signal<Set<string>>(new Set());
-  clipboard = signal<Clipboard | null>(null);
   private lastSelectedItemName = signal<string | null>(null);
 
   // UI State
@@ -72,7 +67,15 @@ export class FileExplorerComponent implements OnDestroy {
   // Computed properties for UI binding
   isHighlighted = computed(() => this.isActive() && this.isSplitView());
   canCutCopyShareDelete = computed(() => this.selectedItems().size > 0);
-  canPaste = computed(() => this.clipboard() !== null);
+  canPaste = computed(() => {
+    const clip = this.clipboardService.clipboard();
+    if (!clip) return false;
+    // For now, only allow pasting within the same filesystem type.
+    // This is a simplification; a real implementation might handle transfers across providers.
+    const currentProvider = this.fileSystemProvider();
+    // A simple check by constructor name. A more robust check might involve a provider ID.
+    return clip.sourceProvider.constructor.name === currentProvider.constructor.name;
+  });
   canRename = computed(() => this.selectedItems().size === 1);
   
   sortedItems = computed(() => {
@@ -165,8 +168,9 @@ export class FileExplorerComponent implements OnDestroy {
   onCut(): void {
     const selectedNodes = this.getSelectedNodes();
     if (selectedNodes.length > 0) {
-      this.clipboard.set({
+      this.clipboardService.set({
         operation: 'cut',
+        sourceProvider: this.fileSystemProvider(),
         sourcePath: this.currentPath(),
         items: selectedNodes
       });
@@ -176,8 +180,9 @@ export class FileExplorerComponent implements OnDestroy {
   onCopy(): void {
     const selectedNodes = this.getSelectedNodes();
     if (selectedNodes.length > 0) {
-      this.clipboard.set({
+      this.clipboardService.set({
         operation: 'copy',
+        sourceProvider: this.fileSystemProvider(),
         sourcePath: this.currentPath(),
         items: selectedNodes
       });
@@ -185,17 +190,20 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   async onPaste(): Promise<void> {
-    const clip = this.clipboard();
-    if (!clip) return;
+    const clip = this.clipboardService.clipboard();
+    if (!this.canPaste() || !clip) return;
 
     this.state.update(s => ({ ...s, status: 'loading' }));
     try {
       const itemsToPaste: ItemReference[] = clip.items.map(i => ({ name: i.name, type: i.type }));
+      const provider = this.fileSystemProvider();
+
       if (clip.operation === 'copy') {
-        await this.fileSystemProvider().copy(clip.sourcePath, this.currentPath(), itemsToPaste);
+        await provider.copy(clip.sourcePath, this.currentPath(), itemsToPaste);
       } else {
-        await this.fileSystemProvider().move(clip.sourcePath, this.currentPath(), itemsToPaste);
-        this.clipboard.set(null); // Clear clipboard only on cut
+        await provider.move(clip.sourcePath, this.currentPath(), itemsToPaste);
+        // Clear clipboard only on cut-paste
+        this.clipboardService.clear();
       }
       this.loadContents(this.currentPath());
     } catch (e) {

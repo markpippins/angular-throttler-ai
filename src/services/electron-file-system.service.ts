@@ -50,7 +50,7 @@ export class ElectronFileSystemService implements FileSystemProvider {
     return currentNode || null;
   }
   
-  getContents(path: string[]): Promise<FileSystemNode[]> {
+  async getContents(path: string[]): Promise<FileSystemNode[]> {
     console.log(`[ElectronFS] Getting contents for: ${path.join('/')}`);
     const node = this.getNode(path);
     if (node && node.type === 'folder' && node.children) {
@@ -59,7 +59,7 @@ export class ElectronFileSystemService implements FileSystemProvider {
     return Promise.resolve([]);
   }
 
-  getFolderTree(): Promise<FileSystemNode> {
+  async getFolderTree(): Promise<FileSystemNode> {
     console.log('[ElectronFS] Getting folder tree.');
     // In a real implementation, we would recursively scan the file system.
     // For this placeholder, we return a simplified, non-recursive version of the root.
@@ -76,39 +76,138 @@ export class ElectronFileSystemService implements FileSystemProvider {
     return Promise.resolve(cloneNode(this.root)!);
   }
 
-  private notImplemented(): Promise<any> {
-      return Promise.reject(new Error('This feature requires the Electron app to be running.'));
+  async createDirectory(path: string[], name: string): Promise<void> {
+    const parent = this.getNode(path);
+    if (!parent || parent.type !== 'folder') {
+      throw new Error('Parent directory not found.');
+    }
+    if (parent.children?.some(c => c.name === name)) {
+      throw new Error('A directory with that name already exists.');
+    }
+    const newDir: FileSystemNode = { name, type: 'folder', children: [], modified: new Date().toISOString() };
+    parent.children = [...(parent.children ?? []), newDir];
   }
 
-  createDirectory(path: string[], name: string): Promise<void> {
-    return this.notImplemented();
+  async removeDirectory(path: string[], name: string): Promise<void> {
+    const parent = this.getNode(path);
+    if (!parent || parent.type !== 'folder' || !parent.children) {
+      throw new Error('Parent directory not found.');
+    }
+    const index = parent.children.findIndex(c => c.name === name && c.type === 'folder');
+    if (index === -1) {
+      throw new Error('Directory not found.');
+    }
+    parent.children.splice(index, 1);
   }
 
-  removeDirectory(path: string[], name: string): Promise<void> {
-    return this.notImplemented();
+  async createFile(path: string[], name: string): Promise<void> {
+    const parent = this.getNode(path);
+    if (!parent || parent.type !== 'folder') {
+      throw new Error('Parent directory not found.');
+    }
+    if (parent.children?.some(c => c.name === name)) {
+      throw new Error('A file with that name already exists.');
+    }
+    const newFile: FileSystemNode = { name, type: 'file', content: '', modified: new Date().toISOString() };
+    parent.children = [...(parent.children ?? []), newFile];
   }
 
-  createFile(path: string[], name: string): Promise<void> {
-    return this.notImplemented();
+  async deleteFile(path: string[], name: string): Promise<void> {
+    const parent = this.getNode(path);
+    if (!parent || parent.type !== 'folder' || !parent.children) {
+      throw new Error('Parent directory not found.');
+    }
+    const index = parent.children.findIndex(c => c.name === name && c.type === 'file');
+    if (index === -1) {
+      throw new Error('File not found.');
+    }
+    parent.children.splice(index, 1);
   }
 
-  deleteFile(path: string[], name: string): Promise<void> {
-    return this.notImplemented();
+  async rename(path: string[], oldName: string, newName: string): Promise<void> {
+    const parent = this.getNode(path);
+    if (!parent || parent.type !== 'folder' || !parent.children) {
+      throw new Error('Parent directory not found.');
+    }
+    if (parent.children.some(c => c.name === newName)) {
+      throw new Error(`An item named "${newName}" already exists.`);
+    }
+    const item = parent.children.find(c => c.name === oldName);
+    if (!item) {
+      throw new Error(`Item "${oldName}" not found.`);
+    }
+    item.name = newName;
+    item.modified = new Date().toISOString();
   }
 
-  rename(path: string[], oldName: string, newName: string): Promise<void> {
-    return this.notImplemented();
+  async uploadFile(path: string[], file: File): Promise<void> {
+    const parent = this.getNode(path);
+    if (!parent || parent.type !== 'folder') {
+      throw new Error('Directory not found.');
+    }
+    if (parent.children?.some(c => c.name === file.name)) {
+      throw new Error(`A file named "${file.name}" already exists.`);
+    }
+
+    const newFile: FileSystemNode = {
+        name: file.name,
+        type: 'file',
+        content: `(Mock content for ${file.name})`,
+        modified: new Date().toISOString()
+    };
+    parent.children = [...(parent.children ?? []), newFile];
   }
 
-  uploadFile(path: string[], file: File): Promise<void> {
-    return this.notImplemented();
+  async move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    // A move is a copy then a delete from the source.
+    await this.copy(sourcePath, destPath, items);
+
+    const sourceParent = this.getNode(sourcePath);
+    if (!sourceParent || !sourceParent.children) {
+        throw new Error('Source path not found for deletion step.');
+    }
+    
+    for (const itemRef of items) {
+      const index = sourceParent.children.findIndex(c => c.name === itemRef.name);
+      if (index > -1) {
+        sourceParent.children.splice(index, 1);
+      }
+    }
   }
 
-  move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.notImplemented();
-  }
+  async copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    const sourceParent = this.getNode(sourcePath);
+    const destParent = this.getNode(destPath);
 
-  copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.notImplemented();
+    if (!sourceParent || !destParent || destParent.type !== 'folder') {
+      throw new Error('Source or destination path not found.');
+    }
+
+    if (!sourceParent.children) return;
+
+    for (const itemRef of items) {
+      const sourceItem = sourceParent.children.find(c => c.name === itemRef.name);
+      if (!sourceItem) continue;
+
+      // Handle name conflicts in destination by appending " - Copy"
+      let newName = sourceItem.name;
+      let counter = 1;
+      while (destParent.children?.some(c => c.name === newName)) {
+        const dotIndex = sourceItem.name.lastIndexOf('.');
+        if (sourceItem.type === 'file' && dotIndex > -1) {
+            newName = `${sourceItem.name.substring(0, dotIndex)} - Copy (${counter})${sourceItem.name.substring(dotIndex)}`;
+        } else {
+            newName = `${sourceItem.name} - Copy (${counter})`;
+        }
+        counter++;
+      }
+
+      // Deep clone the item to avoid reference issues, and update its name
+      const clonedItem = JSON.parse(JSON.stringify(sourceItem));
+      clonedItem.name = newName;
+      clonedItem.modified = new Date().toISOString();
+      
+      destParent.children = [...(destParent.children ?? []), clonedItem];
+    }
   }
 }
