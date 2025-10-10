@@ -15,17 +15,23 @@ export class FolderComponent {
   item = input.required<FileSystemNode>();
   iconUrl = input<string | null>(null);
   hasFailedToLoadImage = input<boolean>(false);
+  isImageLoaded = input<boolean>(false);
   isSelected = input<boolean>(false);
   isDragOver = signal(false);
 
   itemContextMenu = output<{ event: MouseEvent; item: FileSystemNode }>();
   itemDrop = output<{ files: FileList; item: FileSystemNode }>();
   imageError = output<string>();
+  imageLoad = output<string>();
 
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
     this.itemContextMenu.emit({ event, item: this.item() });
+  }
+
+  onImageLoad(): void {
+    this.imageLoad.emit(this.item().name);
   }
 
   onImageError(): void {

@@ -1,4 +1,3 @@
-import { InjectionToken } from '@angular/core';
 import { FileSystemNode, FileType } from '../models/file-system.model';
 
 export interface ItemReference {
@@ -18,5 +17,3 @@ export abstract class FileSystemProvider {
   abstract move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void>;
   abstract copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void>;
 }
-
-export const FILE_SYSTEM_PROVIDER = new InjectionToken<FileSystemProvider>('FileSystemProvider');

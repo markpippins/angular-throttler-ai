@@ -1,21 +1,21 @@
 import { Injectable, inject } from '@angular/core';
-import { AppConfig, APP_CONFIG } from './app-config';
+import { ServerProfileService } from './server-profile.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ImageClientService {
-  private config = inject<AppConfig>(APP_CONFIG);
+  private profileService = inject(ServerProfileService);
    
   getImageUrlByExtension(extension: string): string {
-    return `${this.config.imageUrl}/ext/${encodeURIComponent(extension)}`;
+    return `${this.profileService.activeConfig().imageUrl}/ext/${encodeURIComponent(extension)}`;
   }
 
   getImageUrlByName(name: string): string {
-    return `${this.config.imageUrl}/name/${encodeURIComponent(name)}`;
+    return `${this.profileService.activeConfig().imageUrl}/name/${encodeURIComponent(name)}`;
   }
 
   getImageUrlByPath(folder: string, file: string): string {
-    return `${this.config.imageUrl}/path/${encodeURIComponent(folder)}/${encodeURIComponent(file)}`;
+    return `${this.profileService.activeConfig().imageUrl}/path/${encodeURIComponent(folder)}/${encodeURIComponent(file)}`;
   }
 }

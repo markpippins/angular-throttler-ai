@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model';
-import { FILE_SYSTEM_PROVIDER, FileSystemProvider, ItemReference } from '../../services/file-system-provider';
+import { FileSystemProvider, ItemReference } from '../../services/file-system-provider';
 import { ImageService } from '../../services/image.service';
 import { ToolbarComponent, SortCriteria } from '../toolbar/toolbar.component';
 import { FolderComponent } from '../folder/folder.component';
@@ -25,21 +25,25 @@ interface Clipboard {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent implements OnDestroy {
-  private fileSystemProvider = inject<FileSystemProvider>(FILE_SYSTEM_PROVIDER);
   private imageService = inject(ImageService);
   private renderer = inject(Renderer2);
 
   // Inputs & Outputs for multi-pane communication
   id = input.required<number>();
   isActive = input(false);
+  isSplitView = input(false);
   sidebarNavigationEvent = input<{ path: string[], timestamp: number } | null>(null);
+  fileSystemProvider = input.required<FileSystemProvider>();
+
   activated = output<number>();
   pathChanged = output<{id: number, path: string[]}>();
 
   currentPath = signal<string[]>([]);
+  rootName = computed(() => this.fileSystemProvider().getFolderTree().then(tree => tree.name));
   state = signal<FileSystemState>({ status: 'loading', items: [] });
   contextMenu = signal<{ x: number; y: number; item: FileSystemNode | null } | null>(null);
   previewItem = signal<FileSystemNode | null>(null);
+  loadedImageItems = signal<Set<string>>(new Set());
   failedImageItems = signal<Set<string>>(new Set());
   isDragOverMainArea = signal(false);
 
@@ -66,6 +70,7 @@ export class FileExplorerComponent implements OnDestroy {
   @ViewChildren('selectableItem', { read: ElementRef }) selectableItemElements!: QueryList<ElementRef>;
 
   // Computed properties for UI binding
+  isHighlighted = computed(() => this.isActive() && this.isSplitView());
   canCutCopyShareDelete = computed(() => this.selectedItems().size > 0);
   canPaste = computed(() => this.clipboard() !== null);
   canRename = computed(() => this.selectedItems().size === 1);
@@ -105,8 +110,11 @@ export class FileExplorerComponent implements OnDestroy {
   });
 
   constructor() {
-    // Load content when path changes
+    // Load content when path or provider changes
     effect(() => {
+      // This effect now depends on fileSystemProvider() as well.
+      // When the provider changes, currentPath will be reset by the parent,
+      // triggering a reload.
       this.loadContents(this.currentPath());
     });
 
@@ -122,6 +130,12 @@ export class FileExplorerComponent implements OnDestroy {
         this.navigateTo(navEvent.path);
       }
     });
+
+    // When the provider changes, reset the path.
+    effect(() => {
+        this.fileSystemProvider(); // establish dependency
+        this.currentPath.set([]);
+    }, { allowSignalWrites: true });
   }
 
   ngOnDestroy(): void {
@@ -130,10 +144,11 @@ export class FileExplorerComponent implements OnDestroy {
 
   async loadContents(path: string[]): Promise<void> {
     this.state.update(s => ({ ...s, status: 'loading' }));
+    this.loadedImageItems.set(new Set());
     this.failedImageItems.set(new Set());
     
     try {
-      const items = await this.fileSystemProvider.getContents(path);
+      const items = await this.fileSystemProvider().getContents(path);
       this.state.set({ status: 'success', items });
     } catch (e) {
       this.state.set({ status: 'error', items: [], error: (e as Error).message });
@@ -177,9 +192,9 @@ export class FileExplorerComponent implements OnDestroy {
     try {
       const itemsToPaste: ItemReference[] = clip.items.map(i => ({ name: i.name, type: i.type }));
       if (clip.operation === 'copy') {
-        await this.fileSystemProvider.copy(clip.sourcePath, this.currentPath(), itemsToPaste);
+        await this.fileSystemProvider().copy(clip.sourcePath, this.currentPath(), itemsToPaste);
       } else {
-        await this.fileSystemProvider.move(clip.sourcePath, this.currentPath(), itemsToPaste);
+        await this.fileSystemProvider().move(clip.sourcePath, this.currentPath(), itemsToPaste);
         this.clipboard.set(null); // Clear clipboard only on cut
       }
       this.loadContents(this.currentPath());
@@ -234,7 +249,7 @@ export class FileExplorerComponent implements OnDestroy {
     if (newName && newName !== item.name) {
       try {
         this.state.update(s => ({...s, status: 'loading' }));
-        await this.fileSystemProvider.rename(this.currentPath(), item.name, newName);
+        await this.fileSystemProvider().rename(this.currentPath(), item.name, newName);
         this.loadContents(this.currentPath());
       } catch (e) {
         alert(`Error: ${(e as Error).message}`);
@@ -255,8 +270,8 @@ export class FileExplorerComponent implements OnDestroy {
         this.state.update(s => ({...s, status: 'loading' }));
         const deletePromises = items.map(item => 
           item.type === 'folder'
-            ? this.fileSystemProvider.removeDirectory(this.currentPath(), item.name)
-            : this.fileSystemProvider.deleteFile(this.currentPath(), item.name)
+            ? this.fileSystemProvider().removeDirectory(this.currentPath(), item.name)
+            : this.fileSystemProvider().deleteFile(this.currentPath(), item.name)
         );
         await Promise.all(deletePromises);
         this.loadContents(this.currentPath());
@@ -266,10 +281,6 @@ export class FileExplorerComponent implements OnDestroy {
       }
     }
   }
-
-  currentPathString = computed(() => {
-    return ['C:', ...this.currentPath()].join('\\');
-  });
 
   canGoUp = computed(() => this.currentPath().length > 0);
 
@@ -332,6 +343,14 @@ export class FileExplorerComponent implements OnDestroy {
     this.contextMenu.set(null);
   }
 
+  onImageLoad(itemName: string): void {
+    this.loadedImageItems.update(currentSet => {
+      const newSet = new Set(currentSet);
+      newSet.add(itemName);
+      return newSet;
+    });
+  }
+
   onImageError(itemName: string): void {
     this.failedImageItems.update(currentSet => {
       const newSet = new Set(currentSet);
@@ -344,7 +363,7 @@ export class FileExplorerComponent implements OnDestroy {
     const name = prompt('Enter folder name:');
     if (name) {
       try {
-        await this.fileSystemProvider.createDirectory(this.currentPath(), name);
+        await this.fileSystemProvider().createDirectory(this.currentPath(), name);
         this.loadContents(this.currentPath());
       } catch (e) {
         alert(`Error: ${(e as Error).message}`);
@@ -357,7 +376,7 @@ export class FileExplorerComponent implements OnDestroy {
     const name = prompt('Enter file name:');
     if (name) {
       try {
-        await this.fileSystemProvider.createFile(this.currentPath(), name);
+        await this.fileSystemProvider().createFile(this.currentPath(), name);
         this.loadContents(this.currentPath());
       } catch (e) {
         alert(`Error: ${(e as Error).message}`);
@@ -382,7 +401,7 @@ export class FileExplorerComponent implements OnDestroy {
     this.state.update(s => ({ ...s, status: 'loading' }));
     try {
       const uploadPromises = Array.from(files).map(file =>
-        this.fileSystemProvider.uploadFile(path, file)
+        this.fileSystemProvider().uploadFile(path, file)
       );
       await Promise.all(uploadPromises);
       this.loadContents(this.currentPath());

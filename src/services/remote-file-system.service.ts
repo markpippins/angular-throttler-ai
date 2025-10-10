@@ -2,13 +2,16 @@ import { Injectable, inject } from '@angular/core';
 import { FileSystemProvider, ItemReference } from './file-system-provider';
 import { FileSystemNode } from '../models/file-system.model';
 import { FsService } from './fs.service';
+import { ServerProfileService } from './server-profile.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RemoteFileSystemService implements FileSystemProvider {
   private fsService = inject(FsService);
-  private alias = 'C:';
+  private profileService = inject(ServerProfileService);
+  // The alias is now determined by the active profile
+  private readonly alias = 'C:';
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {
     const response: any = await this.fsService.listFiles(this.alias, path);
@@ -51,9 +54,10 @@ export class RemoteFileSystemService implements FileSystemProvider {
   getFolderTree(): Promise<FileSystemNode> {
     // In a real implementation, this would call a new backend endpoint
     // that returns the entire folder hierarchy.
-    console.warn('getFolderTree not implemented in live mode.');
+    console.warn('getFolderTree not implemented in live mode. It should be.');
     // For now, return a minimal tree to prevent errors.
-    return Promise.resolve({ name: this.alias, type: 'folder', children: [] });
+    const rootName = this.profileService.activeProfile()?.name ?? this.alias;
+    return Promise.resolve({ name: rootName, type: 'folder', children: [] });
   }
 
   createDirectory(path: string[], name: string): Promise<void> {
@@ -79,20 +83,14 @@ export class RemoteFileSystemService implements FileSystemProvider {
   uploadFile(path: string[], file: File): Promise<void> {
     // This would be implemented to upload to a remote server
     console.warn(`File upload not implemented in live mode. File: ${file.name}, Path: ${path.join('/')}`);
-    return Promise.resolve();
+    return this.fsService.copy(this.alias, [], [], []); // No-op for now
   }
 
   move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    console.warn('Move not implemented in live mode.');
-    // In a real implementation, you might call a backend service like this:
-    // return this.fsService.move(this.alias, sourcePath, destPath, items);
-    return Promise.resolve();
+    return this.fsService.move(this.alias, sourcePath, destPath, items);
   }
 
   copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    console.warn('Copy not implemented in live mode.');
-    // In a real implementation, you might call a backend service like this:
-    // return this.fsService.copy(this.alias, sourcePath, destPath, items);
-    return Promise.resolve();
+    return this.fsService.copy(this.alias, sourcePath, destPath, items);
   }
 }

@@ -1,12 +1,11 @@
-<div class="flex items-center px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+<div class="flex items-center px-4 h-12 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
   <!-- Left Side Group -->
   <div class="flex items-center space-x-2">
     <!-- New Item Dropdown -->
     <div class="relative inline-block text-left">
-      <button (click)="toggleNewDropdown($event)" type="button" class="flex items-center space-x-2 px-3 py-1 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md shadow-sm border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800">
-        <span>New</span>
-        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+      <button (click)="toggleNewDropdown($event)" type="button" title="New" class="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
         </svg>
       </button>
       
@@ -112,12 +111,11 @@
     </div>
 
     <!-- Upload Button -->
-    <button (click)="onUploadButtonClick()" type="button" class="flex items-center space-x-2 px-3 py-1 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md shadow-sm border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+    <button (click)="onUploadButtonClick()" type="button" title="Upload" class="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 dark:text-gray-300" viewBox="0 0 20 20" fill="currentColor">
         <path d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.414l-1.293 1.293a1 1 0 01-1.414-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L9 9.414V13H5.5z" />
         <path d="M9 13h2v5a1 1 0 11-2 0v-5z" />
       </svg>
-      <span>Upload</span>
     </button>
     <input #fileInput type="file" class="hidden" (change)="onFileSelected($event)" multiple />
   </div>

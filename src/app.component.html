@@ -1,6 +1,46 @@
 <div class="flex flex-col h-screen font-sans antialiased text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-900">
   <!-- Main Header -->
-  <header class="flex-shrink-0 h-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center justify-end px-4">
+  <header class="flex-shrink-0 h-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center justify-end px-4 space-x-2">
+    <!-- Connection Status -->
+    <div class="flex-grow flex items-center">
+        <span class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Status:
+        </span>
+        <span class="ml-2 text-sm font-semibold text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded-md"
+            [class.bg-green-100]="connectionState() === 'local'"
+            [class.dark:bg-green-900/50]="connectionState() === 'local'"
+            [class.text-green-800]="connectionState() === 'local'"
+            [class.dark:text-green-300]="connectionState() === 'local'"
+            [class.bg-blue-100]="connectionState() === 'remote'"
+            [class.dark:bg-blue-900/50]="connectionState() === 'remote'"
+            [class.text-blue-800]="connectionState() === 'remote'"
+            [class.dark:text-blue-300]="connectionState() === 'remote'"
+        >
+            {{ connectionStatusText() }}
+        </span>
+    </div>
+
+    <button (click)="toggleConnection()" class="flex items-center space-x-2 px-3 py-1 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md shadow-sm border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900">
+        @if(connectionState() === 'remote') {
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            <span>Disconnect</span>
+        } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L9 5.414V17a1 1 0 102 0V5.414l4.293 4.293a1 1 0 001.414-1.414l-7-7z" />
+            </svg>
+            <span>Connect</span>
+        }
+    </button>
+    <div class="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+    <button (click)="openServerProfilesDialog()" class="flex items-center space-x-2 px-3 py-1 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md shadow-sm border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" clip-rule="evenodd" />
+      </svg>
+      <span>Servers</span>
+    </button>
+    <div class="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
     <button (click)="toggleSplitView()" class="flex items-center space-x-2 px-3 py-1 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md shadow-sm border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900">
       @if (isSplitView()) {
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -29,7 +69,9 @@
         <app-file-explorer 
           [id]="1"
           [isActive]="activePaneId() === 1"
+          [isSplitView]="isSplitView()"
           [sidebarNavigationEvent]="sidebarNavigationEvent()"
+          [fileSystemProvider]="fileSystemProvider()"
           (activated)="setActivePane($event)"
           (pathChanged)="onPanePathChanged($event)">
         </app-file-explorer>
@@ -40,7 +82,9 @@
           <app-file-explorer 
             [id]="2"
             [isActive]="activePaneId() === 2"
+            [isSplitView]="isSplitView()"
             [sidebarNavigationEvent]="sidebarNavigationEvent()"
+            [fileSystemProvider]="fileSystemProvider()"
             (activated)="setActivePane($event)"
             (pathChanged)="onPanePathChanged($event)">
           </app-file-explorer>
@@ -48,4 +92,11 @@
       }
     </div>
   </main>
+
+  @if(isServerProfilesDialogOpen()) {
+    <app-server-profiles-dialog 
+      (close)="closeServerProfilesDialog()"
+      (profileActivated)="switchToRemote()">
+    </app-server-profiles-dialog>
+  }
 </div>

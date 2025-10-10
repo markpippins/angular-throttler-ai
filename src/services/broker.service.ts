@@ -1,11 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { AppConfig, APP_CONFIG } from './app-config';
+import { ServerProfileService } from './server-profile.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class BrokerService {
-  private config = inject<AppConfig>(APP_CONFIG);
+  private profileService = inject(ServerProfileService);
 
   private generateUUID(): string {
     var d = new Date().getTime();
@@ -30,8 +30,10 @@ export class BrokerService {
         params,
         requestId: this.generateUUID()
     };
+    
+    const config = this.profileService.activeConfig();
 
-    const response = await fetch(this.config.brokerUrl, {
+    const response = await fetch(config.brokerUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
