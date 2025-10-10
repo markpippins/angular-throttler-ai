@@ -1,16 +1,17 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { FileSystemProvider } from './file-system-provider';
 import { FileSystemNode } from '../models/file-system.model';
-import * as fsClient from '../lib/fs-client';
+import { FsService } from './fs.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RemoteFileSystemService implements FileSystemProvider {
+  private fsService = inject(FsService);
   private alias = 'C:';
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {
-    const response: any = await fsClient.listFiles(this.alias, path);
+    const response: any = await this.fsService.listFiles(this.alias, path);
 
     let rawItems: any[] = [];
 
@@ -48,22 +49,22 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   createDirectory(path: string[], name: string): Promise<void> {
-    return fsClient.createDirectory(this.alias, [...path, name]);
+    return this.fsService.createDirectory(this.alias, [...path, name]);
   }
 
   removeDirectory(path: string[], name: string): Promise<void> {
-    return fsClient.removeDirectory(this.alias, [...path, name]);
+    return this.fsService.removeDirectory(this.alias, [...path, name]);
   }
 
   createFile(path: string[], name: string): Promise<void> {
-    return fsClient.createFile(this.alias, path, name);
+    return this.fsService.createFile(this.alias, path, name);
   }
 
   deleteFile(path: string[], name: string): Promise<void> {
-    return fsClient.deleteFile(this.alias, path, name);
+    return this.fsService.deleteFile(this.alias, path, name);
   }
 
   rename(path: string[], oldName: string, newName: string): Promise<void> {
-    return fsClient.rename(this.alias, [...path, oldName], newName);
+    return this.fsService.rename(this.alias, [...path, oldName], newName);
   }
 }
