@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { FileSystemProvider } from './file-system-provider';
 import { FileSystemNode } from '../models/file-system.model';
-import * as fsClient from './fs-client';
+import * as fsClient from '../lib/fs-client';
 
 @Injectable({
   providedIn: 'root',

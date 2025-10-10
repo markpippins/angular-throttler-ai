@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { FileSystemNode } from '../models/file-system.model';
-import * as imageClient from '../../lib/image-client';
+import * as imageClient from '../lib/image-client';
 
 @Injectable({
   providedIn: 'root',

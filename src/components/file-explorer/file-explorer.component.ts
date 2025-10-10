@@ -5,6 +5,7 @@ import { FILE_SYSTEM_PROVIDER, FileSystemProvider } from '../../services/file-sy
 import { ImageService } from '../../services/image.service';
 import { ToolbarComponent } from '../toolbar/toolbar.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
+import { FolderComponent } from '../folder/folder.component';
 
 interface FileSystemState {
   status: 'loading' | 'success' | 'error';
@@ -15,7 +16,7 @@ interface FileSystemState {
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, NgOptimizedImage, ToolbarComponent, SidebarComponent],
+  imports: [CommonModule, NgOptimizedImage, ToolbarComponent, SidebarComponent, FolderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent {
