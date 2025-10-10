@@ -3,6 +3,7 @@ import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model';
 import { FILE_SYSTEM_PROVIDER, FileSystemProvider } from '../../services/file-system-provider';
 import { ImageService } from '../../services/image.service';
+import { ToolbarComponent } from '../toolbar/toolbar.component';
 
 interface FileSystemState {
   status: 'loading' | 'success' | 'error';
@@ -13,7 +14,7 @@ interface FileSystemState {
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, NgOptimizedImage],
+  imports: [CommonModule, NgOptimizedImage, ToolbarComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent {

@@ -1,4 +1,6 @@
-const IMAGE_SERVER_BASE_URL = 'http://localhost:8081';
+declare const process: any;
+
+const IMAGE_SERVER_BASE_URL = (process && process.env.IMAGE_SERVER_URL) || 'http://localhost:8081';
    
 /**
  * Gets the image URL for a file extension.
