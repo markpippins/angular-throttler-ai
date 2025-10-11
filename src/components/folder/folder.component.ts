@@ -7,9 +7,6 @@ import { FileSystemNode } from '../../models/file-system.model';
   templateUrl: './folder.component.html',
   imports: [CommonModule, NgOptimizedImage],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    '[attr.data-is-selectable-item]': 'true'
-  }
 })
 export class FolderComponent {
   item = input.required<FileSystemNode>();

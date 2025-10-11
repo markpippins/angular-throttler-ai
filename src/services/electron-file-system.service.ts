@@ -20,6 +20,14 @@ export class ElectronFileSystemService implements FileSystemProvider {
         children: [
             { name: 'resume.pdf', type: 'file', content: 'My resume content.', modified: '2024-01-10' },
             { name: 'project-plan.docx', type: 'file', content: 'Project plan details.', modified: '2024-01-12' },
+            {
+              name: 'Work',
+              type: 'folder',
+              modified: '2024-02-01',
+              children: [
+                { name: 'report.docx', type: 'file', content: 'Work report.' }
+              ]
+            }
         ],
       },
       {
@@ -61,8 +69,8 @@ export class ElectronFileSystemService implements FileSystemProvider {
 
   async getFolderTree(): Promise<FileSystemNode> {
     console.log('[ElectronFS] Getting folder tree.');
-    // In a real implementation, we would recursively scan the file system.
-    // For this placeholder, we return a simplified, non-recursive version of the root.
+    // Recursively clone the folder structure to create a tree suitable for the sidebar.
+    // This implementation intentionally filters out files to only show directories.
     const cloneNode = (node: FileSystemNode): FileSystemNode | null => {
         if (node.type !== 'folder') return null;
         const newNode: FileSystemNode = { name: node.name, type: 'folder', children: [] };
