@@ -1,26 +1,23 @@
 <div class="flex flex-col h-full">
   <!-- Tab Headers -->
-  <div class="flex items-end h-[50px] border-b border-gray-200 dark:border-gray-700 px-2">
+  <div class="flex items-end h-[49px] border-b border-[rgb(var(--color-border-base))] px-2">
     <div class="flex">
       @for(tab of tabs(); track tab; let i = $index) {
         <button 
           (click)="selectTab(i)"
-          [class.border-blue-500]="activeTabIndex() === i"
-          [class.text-blue-600]="activeTabIndex() === i"
-          [class.dark:text-blue-400]="activeTabIndex() === i"
+          [class.border-[rgb(var(--color-accent-ring))]]="activeTabIndex() === i"
+          [class.text-[rgb(var(--color-accent-text))]]="activeTabIndex() === i"
           [class.border-transparent]="activeTabIndex() !== i"
-          [class.text-gray-500]="activeTabIndex() !== i"
-          [class.hover:text-gray-700]="activeTabIndex() !== i"
-          [class.hover:border-gray-300]="activeTabIndex() !== i"
-          [class.dark:text-gray-400]="activeTabIndex() !== i"
-          [class.dark:hover:text-gray-300]="activeTabIndex() !== i"
+          [class.text-[rgb(var(--color-text-subtle))]]="activeTabIndex() !== i"
+          [class.hover:text-[rgb(var(--color-text-muted))]]="activeTabIndex() !== i"
+          [class.hover:border-[rgb(var(--color-border-muted))]]="activeTabIndex() !== i"
           class="py-2 px-4 text-sm font-medium text-center border-b-2 -mb-px"
         >
           {{ tab.title() }}
         </button>
       }
     </div>
-    <button (click)="collapseClick.emit()" title="Collapse" class="ml-auto p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+    <button (click)="collapseClick.emit()" title="Collapse" class="ml-auto p-2 rounded-md text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] transition-colors">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M9.707 4.293a1 1 0 010 1.414L5.414 10l4.293 4.293a1 1 0 01-1.414 1.414l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 0z" clip-rule="evenodd" />
         <path fill-rule="evenodd" d="M15.707 4.293a1 1 0 010 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 0z" clip-rule="evenodd" />

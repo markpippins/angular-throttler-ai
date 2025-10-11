@@ -19,5 +19,5 @@ This directory contains the TypeScript `interface` and `type` definitions that e
 -   **`ServerProfile`**: This interface defines the structure of a connection profile for a remote server.
     -   `id: string`: A unique identifier for the profile.
     -   `name: string`: A user-friendly name for the profile (e.g., "Production Server").
-    -   `brokerUrl: string`: The full URL to the backend message broker endpoint.
+    -   `brokerUrl: string`: The base URL for the backend message broker (e.g., `http://localhost:8080`). The service layer is responsible for appending the specific API path.
     -   `imageUrl: string`: The base URL for the image server associated with this profile.

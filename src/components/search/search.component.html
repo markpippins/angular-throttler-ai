@@ -5,12 +5,12 @@
       (input)="onQueryChange($event)"
       rows="3" 
       placeholder="Enter your search query..."
-      class="w-full text-sm p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+      class="w-full text-sm p-2 rounded-md border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface))] focus:ring-2 focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] transition-colors"
     ></textarea>
     <button 
       (click)="search()" 
       [disabled]="!query().trim() || isLoading()"
-      class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:dark:bg-gray-600 disabled:cursor-not-allowed transition-colors font-semibold text-sm"
+      class="w-full px-4 py-2 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed transition-colors font-semibold text-sm"
     >
       @if (isLoading()) {
         <div class="flex items-center justify-center">
@@ -26,28 +26,28 @@
     </button>
   </div>
 
-  <div class="flex-1 overflow-y-auto pt-4 mt-2 border-t border-gray-200 dark:border-gray-700">
+  <div class="flex-1 overflow-y-auto pt-4 mt-2 border-t border-[rgb(var(--color-border-base))]">
     @if (isLoading()) {
-      <div class="text-center py-4 text-gray-500 dark:text-gray-400">
+      <div class="text-center py-4 text-[rgb(var(--color-text-subtle))]">
         <p>Searching for results...</p>
       </div>
     } @else if (results(); as res) {
       @if (res.length > 0) {
         <div class="space-y-3">
           @for (result of res; track result.title) {
-            <div class="p-3 bg-white dark:bg-gray-800/80 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700/50">
-              <h3 class="font-semibold text-blue-500 hover:underline cursor-pointer">{{ result.title }}</h3>
-              <p class="text-gray-600 dark:text-gray-400 mt-1">{{ result.snippet }}</p>
+            <div class="p-3 bg-[rgb(var(--color-surface))] rounded-lg shadow-sm border border-[rgb(var(--color-border-base))]">
+              <h3 class="font-semibold text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer">{{ result.title }}</h3>
+              <p class="text-[rgb(var(--color-text-muted))] mt-1">{{ result.snippet }}</p>
             </div>
           }
         </div>
       } @else {
-        <div class="text-center py-4 text-gray-500 dark:text-gray-400">
+        <div class="text-center py-4 text-[rgb(var(--color-text-subtle))]">
           <p>No results found.</p>
         </div>
       }
     } @else {
-      <div class="text-center py-4 text-gray-500 dark:text-gray-400">
+      <div class="text-center py-4 text-[rgb(var(--color-text-subtle))]">
         <p>Enter a query and click Search to begin.</p>
       </div>
     }

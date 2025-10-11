@@ -1,5 +1,5 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { FileSystemNode } from './models/file-system.model';
@@ -13,16 +13,24 @@ interface PanePath {
   id: number;
   path: string[];
 }
+type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
+const THEME_STORAGE_KEY = 'file-explorer-theme';
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent],
+  host: {
+    '(document:click)': 'onDocumentClick($event)',
+  }
 })
-export class AppComponent {
+export class AppComponent implements OnDestroy {
   private electronFs = inject(ElectronFileSystemService);
   private remoteFs = inject(RemoteFileSystemService);
   private profileService = inject(ServerProfileService);
+  private document = inject(DOCUMENT);
+  private elementRef = inject(ElementRef);
 
   // --- State Management ---
   connectionState = signal<'local' | 'remote'>('local');
@@ -30,12 +38,21 @@ export class AppComponent {
   activePaneId = signal(1);
   folderTree = signal<FileSystemNode | null>(null);
   isServerProfilesDialogOpen = signal(false);
+  isThemeDropdownOpen = signal(false);
 
   // An event-like signal to trigger navigation in the active pane from the sidebar
   sidebarNavigationEvent = signal<{ path: string[], timestamp: number } | null>(null);
   
   // Keep track of each pane's path
   private panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
+
+  // --- Theme Management ---
+  currentTheme = signal<Theme>('theme-steel');
+  themes: {id: Theme, name: string}[] = [
+    { id: 'theme-light', name: 'Light' },
+    { id: 'theme-steel', name: 'Steel' },
+    { id: 'theme-dark', name: 'Dark' },
+  ];
 
   // --- Computed Properties ---
   fileSystemProvider = computed<FileSystemProvider>(() => 
@@ -57,10 +74,56 @@ export class AppComponent {
   });
 
   constructor() {
+    this.loadTheme();
+    
+    // Persist theme changes and update body class
+    effect(() => {
+      const theme = this.currentTheme();
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      this.document.body.className = theme;
+    });
+
     // Reload the entire folder tree whenever the connection state changes.
     effect(() => {
       this.loadFolderTree(this.fileSystemProvider());
     }, { allowSignalWrites: true });
+  }
+
+  ngOnDestroy(): void {
+    // Clean up body class if component is destroyed
+    this.document.body.className = '';
+  }
+
+  loadTheme(): void {
+    try {
+      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme;
+      if (storedTheme && this.themes.some(t => t.id === storedTheme)) {
+        this.currentTheme.set(storedTheme);
+      } else {
+        this.currentTheme.set('theme-steel');
+      }
+    } catch (e) {
+      console.error('Failed to load theme from localStorage', e);
+      this.currentTheme.set('theme-steel');
+    }
+  }
+
+  setTheme(theme: Theme): void {
+    this.currentTheme.set(theme);
+    this.isThemeDropdownOpen.set(false);
+  }
+
+  toggleThemeDropdown(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isThemeDropdownOpen.update(v => !v);
+  }
+  
+  onDocumentClick(event: Event): void {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      if (this.isThemeDropdownOpen()) {
+        this.isThemeDropdownOpen.set(false);
+      }
+    }
   }
 
   async loadFolderTree(provider: FileSystemProvider): Promise<void> {

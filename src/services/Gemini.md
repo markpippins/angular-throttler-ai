@@ -39,7 +39,7 @@ This directory is the logical core of the application, containing all the inject
 ### `broker.service.ts`
 
 -   **Purpose:** A generic, low-level client for making requests to the backend message broker.
--   **Functionality:** Its `submitRequest` method constructs a request payload, gets the correct broker URL from the `ServerProfileService`, and uses the `fetch` API to send the request. It also handles basic response validation.
+-   **Functionality:** Its `submitRequest` method constructs a request payload, gets the base broker URL from the `ServerProfileService`, appends the static API path (`/api/broker/submitRequest`) to create the full endpoint, and uses the `fetch` API to send the request. It also handles basic response validation. This abstraction keeps the specific endpoint details out of the user-facing server profiles.
 
 ### `fs.service.ts`
 

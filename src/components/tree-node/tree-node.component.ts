@@ -29,6 +29,11 @@ export class TreeNodeComponent {
   });
 
   constructor() {
+    // Expand the root node by default.
+    if (this.level() === 0) {
+      this.isExpanded.set(true);
+    }
+
     effect(() => {
       const currentStr = this.currentPath().join('/');
       const myPathStr = this.path().join('/');

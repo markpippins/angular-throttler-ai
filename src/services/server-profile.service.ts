@@ -8,7 +8,7 @@ const DEFAULT_PROFILES: ServerProfile[] = [
   {
     id: 'default-local',
     name: 'Local (Debug)',
-    brokerUrl: 'http://localhost:8080/api/broker/submitRequest',
+    brokerUrl: 'http://localhost:8080',
     imageUrl: 'http://localhost:8081',
   },
 ];

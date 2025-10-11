@@ -1,9 +1,9 @@
 <div class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" (click)="close.emit()">
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl h-[600px] flex flex-col" (click)="$event.stopPropagation()">
+  <div class="bg-[rgb(var(--color-surface-dialog))] rounded-lg shadow-xl w-full max-w-4xl h-[600px] flex flex-col" (click)="$event.stopPropagation()">
     
-    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
-      <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Server Connection Profiles</h3>
-      <button (click)="close.emit()" class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
+    <div class="p-4 border-b border-[rgb(var(--color-border-base))] flex justify-between items-center flex-shrink-0">
+      <h3 class="text-lg font-semibold text-[rgb(var(--color-text-base))]">Server Connection Profiles</h3>
+      <button (click)="close.emit()" class="p-1 rounded-full hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))]">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -12,9 +12,9 @@
     
     <div class="flex-1 flex overflow-hidden">
       <!-- Left: Profile List -->
-      <div class="w-1/3 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+      <div class="w-1/3 border-r border-[rgb(var(--color-border-base))] flex flex-col">
         <div class="p-2">
-            <button (click)="startAddNew()" class="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md shadow-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800">
+            <button (click)="startAddNew()" class="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] hover:bg-[rgb(var(--color-accent-solid-bg-hover))] rounded-md shadow-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--color-accent-ring))]">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
               </svg>
@@ -25,17 +25,15 @@
           @for(profile of profileService.profiles(); track profile.id) {
             <div (click)="startEdit(profile)"
                  class="p-3 rounded-md cursor-pointer group"
-                 [class.bg-blue-100]="selectedProfileId() === profile.id"
-                 [class.dark:bg-blue-900/50]="selectedProfileId() === profile.id"
-                 [class.hover:bg-gray-100]="selectedProfileId() !== profile.id"
-                 [class.dark:hover:bg-gray-700/50]="selectedProfileId() !== profile.id">
+                 [class.bg-[rgb(var(--color-accent-bg))]]="selectedProfileId() === profile.id"
+                 [class.hover:bg-[rgb(var(--color-surface-hover-subtle))]]="selectedProfileId() !== profile.id">
               <div class="flex justify-between items-center">
-                <span class="font-semibold text-gray-800 dark:text-gray-200 truncate">{{ profile.name }}</span>
+                <span class="font-semibold text-[rgb(var(--color-text-base))] truncate">{{ profile.name }}</span>
                 @if(profileService.activeProfileId() === profile.id) {
-                  <span class="text-xs font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-2 py-0.5 rounded-full">ACTIVE</span>
+                  <span class="text-xs font-bold text-[rgb(var(--color-status-green-text))] bg-[rgb(var(--color-status-green-bg))] px-2 py-0.5 rounded-full">ACTIVE</span>
                 }
               </div>
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">{{ profile.brokerUrl }}</p>
+              <p class="text-xs text-[rgb(var(--color-text-subtle))] truncate mt-1">{{ profile.brokerUrl }}</p>
             </div>
           }
         </div>
@@ -45,32 +43,32 @@
       <div class="w-2/3 p-6 overflow-y-auto">
         @if (formState(); as form) {
           <div class="space-y-6">
-            <h4 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ form.id ? 'Edit Profile' : 'Create New Profile' }}</h4>
+            <h4 class="text-xl font-bold text-[rgb(var(--color-text-base))]">{{ form.id ? 'Edit Profile' : 'Create New Profile' }}</h4>
             
             <div>
-              <label for="profileName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Profile Name</label>
+              <label for="profileName" class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Profile Name</label>
               <input type="text" id="profileName" [value]="form.name" (input)="onFormValueChange($event, 'name')" placeholder="e.g., Production Environment"
-                     class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                     class="mt-1 block w-full px-3 py-2 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] sm:text-sm">
             </div>
 
             <div>
-              <label for="brokerUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Broker URL</label>
-              <input type="text" id="brokerUrl" [value]="form.brokerUrl" (input)="onFormValueChange($event, 'brokerUrl')" placeholder="http://..."
-                     class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+              <label for="brokerUrl" class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Broker URL</label>
+              <input type="text" id="brokerUrl" [value]="form.brokerUrl" (input)="onFormValueChange($event, 'brokerUrl')" placeholder="e.g., http://localhost:8080"
+                     class="mt-1 block w-full px-3 py-2 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] sm:text-sm">
             </div>
 
             <div>
-              <label for="imageUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Image Server URL</label>
+              <label for="imageUrl" class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Image Server URL</label>
               <input type="text" id="imageUrl" [value]="form.imageUrl" (input)="onFormValueChange($event, 'imageUrl')" placeholder="http://..."
-                     class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                     class="mt-1 block w-full px-3 py-2 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] sm:text-sm">
             </div>
             
-            <div class="pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 sm:space-x-2">
+            <div class="pt-4 border-t border-[rgb(var(--color-border-base))] flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 sm:space-x-2">
               <div class="flex space-x-2">
-                <button (click)="saveProfile()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-semibold text-sm disabled:bg-gray-400" [disabled]="!form.name.trim()">
+                <button (click)="saveProfile()" class="px-4 py-2 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] transition-colors font-semibold text-sm disabled:bg-[rgb(var(--color-disabled-bg))]" [disabled]="!form.name.trim()">
                   Save Profile
                 </button>
-                <button (click)="cancelEdit()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-semibold text-sm">
+                <button (click)="cancelEdit()" class="px-4 py-2 bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-base))] rounded-md hover:bg-[rgb(var(--color-border-base))] transition-colors font-semibold text-sm">
                   Cancel
                 </button>
               </div>
@@ -80,7 +78,7 @@
                     <button (click)="setActive(form.id!)" class="px-4 py-2 border border-green-500 text-green-600 dark:text-green-400 rounded-md hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors font-semibold text-sm disabled:opacity-50" [disabled]="profileService.activeProfileId() === form.id">
                         Set Active
                     </button>
-                    <button (click)="deleteProfile(form.id!)" class="p-2 text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-500 rounded-md transition-colors" title="Delete Profile" [disabled]="profileService.profiles().length <= 1">
+                    <button (click)="deleteProfile(form.id!)" class="p-2 text-[rgb(var(--color-text-subtle))] hover:bg-[rgb(var(--color-danger-bg-hover))] hover:text-[rgb(var(--color-danger-text))] rounded-md transition-colors" title="Delete Profile" [disabled]="profileService.profiles().length <= 1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                           <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
                         </svg>
@@ -90,8 +88,8 @@
             </div>
           </div>
         } @else {
-          <div class="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+          <div class="h-full flex flex-col items-center justify-center text-center text-[rgb(var(--color-text-subtle))]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3m0 0l3-3m-3 3v8m0-13a9 9 0 110 18 9 9 0 010-18z" />
             </svg>
             <p class="mt-4 text-lg">Select a profile to view or edit.</p>

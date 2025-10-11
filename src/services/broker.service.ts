@@ -32,8 +32,9 @@ export class BrokerService {
     };
     
     const config = this.profileService.activeConfig();
+    const fullBrokerUrl = `${config.brokerUrl}/api/broker/submitRequest`;
 
-    const response = await fetch(config.brokerUrl, {
+    const response = await fetch(fullBrokerUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

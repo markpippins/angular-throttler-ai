@@ -1,15 +1,10 @@
 <div class="p-2 h-full overflow-y-auto">
   @if (rootNode(); as root) {
-    <!-- The root itself is C:, we show its children -->
-    @if(root.children) {
-      @for(child of root.children; track child.name) {
-        <app-tree-node 
-          [node]="child" 
-          [path]="[child.name]"
-          [currentPath]="currentPath()"
-          (pathChange)="onPathChange($event)">
-        </app-tree-node>
-      }
-    }
+    <app-tree-node
+      [node]="root"
+      [path]="[]"
+      [currentPath]="currentPath()"
+      (pathChange)="onPathChange($event)">
+    </app-tree-node>
   }
 </div>

@@ -1,15 +1,13 @@
 <div 
   (click)="selectNode()"
   class="flex items-center text-sm py-1 px-2 rounded-md cursor-pointer"
-  [class.bg-blue-200]="isSelected()"
-  [class.dark:bg-blue-800/60]="isSelected()"
-  [class.hover:bg-gray-200]="!isSelected()"
-  [class.dark:hover:bg-gray-700/60]="!isSelected()"
+  [class.bg-[rgb(var(--color-accent-bg-selected))]]="isSelected()"
+  [class.hover:bg-[rgb(var(--color-surface-hover))]]="!isSelected()"
   [style.padding-left.px]="level() * 16 + 8">
   
   <button 
     (click)="toggleExpand($event)"
-    class="mr-1 w-5 h-5 flex-shrink-0 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 rounded"
+    class="mr-1 w-5 h-5 flex-shrink-0 flex items-center justify-center text-[rgb(var(--color-text-subtle))] hover:bg-[rgb(var(--color-surface-hover-subtle))] rounded"
     [class.invisible]="!hasChildren()">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-150" [class.rotate-90]="isExpanded()" viewBox="0 0 20 20" fill="currentColor">
       <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
