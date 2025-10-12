@@ -39,9 +39,6 @@ export class AppComponent implements OnDestroy {
   folderTree = signal<FileSystemNode | null>(null);
   isServerProfilesDialogOpen = signal(false);
   isThemeDropdownOpen = signal(false);
-
-  // An event-like signal to trigger navigation in the active pane from the sidebar
-  sidebarNavigationEvent = signal<{ path: string[], timestamp: number } | null>(null);
   
   // Keep track of each pane's path
   private panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
@@ -72,6 +69,10 @@ export class AppComponent implements OnDestroy {
     const activePane = this.panePaths().find(p => p.id === activeId);
     return activePane ? activePane.path : [];
   });
+  
+  // Computed paths for each pane to pass as inputs
+  pane1Path = computed(() => this.panePaths().find(p => p.id === 1)?.path ?? []);
+  pane2Path = computed(() => this.panePaths().find(p => p.id === 2)?.path ?? []);
 
   constructor() {
     this.loadTheme();
@@ -182,13 +183,22 @@ export class AppComponent implements OnDestroy {
   setActivePane(id: number): void {
     this.activePaneId.set(id);
   }
+  
+  onPane1PathChanged(path: string[]): void {
+    this.updatePanePath(1, path);
+  }
 
-  onPanePathChanged(event: { id: number; path: string[] }): void {
+  onPane2PathChanged(path: string[]): void {
+    this.updatePanePath(2, path);
+  }
+
+  private updatePanePath(id: number, path: string[]): void {
+    console.log(`[App] Updating path for Pane ${id}:`, path.join('/'));
     this.panePaths.update(paths => {
-      const index = paths.findIndex(p => p.id === event.id);
+      const index = paths.findIndex(p => p.id === id);
       if (index > -1) {
         const newPaths = [...paths];
-        newPaths[index] = { ...newPaths[index], path: event.path };
+        newPaths[index] = { ...newPaths[index], path: path };
         return newPaths;
       }
       return paths;
@@ -196,7 +206,7 @@ export class AppComponent implements OnDestroy {
   }
   
   onSidebarNavigation(path: string[]): void {
-    this.sidebarNavigationEvent.set({ path, timestamp: Date.now() });
+    this.updatePanePath(this.activePaneId(), path);
   }
 
   openServerProfilesDialog(): void {

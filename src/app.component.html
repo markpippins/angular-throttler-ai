@@ -89,12 +89,12 @@
       <div class="flex-1">
         <app-file-explorer 
           [id]="1"
+          [path]="pane1Path()"
           [isActive]="activePaneId() === 1"
           [isSplitView]="isSplitView()"
-          [sidebarNavigationEvent]="sidebarNavigationEvent()"
           [fileSystemProvider]="fileSystemProvider()"
           (activated)="setActivePane($event)"
-          (pathChanged)="onPanePathChanged($event)">
+          (pathChanged)="onPane1PathChanged($event)">
         </app-file-explorer>
       </div>
 
@@ -102,12 +102,12 @@
         <div class="flex-1">
           <app-file-explorer 
             [id]="2"
+            [path]="pane2Path()"
             [isActive]="activePaneId() === 2"
             [isSplitView]="isSplitView()"
-            [sidebarNavigationEvent]="sidebarNavigationEvent()"
             [fileSystemProvider]="fileSystemProvider()"
             (activated)="setActivePane($event)"
-            (pathChanged)="onPanePathChanged($event)">
+            (pathChanged)="onPane2PathChanged($event)">
           </app-file-explorer>
         </div>
       }

@@ -7,18 +7,18 @@
 
   <!-- Header / Toolbar -->
   <div class="h-12 px-4 border-b border-[rgb(var(--color-border-base))] flex items-center space-x-2 flex-shrink-0">
-    <button (click)="goUp()" [disabled]="!canGoUp()" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover-subtle))] disabled:opacity-50 disabled:cursor-not-allowed">
+    <button (click)="goUp()" [disabled]="!canGoUp()" title="Up" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover-subtle))] disabled:opacity-50 disabled:cursor-not-allowed">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[rgb(var(--color-text-muted))]" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M12.707 14.707a1 1 0 01-1.414 0L7 10.414V17a1 1 0 11-2 0V3a1 1 0 011-1h11a1 1 0 110 2H8.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
       </svg>
     </button>
     <!-- Address Bar -->
     <div class="flex-grow flex items-center bg-[rgb(var(--color-background))] rounded-md border border-[rgb(var(--color-border-muted))] px-2 py-1 text-sm">
       <button (click)="navigateToPath(-1)" class="text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer">{{ rootName() | async }}</button>
-      @if (currentPath().length > 0) {
+      @if (path().length > 0) {
         <span class="mx-1 text-[rgb(var(--color-text-subtle))]">\</span>
       }
-      @for (segment of currentPath(); track segment; let i = $index) {
+      @for (segment of path(); track segment; let i = $index) {
         <button (click)="navigateToPath(i)" class="text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer">{{ segment }}</button>
         @if (!$last) {
           <span class="mx-1 text-[rgb(var(--color-text-subtle))]">\</span>

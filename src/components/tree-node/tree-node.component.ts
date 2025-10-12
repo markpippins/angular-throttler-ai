@@ -54,17 +54,18 @@ export class TreeNodeComponent {
   }
 
   selectNode(): void {
-    // If the clicked node is the root node (path: []) and it's already selected
-    // (meaning the explorer is already at the root), just toggle its expansion.
-    if (this.path().length === 0 && this.isSelected()) {
+    if (this.isSelected()) {
+      // If the node is already selected, clicking it again ONLY toggles expansion.
       if (this.hasChildren()) {
         this.isExpanded.update(v => !v);
       }
-      return;
+    } else {
+      // If the node is not selected, navigate to it AND expand it.
+      this.pathChange.emit(this.path());
+      if (this.hasChildren() && !this.isExpanded()) {
+        this.isExpanded.set(true);
+      }
     }
-    // Otherwise, emit a navigation event for this path.
-    // This allows clicking the root node to navigate home if you're in a sub-folder.
-    this.pathChange.emit(this.path());
   }
 
   onChildPathChange(path: string[]): void {
