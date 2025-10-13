@@ -9,13 +9,14 @@
       "ES2022",
       "DOM"
     ],
+    "jsx": "preserve",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "declaration": false
   },
   "include": [
-    "index.ts",
+    "index.tsx",
     "src/**/*.ts"
   ],
   "exclude": [
