@@ -108,14 +108,12 @@
                     [item]="item"
                     [iconUrl]="getIconUrl(item)"
                     [hasFailedToLoadImage]="failedImageItems().has(item.name)"
-                    [isImageLoaded]="loadedImageItems().has(item.name)"
                     [isSelected]="selectedItems().has(item.name)"
                     (click)="onItemClick($event, item)"
                     (dblclick)="openItem(item)"
                     (itemContextMenu)="onContextMenu($event.event, $event.item)"
                     (itemDrop)="onFolderDrop($event)"
-                    (imageError)="onImageError($event)"
-                    (imageLoad)="onImageLoad($event)">
+                    (imageError)="onImageError($event)">
                   </app-folder>
                 } @else {
                   <div #selectableItem
