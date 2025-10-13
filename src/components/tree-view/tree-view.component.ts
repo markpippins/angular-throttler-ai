@@ -12,6 +12,7 @@ import { TreeNodeComponent } from '../tree-node/tree-node.component.js';
 export class TreeViewComponent {
   rootNode = input.required<FileSystemNode>();
   currentPath = input.required<string[]>();
+  expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
   pathChange = output<string[]>();
 
   onPathChange(path: string[]): void {

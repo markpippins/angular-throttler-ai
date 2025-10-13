@@ -1,9 +1,10 @@
-<div class="p-2 h-full overflow-y-auto">
+<div class="h-full">
   @if (rootNode(); as root) {
     <app-tree-node
       [node]="root"
       [path]="[]"
       [currentPath]="currentPath()"
+      [expansionCommand]="expansionCommand()"
       (pathChange)="onPathChange($event)">
     </app-tree-node>
   }

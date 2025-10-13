@@ -17,10 +17,12 @@ export class SidebarComponent implements OnDestroy {
   folderTree = input<FileSystemNode | null>(null);
   currentPath = input<string[]>([]);
   pathChange = output<string[]>();
+  refreshTree = output<void>();
 
   isCollapsed = signal(false);
   width = signal(288); // Default width is 288px (w-72)
   isResizing = signal(false);
+  treeExpansionCommand = signal<{ command: 'expand' | 'collapse', id: number } | null>(null);
 
   private preCollapseWidth = 288;
   private renderer = inject(Renderer2);
@@ -83,6 +85,18 @@ export class SidebarComponent implements OnDestroy {
 
   onTreeViewPathChange(path: string[]): void {
     this.pathChange.emit(path);
+  }
+
+  onRefreshTree(): void {
+    this.refreshTree.emit();
+  }
+
+  onExpandAll(): void {
+    this.treeExpansionCommand.set({ command: 'expand', id: Date.now() });
+  }
+
+  onCollapseAll(): void {
+    this.treeExpansionCommand.set({ command: 'collapse', id: Date.now() });
   }
 
   ngOnDestroy(): void {

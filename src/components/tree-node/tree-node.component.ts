@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
 
@@ -8,11 +8,12 @@ import { FileSystemNode } from '../../models/file-system.model.js';
   imports: [CommonModule, TreeNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TreeNodeComponent {
+export class TreeNodeComponent implements OnInit {
   node = input.required<FileSystemNode>();
   path = input.required<string[]>();
   currentPath = input.required<string[]>();
   level = input(0);
+  expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
 
   pathChange = output<string[]>();
 
@@ -29,11 +30,7 @@ export class TreeNodeComponent {
   });
 
   constructor() {
-    // Expand the root node by default.
-    if (this.level() === 0) {
-      this.isExpanded.set(true);
-    }
-
+    // Effect for auto-expanding based on navigation in the main pane
     effect(() => {
       const currentStr = this.currentPath().join('/');
       const myPathStr = this.path().join('/');
@@ -44,6 +41,30 @@ export class TreeNodeComponent {
         this.isExpanded.set(true);
       }
     });
+
+    // Effect for handling commands from the sidebar toolbar
+    effect(() => {
+      const command = this.expansionCommand();
+      if (!command) return;
+
+      if (command.command === 'expand') {
+          if (this.hasChildren()) {
+              this.isExpanded.set(true);
+          }
+      } else if (command.command === 'collapse') {
+          // Do not collapse the root "Home" node itself
+          if (this.level() > 0) {
+              this.isExpanded.set(false);
+          }
+      }
+    });
+  }
+
+  ngOnInit(): void {
+    // Expand the root node by default after initialization.
+    if (this.level() === 0) {
+      this.isExpanded.set(true);
+    }
   }
 
   toggleExpand(event: MouseEvent): void {
