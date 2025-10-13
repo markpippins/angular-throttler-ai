@@ -5,7 +5,6 @@ import { SidebarComponent } from './components/sidebar/sidebar.component.js';
 import { FileSystemNode } from './models/file-system.model.js';
 import { FileSystemProvider } from './services/file-system-provider.js';
 import { ServerProfilesDialogComponent } from './components/server-profiles-dialog/server-profiles-dialog.component.js';
-import { ElectronFileSystemService } from './services/electron-file-system.service.js';
 import { ServerProfileService } from './services/server-profile.service.js';
 import { SearchDialogComponent } from './components/search-dialog/search-dialog.component.js';
 import { DetailPaneComponent } from './components/detail-pane/detail-pane.component.js';
@@ -23,7 +22,6 @@ interface PanePath {
 type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
 const THEME_STORAGE_KEY = 'file-explorer-theme';
 
-const LOCAL_FS_ROOT_NAME = 'Local Filesystem';
 const CONVEX_ROOT_NAME = 'Convex Pins';
 
 @Component({
@@ -36,7 +34,6 @@ const CONVEX_ROOT_NAME = 'Convex Pins';
   }
 })
 export class AppComponent implements OnInit, OnDestroy {
-  private electronFs = inject(ElectronFileSystemService);
   private convexFs = inject(ConvexDesktopService);
   private profileService = inject(ServerProfileService);
   private fsService = inject(FsService);
@@ -99,12 +96,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // --- Computed Per-Pane Services ---
   private getProviderForPath(path: string[]): FileSystemProvider {
-    if (path.length === 0) return this.electronFs;
+    if (path.length === 0) return this.convexFs;
     const root = path[0];
     if (root === CONVEX_ROOT_NAME) return this.convexFs;
     const remoteProvider = this.remoteProviders().get(root);
     if (remoteProvider) return remoteProvider;
-    return this.electronFs;
+    return this.convexFs;
   }
   
   private getImageServiceForPath(path: string[]): ImageService {
@@ -181,27 +178,7 @@ export class AppComponent implements OnInit, OnDestroy {
   async loadFolderTree(): Promise<void> {
     this.folderTree.set(null); // Clear old tree immediately
     
-    // Reset paths only if necessary, maybe on full reload, not mount/unmount
-    // this.panePaths.set([{ id: 1, path: [] }]);
-    // if (this.isSplitView()) {
-    //     this.panePaths.update(p => [...p, { id: 2, path: [] }]);
-    // }
-
     try {
-      let localFSRoot: FileSystemNode;
-      try {
-        localFSRoot = await this.electronFs.getFolderTree();
-        localFSRoot.name = LOCAL_FS_ROOT_NAME;
-      } catch (e) {
-        console.error('Failed to load local filesystem tree:', e);
-        localFSRoot = { 
-          name: LOCAL_FS_ROOT_NAME, 
-          type: 'folder', 
-          children: [], 
-          content: `Error: ${(e as Error).message}. This is expected in browser mode.` 
-        };
-      }
-      
       const convexRoot = await this.convexFs.getFolderTree();
       
       // FIX: Explicitly typing `provider` as `FileSystemProvider` resolves a type inference issue.
@@ -212,7 +189,7 @@ export class AppComponent implements OnInit, OnDestroy {
       const metaRoot: FileSystemNode = {
         name: 'Home',
         type: 'folder',
-        children: [localFSRoot, convexRoot, ...remoteRoots]
+        children: [convexRoot, ...remoteRoots]
       };
 
       this.folderTree.set(metaRoot);
@@ -335,7 +312,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     const path = paneId === 1 ? this.pane1Path() : this.pane2Path();
     const provider = this.getProviderForPath(path);
-    const rootPathSegment = path.length > 0 ? path[0] : LOCAL_FS_ROOT_NAME;
+    const rootPathSegment = path.length > 0 ? path[0] : CONVEX_ROOT_NAME;
 
     try {
       const results = await provider.search(query);

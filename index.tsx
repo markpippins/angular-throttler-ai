@@ -5,34 +5,15 @@ import { provideZonelessChangeDetection } from '@angular/core';
 
 import { AppComponent } from './src/app.component.js';
 import { IS_DEBUG_MODE } from './src/services/app-config.js';
-import { ElectronFileSystemService } from './src/services/electron-file-system.service.js';
-import { DESKTOP_SERVICE } from './src/services/desktop.service.js';
-import { ElectronDesktopService } from './src/services/electron-desktop.service.js';
-import { ConvexDesktopService } from './src/services/convex-desktop.service.js';
 
 // We assume the build process exposes DEBUG from .env as process.env.DEBUG
 declare const process: any;
 const isDebugMode = true;
 
-declare global {
-  interface Window {
-    // FIX: The desktopApi is optional as it's only available in an Electron environment.
-    desktopApi?: {
-      invoke: (channel: string, ...args: any[]) => Promise<any>;
-    };
-  }
-}
-
 bootstrapApplication(AppComponent, {
   providers: [
     provideZonelessChangeDetection(),
     { provide: IS_DEBUG_MODE, useValue: isDebugMode },
-    {
-      provide: DESKTOP_SERVICE,
-      useClass: ElectronDesktopService,
-    },
-    // Provide all necessary services. The AppComponent will orchestrate them.
-    ElectronFileSystemService,
   ],
 }).catch((err) => console.error(err));
 

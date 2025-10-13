@@ -1,25 +1,19 @@
-# Throttler - A Web-Based File Explorer
+# Throttler - An Electron-Based File Explorer
 
-Throttler is a modern, web-based file explorer clone inspired by the Windows Explorer interface. It's built with Angular and features a dynamic, component-based architecture that allows for navigating both a mock local file system and a remote file system.
-
-This version is packaged as a desktop application using **Electron**, giving it access to the local file system.
+Throttler is a modern, desktop file explorer clone inspired by the Windows Explorer interface. It's built with Angular for the frontend and wrapped with Electron to create a cross-platform desktop application. It features a dynamic, component-based architecture that allows for navigating both a mock local file system and a remote file system.
 
 ## Key Features
 
-- **Modern Angular:** Built with the latest standalone components, signals for state management, and zoneless change detection for high performance.
-- **Real File System Access:** As an Electron app, it can browse and manage files and folders directly on your computer.
+- **Modern Angular Frontend:** Built with the latest standalone components, signals for state management, and zoneless change detection for high performance.
+- **Electron Wrapper:** Runs as a native desktop application with access to the local file system.
+- **Virtual & Remote File Systems:** Seamlessly navigate and manage files across a virtual "Convex Pins" system and any number of user-configured remote servers.
 - **Dual Pane View:** Toggle between a single or a split-view interface to manage files across two directories simultaneously.
-- **Local & Remote Modes:** Seamlessly switch between the local file system and a remote file system that communicates with a backend broker.
-- **Theming:** Choose between Light, Steel, and Dark themes to customize the user interface. The selected theme is persisted in local storage.
-- **Full File Operations:** Supports creating files/folders, renaming, deleting, cut, copy, and paste on the local file system.
-- **Drag & Drop:** Upload files by dragging them from your desktop into the explorer or directly onto a folder.
-- **Lasso Selection:** Click and drag in an empty area to select multiple items.
-- **Details Pane:** A slide-out pane provides details and an image preview for the selected file.
-- **Search:** Perform quick searches or open a detailed search dialog to find files on your local drive.
+- **Theming:** Choose between Light, Steel, and Dark themes. The selected theme is persisted in local storage.
+- **File Operations:** Supports creating files/folders, renaming, deleting, cut, copy, paste, drag & drop uploads, and more.
 
 ## Running the Application
 
-This project is an Electron application.
+This is an Electron application that loads a web-based frontend. The development process involves running a local web server for the frontend and the Electron process separately.
 
 ### Prerequisites
 
@@ -33,42 +27,46 @@ First, install the necessary dependencies from the project's root directory:
 npm install
 ```
 
-### 2. Running in Development Mode
+### 2. Compiling TypeScript
 
-To start the application, run the following command. This will launch the Electron window with the Angular app loaded.
+The Angular application's TypeScript files need to be compiled into JavaScript. You can run this once, or run it in watch mode in a dedicated terminal to automatically recompile on changes.
+
+```bash
+# Compile once
+npm run tsc
+
+# Or, compile and watch for changes
+npm run tsc -- --watch
+```
+This will create and update the compiled output in the `app/` directory.
+
+### 3. Running the Development Server
+
+The Electron app, in development mode, loads the frontend from a local web server. In a new terminal, start a static server in the project's root directory.
+
+```bash
+# Using the popular http-server package via npx
+npx http-server .
+```
+
+This will typically serve the application at `http://localhost:8080`.
+
+### 4. Starting the Electron App
+
+With the compiler running (in watch mode) and the web server active, you can start the Electron application. In a third terminal, run:
 
 ```bash
 npm start
 ```
 
-### Optional: Running Backend Services
+This will launch the desktop application, which will load the UI from your local web server. Changes to your Angular code will be recompiled by `tsc`, and you can simply reload the Electron window (Ctrl/Cmd+R) to see the updates.
 
-For the "Remote Connection" mode and for fetching custom file icons, the application relies on two backend services.
+## Building for Production
 
-#### Image Server
-
-This is a simple Node.js server that dynamically generates SVG icons.
-
-To start it, open a new terminal in the project's root directory and run:
-
-```bash
-node serv/image-serv.js
-```
-
-You should see the message `Image server listening on http://localhost:8081`.
-
-#### Broker & File System Service
-
-For remote mode, the app needs a compatible message broker. The default configuration points to `http://localhost:8080`.
-
-### 3. Building for Production
-
-You can build a distributable, platform-specific package (e.g., an `.exe` for Windows, `.dmg` for macOS) using `electron-builder`.
-
-Run the build command:
+To create a distributable, packaged application (e.g., `.exe`, `.dmg`), run the following command:
 
 ```bash
 npm run build
 ```
 
-The packaged application will be located in the `dist` directory.
+This will first compile the TypeScript code and then use `electron-builder` to package the application. The output will be located in the `dist/` directory.
