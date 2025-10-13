@@ -9,7 +9,7 @@ This document provides a high-level overview of the files located in the project
 This is the main entry point for the entire Angular application. Its primary responsibilities are:
 - **Bootstrapping:** It uses `bootstrapApplication` to launch the root `AppComponent`.
 - **Zoneless Change Detection:** It enables Angular's modern, more performant change detection strategy.
-- **Dependency Injection:** It configures application-wide services. It provides all the necessary file system services (`ElectronFileSystemService`, `RemoteFileSystemService`, `ConvexDesktopService`), which are then orchestrated by the `AppComponent` to provide a unified user experience.
+- **Dependency Injection:** It configures application-wide services. In its current configuration, it provides services for remote and virtual file systems (`RemoteFileSystemService`, `ConvexDesktopService`), which are then orchestrated by the `AppComponent`.
 
 ### `index.html` - Main HTML Document
 
@@ -22,18 +22,13 @@ This is the single HTML page that hosts the application.
 
 This file contains metadata specific to the AI Studio development environment.
 
-## Electron Desktop Application Files
+## Electron Desktop Application Files (Available but Inactive)
 
-These files are responsible for turning the web application into a cross-platform desktop application using the Electron framework.
+These files exist in the project to support turning the web application into a cross-platform desktop application using the Electron framework. **Note: These services are not currently enabled in the application's bootstrap configuration.**
 
 ### `package.json`
 
-This is the standard Node.js manifest file. For this project, it's configured for Electron:
-- **Dependencies:** It lists `electron` and `electron-builder` as development dependencies.
-- **Scripts:** It defines convenient npm scripts:
-    - `npm start`: Runs the application in development mode.
-    - `npm run build`: Packages the application into a distributable format (e.g., `.exe`, `.dmg`).
-- **Main Entry Point:** Specifies `main.js` as the entry point for the Electron application.
+This is the standard Node.js manifest file. For this project, it's configured for a web-based Angular application using the Angular CLI. The Electron-specific dependencies are not currently included.
 
 ### `main.js` - Electron Main Process
 

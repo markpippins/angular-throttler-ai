@@ -15,15 +15,15 @@ The `AppComponent` is the top-level component that acts as the central controlle
     -   `panePaths`: An array that holds the current path for each active file explorer pane. This is the single source of truth for pane locations.
 
 2.  **Multi-Root File System Orchestration:** This is the key architectural feature of the component.
-    -   On startup, it calls the `loadFolderTree()` method, which fetches the root folders from both the `ElectronFileSystemService` (local files) and the `ConvexDesktopService` (remote data).
-    -   It then constructs a virtual "Home" folder that contains the two roots as its children: "Local Filesystem" and "Convex Pins".
+    -   On startup, it calls the `loadFolderTree()` method. This method fetches the root folders from the `ConvexDesktopService` (a virtual system using mock data) and any currently mounted `RemoteFileSystemService` instances.
+    -   It then constructs a virtual "Home" folder that contains the Convex root and all mounted remote roots as its children.
     -   This virtual tree is passed to the sidebar, allowing the user to seamlessly navigate between completely different data sources as if they were part of a single file system.
 
 3.  **Per-Pane Dynamic File System Provider:**
-    -   The component injects both `ElectronFileSystemService` and `ConvexDesktopService`.
-    -   It uses two `computed` signals, `pane1Provider` and `pane2Provider`, to dynamically assign the correct file system service to each file explorer pane.
-    -   The provider for a pane is determined reactively based on its *current path*. If a pane's path starts with "Convex Pins", it gets the `ConvexDesktopService`; otherwise, it gets the `ElectronFileSystemService`.
-    -   This design makes the `FileExplorerComponent` completely agnostic about its data source; it simply interacts with the `FileSystemProvider` interface it is given, and the `AppComponent` ensures it's always the correct one.
+    -   The component injects `ConvexDesktopService` and manages a map of `RemoteFileSystemService` instances for each mounted server profile.
+    -   It uses `computed` signals (`pane1Provider`, `pane2Provider`) to dynamically assign the correct file system service to each file explorer pane.
+    -   The provider for a pane is determined reactively based on its *current path*. If a pane's path starts with the name of a mounted profile, it gets the corresponding `RemoteFileSystemService`. Otherwise, it defaults to using the `ConvexDesktopService`.
+    -   This design makes the `FileExplorerComponent` completely agnostic about its data source; it simply interacts with the `FileSystemProvider` interface it is given.
 
 4.  **Component Coordination:**
     -   The `app.component.html` template defines the main layout and binds the file explorer panes to their respective path and provider signals.
@@ -34,7 +34,8 @@ The `AppComponent` is the top-level component that acts as the central controlle
 -   **Inputs:** None (as it's the root component).
 -   **Outputs:** None.
 -   **Methods:**
-    -   `loadFolderTree()`: An async method that builds the combined virtual folder tree from the local and Convex sources.
+    -   `loadFolderTree()`: An async method that builds the combined virtual folder tree from the Convex and mounted remote sources.
+    -   `mountProfile()` / `unmountProfile()`: Methods to dynamically add or remove `RemoteFileSystemService` instances as the user connects to servers.
     -   `toggleSplitView()`: Manages the `isSplitView` state and the paths for each pane.
     -   `onPane1PathChanged()` / `onPane2PathChanged()`: Event handlers that keep the parent component's record of each pane's path (`panePaths` signal) in sync when the user navigates within a file explorer.
     -   `executeSearch()`: A context-aware search method that delegates the search to the correct provider based on the active pane's current path.

@@ -18,7 +18,7 @@ This version is a pure web application that runs in any modern browser.
 
 ## Running the Application
 
-This is a web application built with Angular.
+This is a web application built with the Angular CLI.
 
 ### Prerequisites
 
@@ -32,23 +32,24 @@ First, install the necessary dependencies from the project's root directory:
 npm install
 ```
 
-### 2. Compiling TypeScript
+### 2. Running the Development Server
 
-Before serving, you need to compile the TypeScript files into JavaScript:
-```bash
-npm run tsc
-```
-This will create the compiled output in the `app/` directory.
-
-### 3. Serving the Application
-
-After compiling, you need a local web server to serve the project's root directory. You can use any static server. For example, using the popular `http-server` package via `npx`:
+To start the local development server, run the following command:
 
 ```bash
-npx http-server .
+npm run dev
 ```
 
-Then, open your browser to the URL provided (e.g., `http://localhost:8080`).
+This will compile the application, start a development server, and open your default browser to the application, typically at `http://localhost:4200`. The server will automatically reload when you save changes to the source files.
+
+### 3. Building for Production
+
+To create a production-ready build, run:
+
+```bash
+npm run build
+```
+This will compile and optimize the application, placing the output in the `dist/` directory. You can then deploy the contents of this directory to any static web hosting service.
 
 ### Optional: Running Backend Services
 
