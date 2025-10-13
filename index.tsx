@@ -1,4 +1,5 @@
 import '@angular/compiler';
+// FIX: `bootstrapApplication` is exported from `@angular/platform-browser` in modern Angular versions.
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideZonelessChangeDetection } from '@angular/core';
 
@@ -32,7 +33,6 @@ bootstrapApplication(AppComponent, {
     },
     // Provide all necessary services. The AppComponent will orchestrate them.
     ElectronFileSystemService,
-    ConvexDesktopService,
   ],
 }).catch((err) => console.error(err));
 

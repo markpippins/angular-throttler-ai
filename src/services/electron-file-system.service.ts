@@ -3,9 +3,9 @@ import { FileSystemNode, SearchResultNode } from '../models/file-system.model.js
 import { FileSystemProvider, ItemReference } from './file-system-provider.js';
 import { DESKTOP_SERVICE } from './desktop.service.js';
 
-@Injectable({
-  providedIn: 'root',
-})
+// FIX: Removed providedIn: 'root' because this service depends on DESKTOP_SERVICE
+// which is provided at the bootstrap level, not in the root injector.
+@Injectable()
 export class ElectronFileSystemService implements FileSystemProvider {
   private desktopService = inject(DESKTOP_SERVICE);
 

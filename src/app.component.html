@@ -119,6 +119,7 @@
       @if (isDetailPaneOpen()) {
         <app-detail-pane
           [item]="selectedDetailItem()"
+          [imageService]="activeImageService()"
           (close)="toggleDetailPane()">
         </app-detail-pane>
       }

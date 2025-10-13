@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent, SearchResultNode } from './components/file-explorer/file-explorer.component.js';
 import { SidebarComponent } from './components/sidebar/sidebar.component.js';
@@ -28,159 +28,14 @@ const CONVEX_ROOT_NAME = 'Convex Pins';
 
 @Component({
   selector: 'app-root',
-  template: `
-<div class="flex flex-col h-screen font-sans antialiased text-[rgb(var(--color-text-base))] bg-[rgb(var(--color-background))]">
-  <!-- Main Header -->
-  <header class="flex-shrink-0 h-10 bg-[rgb(var(--color-surface))] border-b border-[rgb(var(--color-border-base))] flex items-center justify-end px-4 space-x-2">
-    <!-- Connection Status -->
-    <div class="flex-grow flex items-center">
-        <!-- This space is intentionally left blank after removal of status indicator -->
-    </div>
-
-    <button (click)="openServerProfilesDialog()" class="flex items-center space-x-2 px-3 py-1 bg-[rgb(var(--color-surface))] hover:bg-[rgb(var(--color-surface-hover))] rounded-md shadow-sm border border-[rgb(var(--color-border-muted))] text-sm font-medium text-[rgb(var(--color-text-muted))] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--color-accent-ring))]">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" clip-rule="evenodd" />
-      </svg>
-      <span>Servers</span>
-    </button>
-    <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
-    <div class="relative inline-block text-left">
-      <button (click)="toggleThemeDropdown($event)" class="flex items-center space-x-2 px-3 py-1 bg-[rgb(var(--color-surface))] hover:bg-[rgb(var(--color-surface-hover))] rounded-md shadow-sm border border-[rgb(var(--color-border-muted))] text-sm font-medium text-[rgb(var(--color-text-muted))] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--color-accent-ring))]">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M5 4a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2H5zm0 2h10v6H5V6z" />
-        </svg>
-        <span>Theme</span>
-      </button>
-
-      @if(isThemeDropdownOpen()) {
-        <div class="absolute right-0 z-10 mt-2 w-32 origin-top-right rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu">
-          <div class="py-1" role="none">
-            @for(theme of themes; track theme.id) {
-              <div (click)="setTheme(theme.id)" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center px-4 py-2 text-sm cursor-pointer" role="menuitem">
-                <span class="w-5">
-                  @if (currentTheme() === theme.id) {
-                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-accent-text))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-                  }
-                </span>
-                <span>{{ theme.name }}</span>
-              </div>
-            }
-          </div>
-        </div>
-      }
-    </div>
-    <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
-    <button (click)="toggleSplitView()" class="flex items-center space-x-2 px-3 py-1 bg-[rgb(var(--color-surface))] hover:bg-[rgb(var(--color-surface-hover))] rounded-md shadow-sm border border-[rgb(var(--color-border-muted))] text-sm font-medium text-[rgb(var(--color-text-muted))] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--color-accent-ring))]">
-      @if (isSplitView()) {
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm9 4H6a1 1 0 000 2h8a1 1 0 000-2z" />
-        </svg>
-        <span>Merge</span>
-      } @else {
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm2 4a1 1 0 00-1 1v2a1 1 0 001 1h2a1 1 0 001-1V8a1 1 0 00-1-1H7zm6 0a1 1 0 00-1 1v2a1 1 0 001 1h2a1 1 0 001-1V8a1 1 0 00-1-1h-2z" />
-        </svg>
-        <span>Split</span>
-      }
-    </button>
-    <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
-    <button 
-      (click)="toggleDetailPane()" 
-      class="flex items-center space-x-2 px-3 py-1 bg-[rgb(var(--color-surface))] hover:bg-[rgb(var(--color-surface-hover))] rounded-md shadow-sm border border-[rgb(var(--color-border-muted))] text-sm font-medium text-[rgb(var(--color-text-muted))] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--color-accent-ring))]"
-      [class.bg-[rgb(var(--color-accent-bg))]]="isDetailPaneOpen()"
-      [class.text-[rgb(var(--color-accent-text))]]="isDetailPaneOpen()">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-      </svg>
-      <span>Details</span>
-    </button>
-  </header>
-
-  <!-- Main Content -->
-  <main class="flex-1 flex flex-row overflow-hidden">
-    <app-sidebar 
-      [folderTree]="folderTree()"
-      [currentPath]="activePanePath()"
-      (pathChange)="onSidebarNavigation($event)">
-    </app-sidebar>
-
-    <div class="flex-1 flex overflow-hidden">
-      <div class="flex-1 flex bg-[rgb(var(--color-background))] p-1 gap-1">
-        <div class="flex-1">
-          <app-file-explorer 
-            [id]="1"
-            [path]="pane1Path()"
-            [isActive]="activePaneId() === 1"
-            [isSplitView]="isSplitView()"
-            [fileSystemProvider]="pane1Provider()"
-            [imageService]="pane1ImageService()"
-            [folderTree]="folderTree()"
-            [searchResults]="searchResultForPane()"
-            (activated)="setActivePane($event)"
-            (pathChanged)="onPane1PathChanged($event)"
-            (searchInitiated)="openSearchDialog(1)"
-            (searchCompleted)="onSearchCompleted()"
-            (quickSearch)="executeQuickSearch(1, $event)"
-            (itemSelected)="onItemSelectedInPane($event)">
-          </app-file-explorer>
-        </div>
-
-        @if (isSplitView()) {
-          <div class="flex-1">
-            <app-file-explorer 
-              [id]="2"
-              [path]="pane2Path()"
-              [isActive]="activePaneId() === 2"
-              [isSplitView]="isSplitView()"
-              [fileSystemProvider]="pane2Provider()"
-              [imageService]="pane2ImageService()"
-              [folderTree]="folderTree()"
-              [searchResults]="searchResultForPane()"
-              (activated)="setActivePane($event)"
-              (pathChanged)="onPane2PathChanged($event)"
-              (searchInitiated)="openSearchDialog(2)"
-              (searchCompleted)="onSearchCompleted()"
-              (quickSearch)="executeQuickSearch(2, $event)"
-              (itemSelected)="onItemSelectedInPane($event)">
-            </app-file-explorer>
-          </div>
-        }
-      </div>
-      
-      @if (isDetailPaneOpen()) {
-        <app-detail-pane
-          [item]="selectedDetailItem()"
-          [imageService]="activeImageService()"
-          (close)="toggleDetailPane()">
-        </app-detail-pane>
-      }
-    </div>
-  </main>
-
-  @if(isServerProfilesDialogOpen()) {
-    <app-server-profiles-dialog 
-      [mountedProfileIds]="mountedProfileIds()"
-      (close)="closeServerProfilesDialog()"
-      (mountProfile)="mountProfile($event)"
-      (unmountProfile)="unmountProfile($event)">
-    </app-server-profiles-dialog>
-  }
-
-  @if(isSearchDialogOpen()) {
-    <app-search-dialog
-      (close)="closeSearchDialog()"
-      (search)="executeSearch($event)">
-    </app-search-dialog>
-  }
-</div>
-  `,
+  templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, SearchDialogComponent, DetailPaneComponent],
   host: {
     '(document:click)': 'onDocumentClick($event)',
   }
 })
-export class AppComponent implements OnDestroy {
+export class AppComponent implements OnInit, OnDestroy {
   private electronFs = inject(ElectronFileSystemService);
   private convexFs = inject(ConvexDesktopService);
   private profileService = inject(ServerProfileService);
@@ -207,7 +62,16 @@ export class AppComponent implements OnDestroy {
   mountedProfileIds = computed(() => this.mountedProfiles().map(p => p.id));
   private remoteProviders = signal<Map<string, RemoteFileSystemService>>(new Map());
   private remoteImageServices = signal<Map<string, ImageService>>(new Map());
-  private defaultImageService = new ImageService(this.profileService.activeProfile()!, this.imageClientService);
+
+  // FIX: Converted defaultImageService to a computed signal to prevent a startup crash.
+  // This avoids a race condition by ensuring the ImageService is created only after
+  // the active profile has been loaded from storage.
+  private defaultImageService = computed(() => {
+    const activeProfile = this.profileService.activeProfile();
+    // If there's no active profile, create a temporary, non-functional one to prevent errors.
+    const profile = activeProfile ?? { id: 'temp', name: 'Temp', brokerUrl: '', imageUrl: '' };
+    return new ImageService(profile, this.imageClientService);
+  });
   
   // --- Search State ---
   isSearchDialogOpen = signal(false);
@@ -244,11 +108,11 @@ export class AppComponent implements OnDestroy {
   }
   
   private getImageServiceForPath(path: string[]): ImageService {
-    if (path.length === 0) return this.defaultImageService;
+    if (path.length === 0) return this.defaultImageService();
     const root = path[0];
     const remoteService = this.remoteImageServices().get(root);
     if (remoteService) return remoteService;
-    return this.defaultImageService;
+    return this.defaultImageService();
   }
 
   pane1Provider = computed(() => this.getProviderForPath(this.pane1Path()));
@@ -271,7 +135,9 @@ export class AppComponent implements OnDestroy {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
       this.document.body.className = theme;
     });
-
+  }
+  
+  ngOnInit(): void {
     this.loadFolderTree();
   }
 
@@ -338,8 +204,9 @@ export class AppComponent implements OnDestroy {
       
       const convexRoot = await this.convexFs.getFolderTree();
       
+      // FIX: Explicitly typing `provider` as `FileSystemProvider` resolves a type inference issue.
       const remoteRoots = await Promise.all(
-        Array.from(this.remoteProviders().values()).map(provider => provider.getFolderTree())
+        Array.from(this.remoteProviders().values()).map((provider: FileSystemProvider) => provider.getFolderTree())
       );
 
       const metaRoot: FileSystemNode = {
