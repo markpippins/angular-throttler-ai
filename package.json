@@ -1,3 +1,4 @@
+
 {
   "name": "throttler",
   "version": "1.0.0",
@@ -26,8 +27,7 @@
       "main.js",
       "preload.js",
       "index.html",
-      "index.js",
-      "src/**/*.js"
+      "app/**/*"
     ],
     "directories": {
       "output": "dist"

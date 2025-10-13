@@ -14,7 +14,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "declaration": false
+    "declaration": false,
+    "outDir": "./app"
   },
   "include": [
     "index.tsx",
