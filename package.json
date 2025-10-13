@@ -1,17 +1,30 @@
-
 {
   "name": "throttler",
-  "version": "1.0.0",
-  "description": "A web-based file explorer clone that allows you to navigate a virtual file system, inspired by the Windows Explorer interface.",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "tsc": "tsc"
+    "dev": "ng serve",
+    "build": "ng build",
+    "preview": "ng serve --configuration=production"
+  },
+  "dependencies": {
+    "rxjs": "^7.8.2",
+    "@angular/core": "^20.3.0",
+    "@angular/common": "^20.3.0",
+    "@angular/platform-browser": "^20.3.0",
+    "@angular/compiler": "^20.3.0",
+    "http": "^0.0.1-security",
+    "url": "^0.11.4",
+    "convex": "^1.13.0",
+    "@angular/build": "^20.3.0",
+    "@angular/cli": "^20.3.0",
+    "@angular/compiler-cli": "^20.3.0",
+    "tailwindcss": "latest"
   },
   "devDependencies": {
-    "@angular/common": "20.3.3",
-    "@angular/compiler": "20.3.3",
-    "@angular/core": "20.3.3",
-    "@angular/platform-browser": "20.3.3",
-    "rxjs": "7.8.1",
-    "typescript": "^5.4.5"
+    "@types/node": "^22.14.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
   }
 }
