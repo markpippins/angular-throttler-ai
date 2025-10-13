@@ -8,6 +8,7 @@ type FormState = {
   name: string;
   brokerUrl: string;
   imageUrl: string;
+  autoConnect: boolean;
 }
 
 @Component({
@@ -43,13 +44,14 @@ export class ServerProfilesDialogComponent {
       id: null,
       name: '',
       brokerUrl: '',
-      imageUrl: ''
+      imageUrl: '',
+      autoConnect: false,
     });
     this.selectedProfileId.set(null);
   }
   
   startEdit(profile: ServerProfile): void {
-    this.formState.set({ ...profile });
+    this.formState.set({ ...profile, autoConnect: profile.autoConnect ?? false });
     this.selectedProfileId.set(profile.id);
   }
   
@@ -95,7 +97,8 @@ export class ServerProfilesDialogComponent {
   }
 
   onFormValueChange(event: Event, field: keyof Omit<FormState, 'id'>): void {
-    const value = (event.target as HTMLInputElement).value;
+    const input = event.target as HTMLInputElement;
+    const value = input.type === 'checkbox' ? input.checked : input.value;
     this.formState.update(state => state ? { ...state, [field]: value } : null);
   }
 }

@@ -3,4 +3,5 @@ export interface ServerProfile {
   name: string;
   brokerUrl: string;
   imageUrl: string;
+  autoConnect?: boolean;
 }

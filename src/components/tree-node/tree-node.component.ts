@@ -30,6 +30,11 @@ export class TreeNodeComponent implements OnInit {
     return this.node().type === 'folder';
   });
 
+  folderChildren = computed(() => {
+    const children = this.node().children;
+    return children ? children.filter(c => c.type === 'folder') : [];
+  });
+
   constructor() {
     // Effect for auto-expanding based on navigation in the main pane
     effect(() => {

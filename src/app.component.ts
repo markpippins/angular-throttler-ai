@@ -20,8 +20,9 @@ interface PanePath {
   path: string[];
 }
 type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
-const THEME_STORAGE_KEY = 'file-explorer-theme';
+type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
+const THEME_STORAGE_KEY = 'file-explorer-theme';
 const CONVEX_ROOT_NAME = 'Convex Pins';
 
 const readOnlyProviderOps = {
@@ -63,6 +64,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isThemeDropdownOpen = signal(false);
   isDetailPaneOpen = signal(false);
   selectedDetailItem = signal<FileSystemNode | null>(null);
+  connectionStatus = signal<ConnectionStatus>('disconnected');
   
   // Keep track of each pane's path
   private panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
@@ -168,6 +170,7 @@ export class AppComponent implements OnInit, OnDestroy {
   
   ngOnInit(): void {
     this.loadFolderTree();
+    this.autoMountProfiles();
   }
 
   ngOnDestroy(): void {
@@ -219,20 +222,64 @@ export class AppComponent implements OnInit, OnDestroy {
   }
   
   // --- Profile Mounting ---
-  mountProfile(profile: ServerProfile): void {
+  private async autoMountProfiles(): Promise<void> {
+    const profilesToMount = this.profileService.profiles().filter(p => p.autoConnect);
+    if (profilesToMount.length === 0) {
+      return;
+    }
+
+    this.connectionStatus.set('connecting');
+    const mountPromises = profilesToMount.map(p => this.mountProfile(p));
+    const results = await Promise.allSettled(mountPromises);
+
+    const hasSuccessfulMount = results.some(r => r.status === 'fulfilled');
+
+    if (hasSuccessfulMount) {
+      this.connectionStatus.set('connected');
+      await this.loadFolderTree();
+    } else {
+      this.connectionStatus.set('disconnected');
+    }
+  }
+  
+  private async mountProfile(profile: ServerProfile): Promise<void> {
     if (this.mountedProfiles().some(p => p.id === profile.id)) return;
 
-    const provider = new RemoteFileSystemService(profile, this.fsService);
-    const imageService = new ImageService(profile, this.imageClientService);
+    try {
+      const provider = new RemoteFileSystemService(profile, this.fsService);
+      const imageService = new ImageService(profile, this.imageClientService);
 
-    this.remoteProviders.update(map => new Map(map).set(profile.name, provider));
-    this.remoteImageServices.update(map => new Map(map).set(profile.name, imageService));
-    this.mountedProfiles.update(profiles => [...profiles, profile]);
-    this.profileService.setActiveProfile(profile.id);
-    this.loadFolderTree();
+      // Test connection by fetching the root. If this fails, it throws.
+      await provider.getFolderTree();
+
+      this.remoteProviders.update(map => new Map(map).set(profile.name, provider));
+      this.remoteImageServices.update(map => new Map(map).set(profile.name, imageService));
+      this.mountedProfiles.update(profiles => [...profiles, profile]);
+      this.profileService.setActiveProfile(profile.id);
+    } catch (e) {
+      console.error(`Failed to mount profile "${profile.name}":`, e);
+      // Re-throw so the caller can handle the failure.
+      throw e;
+    }
+  }
+  
+  async onMountProfile(profile: ServerProfile): Promise<void> {
+    this.connectionStatus.set('connecting');
+    try {
+      await this.mountProfile(profile);
+      this.connectionStatus.set('connected');
+      await this.loadFolderTree();
+    } catch (e) {
+      alert(`Failed to connect to server "${profile.name}". Please check the profile settings and network connection.`);
+      if (this.mountedProfiles().length === 0) {
+        this.connectionStatus.set('disconnected');
+      } else {
+        this.connectionStatus.set('connected');
+      }
+    }
   }
 
-  unmountProfile(profile: ServerProfile): void {
+  onUnmountProfile(profile: ServerProfile): void {
     this.remoteProviders.update(map => {
       const newMap = new Map(map);
       newMap.delete(profile.name);
@@ -243,7 +290,13 @@ export class AppComponent implements OnInit, OnDestroy {
         newMap.delete(profile.name);
         return newMap;
     });
-    this.mountedProfiles.update(profiles => profiles.filter(p => p.id !== profile.id));
+    this.mountedProfiles.update(profiles => {
+      const remainingProfiles = profiles.filter(p => p.id !== profile.id);
+      if (remainingProfiles.length === 0) {
+        this.connectionStatus.set('disconnected');
+      }
+      return remainingProfiles;
+    });
     this.loadFolderTree();
   }
   

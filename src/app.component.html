@@ -3,7 +3,26 @@
   <header class="flex-shrink-0 h-10 bg-[rgb(var(--color-surface))] border-b border-[rgb(var(--color-border-base))] flex items-center justify-end px-4 space-x-2">
     <!-- Connection Status -->
     <div class="flex-grow flex items-center">
-        <!-- This space is intentionally left blank after removal of status indicator -->
+        @switch (connectionStatus()) {
+          @case ('connected') {
+            <div class="flex items-center space-x-2">
+              <div class="h-2.5 w-2.5 rounded-full bg-green-500"></div>
+              <span class="text-sm font-medium text-[rgb(var(--color-text-muted))]">Connected</span>
+            </div>
+          }
+          @case ('connecting') {
+            <div class="flex items-center space-x-2">
+              <div class="h-2.5 w-2.5 rounded-full bg-yellow-400 animate-pulse"></div>
+              <span class="text-sm font-medium text-[rgb(var(--color-text-muted))]">Connecting...</span>
+            </div>
+          }
+          @case ('disconnected') {
+            <div class="flex items-center space-x-2">
+              <div class="h-2.5 w-2.5 rounded-full bg-[rgb(var(--color-text-subtle))]"></div>
+              <span class="text-sm font-medium text-[rgb(var(--color-text-subtle))]">Disconnected</span>
+            </div>
+          }
+        }
     </div>
 
     <button (click)="openServerProfilesDialog()" class="flex items-center space-x-2 px-3 py-1 bg-[rgb(var(--color-surface))] hover:bg-[rgb(var(--color-surface-hover))] rounded-md shadow-sm border border-[rgb(var(--color-border-muted))] text-sm font-medium text-[rgb(var(--color-text-muted))] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--color-accent-ring))]">
@@ -132,8 +151,8 @@
     <app-server-profiles-dialog 
       [mountedProfileIds]="mountedProfileIds()"
       (close)="closeServerProfilesDialog()"
-      (mountProfile)="mountProfile($event)"
-      (unmountProfile)="unmountProfile($event)">
+      (mountProfile)="onMountProfile($event)"
+      (unmountProfile)="onUnmountProfile($event)">
     </app-server-profiles-dialog>
   }
 
