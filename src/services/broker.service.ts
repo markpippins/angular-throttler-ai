@@ -5,8 +5,6 @@ import { ServerProfileService } from './server-profile.service';
   providedIn: 'root',
 })
 export class BrokerService {
-  private profileService = inject(ServerProfileService);
-
   private generateUUID(): string {
     var d = new Date().getTime();
     var d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now()*1000)) || 0;
@@ -23,7 +21,7 @@ export class BrokerService {
     });
   }
 
-  async submitRequest<T>(service: string, operation: string, params: object = {}): Promise<T> {
+  async submitRequest<T>(brokerUrl: string, service: string, operation: string, params: object = {}): Promise<T> {
     const request = {
         service,
         operation,
@@ -31,8 +29,7 @@ export class BrokerService {
         requestId: this.generateUUID()
     };
     
-    const config = this.profileService.activeConfig();
-    const fullBrokerUrl = `${config.brokerUrl}/api/broker/submitRequest`;
+    const fullBrokerUrl = `${brokerUrl}/api/broker/submitRequest`;
 
     const response = await fetch(fullBrokerUrl, {
         method: 'POST',

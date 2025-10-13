@@ -1,0 +1,55 @@
+<aside class="w-80 h-full flex flex-col bg-[rgb(var(--color-surface-sidebar))] border-l border-[rgb(var(--color-border-base))] text-sm animate-slide-in-right">
+  @if (item(); as currentItem) {
+    <!-- Header -->
+    <div class="p-4 border-b border-[rgb(var(--color-border-base))] flex-shrink-0">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-[rgb(var(--color-text-base))]">Details</h3>
+        <button (click)="close.emit()" class="p-1 rounded-full hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))]">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div class="flex flex-col items-center mt-4 text-center">
+        @if (getIconUrl(currentItem); as iconUrl) {
+          <img [src]="iconUrl" [alt]="currentItem.type" class="h-16 w-16 object-contain">
+        }
+        <p class="mt-2 font-semibold text-[rgb(var(--color-text-base))] break-all">{{ currentItem.name }}</p>
+      </div>
+    </div>
+    
+    <!-- Body -->
+    <div class="p-4 space-y-3 overflow-y-auto flex-1">
+      @if (isImageFile() && currentItem.content) {
+        <div class="mb-4">
+            <h4 class="font-semibold text-[rgb(var(--color-text-base))] mb-2">Preview</h4>
+            <div class="flex items-center justify-center p-2 border border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-background))]">
+              <img [src]="currentItem.content" [alt]="currentItem.name" class="max-w-full max-h-48 object-contain rounded">
+            </div>
+        </div>
+      }
+
+      <h4 class="font-semibold text-[rgb(var(--color-text-base))]">Properties</h4>
+      <div class="space-y-2 text-xs">
+          <div class="flex justify-between">
+              <span class="text-[rgb(var(--color-text-subtle))]">Type:</span>
+              <span class="text-[rgb(var(--color-text-base))] font-medium capitalize">{{ currentItem.type === 'folder' ? 'File folder' : 'File' }}</span>
+          </div>
+          <div class="flex justify-between">
+              <span class="text-[rgb(var(--color-text-subtle))]">Modified:</span>
+              <span class="text-[rgb(var(--color-text-base))] font-medium">{{ currentItem.modified || 'Unknown' }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[rgb(var(--color-text-subtle))]">Size:</span>
+            <span class="text-[rgb(var(--color-text-base))] font-medium">N/A (mocked)</span>
+          </div>
+      </div>
+    </div>
+  } @else {
+    <div class="h-full flex flex-col items-center justify-center text-center text-[rgb(var(--color-text-subtle))] p-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <p class="mt-2 font-semibold">No item selected</p>
+      <p>Select a single file or folder to view its details.</p>
+    </div>
+  }
+</aside>

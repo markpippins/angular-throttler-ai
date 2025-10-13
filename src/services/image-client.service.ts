@@ -5,17 +5,15 @@ import { ServerProfileService } from './server-profile.service';
   providedIn: 'root'
 })
 export class ImageClientService {
-  private profileService = inject(ServerProfileService);
-   
-  getImageUrlByExtension(extension: string): string {
-    return `${this.profileService.activeConfig().imageUrl}/ext/${encodeURIComponent(extension)}`;
+  getImageUrlByExtension(imageUrl: string, extension: string): string {
+    return `${imageUrl}/ext/${encodeURIComponent(extension)}`;
   }
 
-  getImageUrlByName(name: string): string {
-    return `${this.profileService.activeConfig().imageUrl}/name/${encodeURIComponent(name)}`;
+  getImageUrlByName(imageUrl: string, name: string): string {
+    return `${imageUrl}/name/${encodeURIComponent(name)}`;
   }
 
-  getImageUrlByPath(folder: string, file: string): string {
-    return `${this.profileService.activeConfig().imageUrl}/path/${encodeURIComponent(folder)}/${encodeURIComponent(file)}`;
+  getImageUrlByPath(imageUrl: string, folder: string, file: string): string {
+    return `${imageUrl}/path/${encodeURIComponent(folder)}/${encodeURIComponent(file)}`;
   }
 }

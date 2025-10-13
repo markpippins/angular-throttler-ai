@@ -7,3 +7,7 @@ export interface FileSystemNode {
   content?: string; // for files
   modified?: string; // for display
 }
+
+export interface SearchResultNode extends FileSystemNode {
+  path: string[];
+}

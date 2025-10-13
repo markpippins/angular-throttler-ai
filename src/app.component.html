@@ -3,32 +3,9 @@
   <header class="flex-shrink-0 h-10 bg-[rgb(var(--color-surface))] border-b border-[rgb(var(--color-border-base))] flex items-center justify-end px-4 space-x-2">
     <!-- Connection Status -->
     <div class="flex-grow flex items-center">
-        <span class="text-sm font-medium text-[rgb(var(--color-text-muted))]">
-            Status:
-        </span>
-        <span class="ml-2 text-sm font-semibold px-2 py-0.5 rounded-md"
-            [class]="connectionState() === 'local' 
-              ? 'bg-[rgb(var(--color-status-green-bg))] text-[rgb(var(--color-status-green-text))]'
-              : 'bg-[rgb(var(--color-status-blue-bg))] text-[rgb(var(--color-status-blue-text))]'"
-        >
-            {{ connectionStatusText() }}
-        </span>
+        <!-- This space is intentionally left blank after removal of status indicator -->
     </div>
 
-    <button (click)="toggleConnection()" class="flex items-center space-x-2 px-3 py-1 bg-[rgb(var(--color-surface))] hover:bg-[rgb(var(--color-surface-hover))] rounded-md shadow-sm border border-[rgb(var(--color-border-muted))] text-sm font-medium text-[rgb(var(--color-text-muted))] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--color-accent-ring))]">
-        @if(connectionState() === 'remote') {
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-            </svg>
-            <span>Disconnect</span>
-        } @else {
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L9 5.414V17a1 1 0 102 0V5.414l4.293 4.293a1 1 0 001.414-1.414l-7-7z" />
-            </svg>
-            <span>Connect</span>
-        }
-    </button>
-    <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
     <button (click)="openServerProfilesDialog()" class="flex items-center space-x-2 px-3 py-1 bg-[rgb(var(--color-surface))] hover:bg-[rgb(var(--color-surface-hover))] rounded-md shadow-sm border border-[rgb(var(--color-border-muted))] text-sm font-medium text-[rgb(var(--color-text-muted))] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--color-accent-ring))]">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" clip-rule="evenodd" />
@@ -75,6 +52,17 @@
         <span>Split</span>
       }
     </button>
+    <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
+    <button 
+      (click)="toggleDetailPane()" 
+      class="flex items-center space-x-2 px-3 py-1 bg-[rgb(var(--color-surface))] hover:bg-[rgb(var(--color-surface-hover))] rounded-md shadow-sm border border-[rgb(var(--color-border-muted))] text-sm font-medium text-[rgb(var(--color-text-muted))] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--color-accent-ring))]"
+      [class.bg-[rgb(var(--color-accent-bg))]]="isDetailPaneOpen()"
+      [class.text-[rgb(var(--color-accent-text))]]="isDetailPaneOpen()">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+      </svg>
+      <span>Details</span>
+    </button>
   </header>
 
   <!-- Main Content -->
@@ -85,39 +73,71 @@
       (pathChange)="onSidebarNavigation($event)">
     </app-sidebar>
 
-    <div class="flex-1 flex bg-[rgb(var(--color-background))] p-1 gap-1">
-      <div class="flex-1">
-        <app-file-explorer 
-          [id]="1"
-          [path]="pane1Path()"
-          [isActive]="activePaneId() === 1"
-          [isSplitView]="isSplitView()"
-          [fileSystemProvider]="fileSystemProvider()"
-          (activated)="setActivePane($event)"
-          (pathChanged)="onPane1PathChanged($event)">
-        </app-file-explorer>
-      </div>
-
-      @if (isSplitView()) {
+    <div class="flex-1 flex overflow-hidden">
+      <div class="flex-1 flex bg-[rgb(var(--color-background))] p-1 gap-1">
         <div class="flex-1">
           <app-file-explorer 
-            [id]="2"
-            [path]="pane2Path()"
-            [isActive]="activePaneId() === 2"
+            [id]="1"
+            [path]="pane1Path()"
+            [isActive]="activePaneId() === 1"
             [isSplitView]="isSplitView()"
-            [fileSystemProvider]="fileSystemProvider()"
+            [fileSystemProvider]="pane1Provider()"
+            [imageService]="pane1ImageService()"
+            [folderTree]="folderTree()"
+            [searchResults]="searchResultForPane()"
             (activated)="setActivePane($event)"
-            (pathChanged)="onPane2PathChanged($event)">
+            (pathChanged)="onPane1PathChanged($event)"
+            (searchInitiated)="openSearchDialog(1)"
+            (searchCompleted)="onSearchCompleted()"
+            (quickSearch)="executeQuickSearch(1, $event)"
+            (itemSelected)="onItemSelectedInPane($event)">
           </app-file-explorer>
         </div>
+
+        @if (isSplitView()) {
+          <div class="flex-1">
+            <app-file-explorer 
+              [id]="2"
+              [path]="pane2Path()"
+              [isActive]="activePaneId() === 2"
+              [isSplitView]="isSplitView()"
+              [fileSystemProvider]="pane2Provider()"
+              [imageService]="pane2ImageService()"
+              [folderTree]="folderTree()"
+              [searchResults]="searchResultForPane()"
+              (activated)="setActivePane($event)"
+              (pathChanged)="onPane2PathChanged($event)"
+              (searchInitiated)="openSearchDialog(2)"
+              (searchCompleted)="onSearchCompleted()"
+              (quickSearch)="executeQuickSearch(2, $event)"
+              (itemSelected)="onItemSelectedInPane($event)">
+            </app-file-explorer>
+          </div>
+        }
+      </div>
+      
+      @if (isDetailPaneOpen()) {
+        <app-detail-pane
+          [item]="selectedDetailItem()"
+          (close)="toggleDetailPane()">
+        </app-detail-pane>
       }
     </div>
   </main>
 
   @if(isServerProfilesDialogOpen()) {
     <app-server-profiles-dialog 
+      [mountedProfileIds]="mountedProfileIds()"
       (close)="closeServerProfilesDialog()"
-      (profileActivated)="switchToRemote()">
+      (mountProfile)="mountProfile($event)"
+      (unmountProfile)="unmountProfile($event)">
     </app-server-profiles-dialog>
+  }
+
+  @if(isSearchDialogOpen()) {
+    <app-search-dialog
+      (close)="closeSearchDialog()"
+      (search)="executeSearch($event)">
+    </app-search-dialog>
   }
 </div>

@@ -4,7 +4,7 @@
       [value]="query()" 
       (input)="onQueryChange($event)"
       rows="3" 
-      placeholder="Enter your search query..."
+      placeholder="Search all files (mock)..."
       class="w-full text-sm p-2 rounded-md border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface))] focus:ring-2 focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] transition-colors"
     ></textarea>
     <button 
@@ -31,13 +31,18 @@
       <div class="text-center py-4 text-[rgb(var(--color-text-subtle))]">
         <p>Searching for results...</p>
       </div>
+    } @else if (error(); as err) {
+      <div class="p-3 bg-red-100 text-red-800 rounded-lg text-center">
+        <p class="font-semibold">Search Failed</p>
+        <p class="text-xs mt-1">{{ err }}</p>
+      </div>
     } @else if (results(); as res) {
       @if (res.length > 0) {
         <div class="space-y-3">
           @for (result of res; track result.title) {
             <div class="p-3 bg-[rgb(var(--color-surface))] rounded-lg shadow-sm border border-[rgb(var(--color-border-base))]">
-              <h3 class="font-semibold text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer">{{ result.title }}</h3>
-              <p class="text-[rgb(var(--color-text-muted))] mt-1">{{ result.snippet }}</p>
+              <h3 class="font-semibold text-[rgb(var(--color-accent-text))]">{{ result.title }}</h3>
+              <p class="text-[rgb(var(--color-text-muted))] mt-1 text-xs">{{ result.snippet }}</p>
             </div>
           }
         </div>

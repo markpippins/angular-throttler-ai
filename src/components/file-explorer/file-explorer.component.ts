@@ -1,11 +1,16 @@
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { FileSystemNode } from '../../models/file-system.model';
+import { FileSystemNode, SearchResultNode } from '../../models/file-system.model';
 import { FileSystemProvider, ItemReference } from '../../services/file-system-provider';
 import { ImageService } from '../../services/image.service';
 import { ToolbarComponent, SortCriteria } from '../toolbar/toolbar.component';
 import { FolderComponent } from '../folder/folder.component';
 import { ClipboardService } from '../../services/clipboard.service';
+import { SearchResultsComponent } from '../search-results/search-results.component';
+import { PropertiesDialogComponent } from '../properties-dialog/properties-dialog.component';
+import { DestinationNodeComponent } from '../destination-node/destination-node.component';
+
+export { SearchResultNode };
 
 interface FileSystemState {
   status: 'loading' | 'success' | 'error';
@@ -16,11 +21,10 @@ interface FileSystemState {
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, NgOptimizedImage, ToolbarComponent, FolderComponent],
+  imports: [CommonModule, NgOptimizedImage, ToolbarComponent, FolderComponent, SearchResultsComponent, PropertiesDialogComponent, DestinationNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent implements OnDestroy {
-  private imageService = inject(ImageService);
   private renderer = inject(Renderer2);
   private clipboardService = inject(ClipboardService);
 
@@ -30,17 +34,34 @@ export class FileExplorerComponent implements OnDestroy {
   isActive = input(false);
   isSplitView = input(false);
   fileSystemProvider = input.required<FileSystemProvider>();
+  imageService = input.required<ImageService>();
+  folderTree = input<FileSystemNode | null>(null);
+  searchResults = input<{ id: number; results: SearchResultNode[] } | null>(null);
 
   activated = output<number>();
   pathChanged = output<string[]>();
+  searchInitiated = output<void>();
+  searchCompleted = output<void>();
+  quickSearch = output<string>();
+  itemSelected = output<FileSystemNode | null>();
 
-  rootName = computed(() => this.fileSystemProvider().getFolderTree().then(tree => tree.name));
+  rootName = signal('...');
   state = signal<FileSystemState>({ status: 'loading', items: [] });
   contextMenu = signal<{ x: number; y: number; item: FileSystemNode | null } | null>(null);
   previewItem = signal<FileSystemNode | null>(null);
   loadedImageItems = signal<Set<string>>(new Set());
   failedImageItems = signal<Set<string>>(new Set());
   isDragOverMainArea = signal(false);
+  
+  quickSearchQuery = signal('');
+
+  // Destination Submenu State
+  destinationSubMenu = signal<{ operation: 'copy' | 'move', x: number, y: number } | null>(null);
+  private destinationSubMenuTimer: any;
+
+  // View state
+  viewMode = signal<'explorer' | 'search'>('explorer');
+  currentSearchResults = signal<SearchResultNode[]>([]);
 
   // Selection
   selectedItems = signal<Set<string>>(new Set());
@@ -48,6 +69,8 @@ export class FileExplorerComponent implements OnDestroy {
 
   // UI State
   isShareDialogOpen = signal(false);
+  isPropertiesDialogOpen = signal(false);
+  propertiesItem = signal<FileSystemNode | null>(null);
   sortCriteria = signal<SortCriteria>({ key: 'name', direction: 'asc' });
 
   // Lasso selection state
@@ -66,13 +89,11 @@ export class FileExplorerComponent implements OnDestroy {
   // Computed properties for UI binding
   isHighlighted = computed(() => this.isActive() && this.isSplitView());
   canCutCopyShareDelete = computed(() => this.selectedItems().size > 0);
+  canCopyToMoveTo = computed(() => this.selectedItems().size > 0);
   canPaste = computed(() => {
     const clip = this.clipboardService.clipboard();
     if (!clip) return false;
-    // For now, only allow pasting within the same filesystem type.
-    // This is a simplification; a real implementation might handle transfers across providers.
     const currentProvider = this.fileSystemProvider();
-    // A simple check by constructor name. A more robust check might involve a provider ID.
     return clip.sourceProvider.constructor.name === currentProvider.constructor.name;
   });
   canRename = computed(() => this.selectedItems().size === 1);
@@ -84,28 +105,21 @@ export class FileExplorerComponent implements OnDestroy {
     const directionMultiplier = direction === 'asc' ? 1 : -1;
 
     items.sort((a, b) => {
-      // Primary sort: folders first
       if (a.type === 'folder' && b.type !== 'folder') return -1;
       if (a.type !== 'folder' && b.type === 'folder') return 1;
 
-      // Secondary sort: by selected key
       let valA: string | number, valB: string | number;
 
       if (key === 'name') {
         valA = a.name.toLowerCase();
         valB = b.name.toLowerCase();
-      } else { // 'modified'
-        // For dates, descending should be newest first, so we reverse the values before multiplying
-        valA = b.modified ? new Date(b.modified).getTime() : 0;
-        valB = a.modified ? new Date(a.modified).getTime() : 0;
+      } else { // modified
+        valA = a.modified ? new Date(a.modified).getTime() : 0;
+        valB = b.modified ? new Date(b.modified).getTime() : 0;
       }
 
-      if (valA < valB) {
-        return -1 * directionMultiplier;
-      }
-      if (valA > valB) {
-        return 1 * directionMultiplier;
-      }
+      if (valA < valB) return -1 * directionMultiplier;
+      if (valA > valB) return 1 * directionMultiplier;
       return 0;
     });
 
@@ -113,164 +127,75 @@ export class FileExplorerComponent implements OnDestroy {
   });
 
   constructor() {
-    // Load content when path or provider changes
     effect(() => {
+      const provider = this.fileSystemProvider();
+      // When provider or path changes, load contents
       this.loadContents(this.path());
+    });
+
+    effect(() => {
+      const provider = this.fileSystemProvider();
+      provider.getFolderTree()
+        .then(root => {
+          this.rootName.set(root.name);
+        })
+        .catch(err => {
+          console.error('Failed to get root name', err);
+          this.rootName.set('Error');
+        });
+    }, { allowSignalWrites: true });
+
+    effect(() => {
+      this.updateForSearchResults(this.searchResults());
     });
   }
 
   ngOnDestroy(): void {
-    this.stopLasso();
+    this.stopLassoing();
+    // Re-enable text selection when component is destroyed
+    this.renderer.removeStyle(document.body, 'user-select');
   }
-
+  
+  // --- Data Loading ---
   async loadContents(path: string[]): Promise<void> {
-    console.log(`[Pane ${this.id()}] Loading contents for:`, path.join('/'));
-    this.state.update(s => ({ ...s, status: 'loading' }));
-    this.loadedImageItems.set(new Set());
-    this.failedImageItems.set(new Set());
-    
+    this.state.set({ status: 'loading', items: [] });
     try {
       const items = await this.fileSystemProvider().getContents(path);
-      this.state.set({ status: 'success', items });
-    } catch (e) {
+      this.state.set({ status: 'success', items: items });
+    } catch (e: unknown) {
       this.state.set({ status: 'error', items: [], error: (e as Error).message });
     }
   }
 
-  private getSelectedNodes(): FileSystemNode[] {
-    const selectedNames = this.selectedItems();
-    if (selectedNames.size === 0) return [];
-    return this.state().items.filter(item => selectedNames.has(item.name));
-  }
-
-  // Toolbar Actions
-  onCut(): void {
-    const selectedNodes = this.getSelectedNodes();
-    if (selectedNodes.length > 0) {
-      this.clipboardService.set({
-        operation: 'cut',
-        sourceProvider: this.fileSystemProvider(),
-        sourcePath: this.path(),
-        items: selectedNodes
-      });
+  updateForSearchResults(search: { id: number; results: SearchResultNode[] } | null): void {
+    if (search && search.id === this.id()) {
+      this.viewMode.set('search');
+      this.currentSearchResults.set(search.results);
+    } else {
+      this.viewMode.set('explorer');
+      this.currentSearchResults.set([]);
     }
   }
 
-  onCopy(): void {
-    const selectedNodes = this.getSelectedNodes();
-    if (selectedNodes.length > 0) {
-      this.clipboardService.set({
-        operation: 'copy',
-        sourceProvider: this.fileSystemProvider(),
-        sourcePath: this.path(),
-        items: selectedNodes
-      });
+  // --- Navigation ---
+  goUp(): void {
+    if (this.canGoUp()) {
+      this.pathChanged.emit(this.path().slice(0, -1));
     }
   }
 
-  async onPaste(): Promise<void> {
-    const clip = this.clipboardService.clipboard();
-    if (!this.canPaste() || !clip) return;
+  navigateToPath(index: number): void {
+    const newPath = this.path().slice(0, index + 1);
+    this.pathChanged.emit(newPath);
+  }
 
-    this.state.update(s => ({ ...s, status: 'loading' }));
-    try {
-      const itemsToPaste: ItemReference[] = clip.items.map(i => ({ name: i.name, type: i.type }));
-      const provider = this.fileSystemProvider();
-
-      if (clip.operation === 'copy') {
-        await provider.copy(clip.sourcePath, this.path(), itemsToPaste);
-      } else {
-        await provider.move(clip.sourcePath, this.path(), itemsToPaste);
-        // Clear clipboard only on cut-paste
-        this.clipboardService.clear();
-      }
-      this.loadContents(this.path());
-    } catch (e) {
-      alert(`Paste failed: ${(e as Error).message}`);
-      this.state.update(s => ({...s, status: 'success'})); // Revert loading state on error
+  openItem(item: FileSystemNode): void {
+    if (item.type === 'folder') {
+      this.pathChanged.emit([...this.path(), item.name]);
+    } else {
+      // Preview file content
+      this.previewItem.set(item);
     }
-  }
-
-  onRename(): void {
-    if (!this.canRename()) return;
-    const selectedNode = this.getSelectedNodes()[0];
-    if (selectedNode) {
-      this.promptAndRename(selectedNode);
-    }
-  }
-
-  onShare(): void {
-    if (this.selectedItems().size > 0) {
-      this.isShareDialogOpen.set(true);
-    }
-  }
-
-  closeShareDialog(): void {
-    this.isShareDialogOpen.set(false);
-  }
-
-  onDelete(): void {
-    this.deleteItems(this.getSelectedNodes());
-  }
-
-  onSortChange(criteria: SortCriteria): void {
-    this.sortCriteria.set(criteria);
-  }
-
-  // Context Menu Handlers
-  handleRenameFromContextMenu(): void {
-    const item = this.contextMenu()?.item;
-    if (item) this.promptAndRename(item);
-    this.closeContextMenu();
-  }
-
-  handleDeleteFromContextMenu(): void {
-    const item = this.contextMenu()?.item;
-    if (item) this.deleteItems([item]);
-    this.closeContextMenu();
-  }
-  
-  // Refactored Core Actions
-  async promptAndRename(item: FileSystemNode): Promise<void> {
-    const newName = prompt('Enter new name:', item.name);
-    if (newName && newName !== item.name) {
-      try {
-        this.state.update(s => ({...s, status: 'loading' }));
-        await this.fileSystemProvider().rename(this.path(), item.name, newName);
-        this.loadContents(this.path());
-      } catch (e) {
-        alert(`Error: ${(e as Error).message}`);
-        this.state.update(s => ({...s, status: 'success' }));
-      }
-    }
-  }
-
-  async deleteItems(items: FileSystemNode[]): Promise<void> {
-    if (items.length === 0) return;
-    
-    const message = items.length === 1 
-      ? `Are you sure you want to delete "${items[0].name}"?`
-      : `Are you sure you want to delete ${items.length} items?`;
-
-    if (confirm(message)) {
-      try {
-        this.state.update(s => ({...s, status: 'loading' }));
-        const deletePromises = items.map(item => 
-          item.type === 'folder'
-            ? this.fileSystemProvider().removeDirectory(this.path(), item.name)
-            : this.fileSystemProvider().deleteFile(this.path(), item.name)
-        );
-        await Promise.all(deletePromises);
-        this.loadContents(this.path());
-      } catch (e) {
-        alert(`Error: ${(e as Error).message}`);
-        this.state.update(s => ({...s, status: 'success' }));
-      }
-    }
-  }
-
-  getIconUrl(item: FileSystemNode): string | null {
-    return this.imageService.getIconUrl(item);
   }
 
   isImageFile(filename: string): boolean {
@@ -287,245 +212,498 @@ export class FileExplorerComponent implements OnDestroy {
     return filename.substring(lastDot + 1);
   }
 
-  openItem(item: FileSystemNode): void {
-    if (item.type === 'folder') {
-      this.selectedItems.set(new Set());
-      this.lastSelectedItemName.set(null);
-      this.pathChanged.emit([...this.path(), item.name]);
-    } else {
-      this.previewItem.set(item);
-    }
-  }
-
   closePreview(): void {
     this.previewItem.set(null);
   }
+  
+  // --- Selection Logic ---
+  onItemClick(event: MouseEvent, item: FileSystemNode): void {
+    event.stopPropagation();
+    this.closeContextMenu();
+    this.closeDestinationSubMenu();
+    
+    const isCtrlOrMeta = event.metaKey || event.ctrlKey;
+    const isShift = event.shiftKey;
+    const itemName = item.name;
 
-  goUp(): void {
-    if (this.canGoUp()) {
-      this.pathChanged.emit(this.path().slice(0, -1));
+    if (isShift && this.lastSelectedItemName()) {
+      this.handleShiftSelection(itemName);
+    } else if (isCtrlOrMeta) {
+      this.handleCtrlMetaSelection(itemName);
+    } else {
+      this.handleSingleSelection(itemName);
+    }
+
+    this.updateSingleSelectedItem();
+  }
+
+  private handleSingleSelection(itemName: string): void {
+    this.selectedItems.set(new Set([itemName]));
+    this.lastSelectedItemName.set(itemName);
+  }
+
+  private handleCtrlMetaSelection(itemName: string): void {
+    this.selectedItems.update(currentSelection => {
+      const newSelection = new Set(currentSelection);
+      if (newSelection.has(itemName)) {
+        newSelection.delete(itemName);
+      } else {
+        newSelection.add(itemName);
+      }
+      return newSelection;
+    });
+    if (this.selectedItems().has(itemName)) {
+      this.lastSelectedItemName.set(itemName);
+    } else {
+      this.lastSelectedItemName.set(null);
     }
   }
 
-  navigateToPath(index: number): void {
-    const newPath = index === -1 ? [] : this.path().slice(0, index + 1);
-    this.pathChanged.emit(newPath);
+  private handleShiftSelection(itemName: string): void {
+    const items = this.sortedItems();
+    const lastSelectedIdx = items.findIndex(i => i.name === this.lastSelectedItemName());
+    const currentIdx = items.findIndex(i => i.name === itemName);
+
+    if (lastSelectedIdx === -1 || currentIdx === -1) {
+        this.handleSingleSelection(itemName);
+        return;
+    }
+
+    const start = Math.min(lastSelectedIdx, currentIdx);
+    const end = Math.max(lastSelectedIdx, currentIdx);
+    const itemsToSelect = items.slice(start, end + 1).map(i => i.name);
+
+    this.selectedItems.update(currentSelection => {
+        const newSelection = new Set(currentSelection);
+        itemsToSelect.forEach(name => newSelection.add(name));
+        return newSelection;
+    });
   }
   
+  private updateSingleSelectedItem(): void {
+    const selection = this.selectedItems();
+    if (selection.size === 1) {
+      const itemName = selection.values().next().value;
+      const item = this.state().items.find(i => i.name === itemName);
+      this.itemSelected.emit(item ?? null);
+    } else {
+      this.itemSelected.emit(null);
+    }
+  }
+
+  private getSelectedNodes(): FileSystemNode[] {
+    const selection = this.selectedItems();
+    return this.state().items.filter(i => selection.has(i.name));
+  }
+  
+  private getItemReference(node: FileSystemNode): ItemReference {
+    return { name: node.name, type: node.type };
+  }
+  
+  private getSelectedItemReferences(): ItemReference[] {
+    return this.getSelectedNodes().map(this.getItemReference);
+  }
+
+  // --- Context Menu ---
   onContextMenu(event: MouseEvent, item: FileSystemNode | null = null): void {
     event.preventDefault();
     event.stopPropagation();
+    this.closeDestinationSubMenu();
+
+    if (item && !this.selectedItems().has(item.name)) {
+      this.handleSingleSelection(item.name);
+      this.updateSingleSelectedItem();
+    }
+    
     this.contextMenu.set({ x: event.clientX, y: event.clientY, item });
   }
 
   closeContextMenu(): void {
-    this.contextMenu.set(null);
+    if (this.contextMenu()) {
+      this.contextMenu.set(null);
+    }
   }
 
-  onImageLoad(itemName: string): void {
-    this.loadedImageItems.update(currentSet => {
-      const newSet = new Set(currentSet);
-      newSet.add(itemName);
-      return newSet;
+  openDestinationSubMenu(operation: 'copy' | 'move', event: MouseEvent): void {
+    clearTimeout(this.destinationSubMenuTimer);
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    this.destinationSubMenu.set({
+      operation,
+      x: rect.right,
+      y: rect.top
     });
   }
 
-  onImageError(itemName: string): void {
-    this.failedImageItems.update(currentSet => {
-      const newSet = new Set(currentSet);
-      newSet.add(itemName);
-      return newSet;
-    });
+  onDestinationSubMenuEnter(): void {
+    clearTimeout(this.destinationSubMenuTimer);
   }
 
+  onDestinationSubMenuLeave(): void {
+    this.destinationSubMenuTimer = setTimeout(() => {
+        this.closeDestinationSubMenu();
+    }, 150);
+  }
+
+  closeDestinationSubMenu(): void {
+    clearTimeout(this.destinationSubMenuTimer);
+    if (this.destinationSubMenu()) {
+      this.destinationSubMenu.set(null);
+    }
+  }
+
+  // --- File Operations ---
   async createFolder(): Promise<void> {
-    const name = prompt('Enter folder name:');
+    const name = prompt('Enter folder name:', 'New folder');
     if (name) {
       try {
         await this.fileSystemProvider().createDirectory(this.path(), name);
         this.loadContents(this.path());
       } catch (e) {
-        alert(`Error: ${(e as Error).message}`);
+        alert(`Error creating folder: ${(e as Error).message}`);
       }
     }
-    this.closeContextMenu();
   }
 
   async createFile(): Promise<void> {
-    const name = prompt('Enter file name:');
+    const name = prompt('Enter file name:', 'New file.txt');
     if (name) {
       try {
         await this.fileSystemProvider().createFile(this.path(), name);
         this.loadContents(this.path());
       } catch (e) {
-        alert(`Error: ${(e as Error).message}`);
+        alert(`Error creating file: ${(e as Error).message}`);
       }
+    }
+  }
+
+  async onFilesUploaded(files: FileList): Promise<void> {
+    this.state.update(s => ({ ...s, status: 'loading' }));
+    try {
+      await Promise.all(
+        Array.from(files).map(file => this.fileSystemProvider().uploadFile(this.path(), file))
+      );
+    } catch (e) {
+      alert(`Error uploading files: ${(e as Error).message}`);
+    } finally {
+      this.loadContents(this.path());
+    }
+  }
+  
+  onCut(): void {
+    this.clipboardService.set({
+      operation: 'cut',
+      sourceProvider: this.fileSystemProvider(),
+      sourcePath: this.path(),
+      items: this.getSelectedNodes()
+    });
+  }
+  
+  onCopy(): void {
+    this.clipboardService.set({
+      operation: 'copy',
+      sourceProvider: this.fileSystemProvider(),
+      sourcePath: this.path(),
+      items: this.getSelectedNodes()
+    });
+  }
+  
+  async onPaste(): Promise<void> {
+    const clip = this.clipboardService.get();
+    if (!clip || !this.canPaste()) return;
+
+    try {
+      const itemRefs = clip.items.map(this.getItemReference);
+      if (clip.operation === 'cut') {
+        await clip.sourceProvider.move(clip.sourcePath, this.path(), itemRefs);
+        this.clipboardService.clear();
+      } else { // copy
+        await clip.sourceProvider.copy(clip.sourcePath, this.path(), itemRefs);
+      }
+    } catch (e) {
+      alert(`Paste failed: ${(e as Error).message}`);
+    } finally {
+      this.loadContents(this.path());
+    }
+  }
+
+  async onRename(): Promise<void> {
+    const selectedNodes = this.getSelectedNodes();
+    if (selectedNodes.length !== 1) return;
+
+    const oldName = selectedNodes[0].name;
+    const newName = prompt('Enter new name:', oldName);
+    
+    if (newName && newName !== oldName) {
+      try {
+        await this.fileSystemProvider().rename(this.path(), oldName, newName);
+        this.loadContents(this.path());
+      } catch (e) {
+        alert(`Rename failed: ${(e as Error).message}`);
+      }
+    }
+  }
+
+  async executeCopyToMoveTo(operation: 'copy' | 'move', destPath: string[]): Promise<void> {
+    const items = this.getSelectedItemReferences();
+    if (items.length === 0) return;
+    
+    try {
+        if (operation === 'copy') {
+            await this.fileSystemProvider().copy(this.path(), destPath, items);
+        } else { // move
+            await this.fileSystemProvider().move(this.path(), destPath, items);
+        }
+    } catch (e) {
+        alert(`${operation} failed: ${(e as Error).message}`);
+    } finally {
+        this.loadContents(this.path());
+        this.closeDestinationSubMenu();
+    }
+  }
+  
+  onItemsCopiedTo(destPath: string[]): void {
+    this.executeCopyToMoveTo('copy', destPath);
+  }
+  
+  onItemsMovedTo(destPath: string[]): void {
+    this.executeCopyToMoveTo('move', destPath);
+  }
+
+  onShare(): void {
+    this.isShareDialogOpen.set(true);
+  }
+  
+  closeShareDialog(): void {
+    this.isShareDialogOpen.set(false);
+  }
+
+  async onDelete(): Promise<void> {
+    const selectedNodes = this.getSelectedNodes();
+    if (selectedNodes.length === 0) return;
+
+    if (confirm(`Are you sure you want to delete ${selectedNodes.length} item(s)?`)) {
+      try {
+        await Promise.all(selectedNodes.map(node => {
+          if (node.type === 'folder') {
+            return this.fileSystemProvider().removeDirectory(this.path(), node.name);
+          } else {
+            return this.fileSystemProvider().deleteFile(this.path(), node.name);
+          }
+        }));
+      } catch (e) {
+        alert(`Delete failed: ${(e as Error).message}`);
+      } finally {
+        this.loadContents(this.path());
+      }
+    }
+  }
+  
+  handleRenameFromContextMenu(): void {
+    this.onRename();
+    this.closeContextMenu();
+  }
+
+  handleDeleteFromContextMenu(): void {
+    this.onDelete();
+    this.closeContextMenu();
+  }
+  
+  handlePropertiesFromContextMenu(): void {
+    const selected = this.getSelectedNodes();
+    if (selected.length === 1) {
+        this.propertiesItem.set(selected[0]);
+        this.isPropertiesDialogOpen.set(true);
     }
     this.closeContextMenu();
   }
 
-  onFilesUploaded(files: FileList): void {
-    this.uploadFiles(files, this.path());
+  closePropertiesDialog(): void {
+    this.isPropertiesDialogOpen.set(false);
+    this.propertiesItem.set(null);
+  }
+  
+  // --- UI Handlers ---
+  onSortChange(criteria: SortCriteria): void {
+    this.sortCriteria.set(criteria);
   }
 
-  onFolderDrop(event: { files: FileList; item: FileSystemNode }): void {
-    const destinationPath = [...this.path(), event.item.name];
-    this.uploadFiles(event.files, destinationPath);
+  getIconUrl(item: FileSystemNode): string | null {
+    return this.imageService().getIconUrl(item);
+  }
+  
+  onImageLoad(name: string): void {
+    this.loadedImageItems.update(set => new Set(set).add(name));
   }
 
-  private async uploadFiles(files: FileList, path: string[]): Promise<void> {
-    if (!files || files.length === 0) {
-      return;
-    }
-    this.state.update(s => ({ ...s, status: 'loading' }));
-    try {
-      const uploadPromises = Array.from(files).map(file =>
-        this.fileSystemProvider().uploadFile(path, file)
-      );
-      await Promise.all(uploadPromises);
-      this.loadContents(this.path());
-    } catch (e) {
-      alert(`Upload failed: ${(e as Error).message}`);
-      this.state.update(s => ({...s, status: 'success'}));
-    }
+  onImageError(name: string): void {
+    this.failedImageItems.update(set => new Set(set).add(name));
   }
 
+  onSearchClick(): void {
+    this.searchInitiated.emit();
+  }
+
+  onCloseSearchClick(): void {
+    this.viewMode.set('explorer');
+    this.searchCompleted.emit();
+  }
+  
+  onQuickSearchInput(event: Event): void {
+    const query = (event.target as HTMLInputElement).value;
+    this.quickSearchQuery.set(query);
+  }
+
+  onQuickSearchSubmit(): void {
+    this.quickSearch.emit(this.quickSearchQuery());
+  }
+
+  // --- Drag & Drop ---
   onMainAreaDragOver(event: DragEvent): void {
     event.preventDefault();
-    event.stopPropagation();
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'copy';
+    }
     this.isDragOverMainArea.set(true);
   }
 
   onMainAreaDragLeave(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOverMainArea.set(false);
+    // Check if the relatedTarget is outside the main content area
+    if (!this.mainContentEl.nativeElement.contains(event.relatedTarget as Node)) {
+        this.isDragOverMainArea.set(false);
+    }
   }
 
   onMainAreaDrop(event: DragEvent): void {
     event.preventDefault();
-    event.stopPropagation();
     this.isDragOverMainArea.set(false);
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
-      this.uploadFiles(files, this.path());
+        this.onFilesUploaded(files);
     }
   }
 
-  onItemClick(event: MouseEvent, item: FileSystemNode): void {
-    const itemName = item.name;
-    const currentSelection = new Set(this.selectedItems());
-    const items = this.sortedItems();
-
-    if (event.shiftKey && this.lastSelectedItemName()) {
-      const lastIndex = items.findIndex(i => i.name === this.lastSelectedItemName());
-      const currentIndex = items.findIndex(i => i.name === itemName);
-
-      if (lastIndex > -1 && currentIndex > -1) {
-        const start = Math.min(lastIndex, currentIndex);
-        const end = Math.max(lastIndex, currentIndex);
-        
-        if (!event.ctrlKey && !event.metaKey) {
-            currentSelection.clear();
-        }
-
-        for (let i = start; i <= end; i++) {
-          currentSelection.add(items[i].name);
-        }
-        this.selectedItems.set(currentSelection);
-      }
-    } else if (event.ctrlKey || event.metaKey) {
-      if (currentSelection.has(itemName)) {
-        currentSelection.delete(itemName);
-      } else {
-        currentSelection.add(itemName);
-      }
-      this.selectedItems.set(currentSelection);
-      this.lastSelectedItemName.set(itemName);
-    } else {
-      this.selectedItems.set(new Set([itemName]));
-      this.lastSelectedItemName.set(itemName);
-    }
+  onFolderDrop(event: { files: FileList, item: FileSystemNode }): void {
+    // This is a mock implementation. A real one would require path manipulation.
+    console.log(`Dropped ${event.files.length} files onto ${event.item.name}`);
+    alert(`Dropped ${event.files.length} files onto ${event.item.name}. Uploading to specific folders is not implemented yet.`);
   }
 
+  // --- Lasso Selection ---
   onMainAreaMouseDown(event: MouseEvent): void {
-    if ((event.target as HTMLElement).closest('[data-is-selectable-item]')) {
+    // Only start lasso if it's a primary button click on the background
+    if (event.button !== 0 || (event.target as HTMLElement).closest('[data-is-selectable-item]')) {
       return;
     }
     event.preventDefault();
+    this.closeContextMenu();
+    this.closeDestinationSubMenu();
+    this.startLassoing(event);
+  }
 
-    if (event.ctrlKey || event.metaKey) {
-      this.initialSelectionOnLasso = new Set(this.selectedItems());
-    } else {
-      this.initialSelectionOnLasso.clear();
-      this.selectedItems.set(new Set());
-    }
-    
-    this.mainContentRect = this.mainContentEl.nativeElement.getBoundingClientRect();
-    this.lassoStartPoint = { x: event.clientX, y: event.clientY };
+  private startLassoing(event: MouseEvent): void {
     this.isLassoing.set(true);
+    this.mainContentRect = this.mainContentEl.nativeElement.getBoundingClientRect();
+    this.lassoStartPoint = { 
+      x: event.clientX - this.mainContentRect.left, 
+      y: event.clientY - this.mainContentRect.top 
+    };
     
-    this.unlistenMouseMove = this.renderer.listen('document', 'mousemove', (e) => this.onDocumentMouseMove(e));
-    this.unlistenMouseUp = this.renderer.listen('document', 'mouseup', () => this.stopLasso());
-  }
+    // Disable text selection on the body while lassoing
+    this.renderer.setStyle(document.body, 'user-select', 'none');
+    
+    // Store initial selection if user is holding ctrl/meta
+    this.initialSelectionOnLasso = (event.metaKey || event.ctrlKey) ? new Set(this.selectedItems()) : new Set();
+    if (!event.metaKey && !event.ctrlKey) {
+        this.selectedItems.set(new Set());
+    }
 
-  private onDocumentMouseMove(event: MouseEvent): void {
-    if (!this.isLassoing() || !this.mainContentRect) return;
-    event.preventDefault();
+    this.lassoRect.set({ ...this.lassoStartPoint, width: 0, height: 0 });
 
-    const { clientX: currentX, clientY: currentY } = event;
-    const { x: startX, y: startY } = this.lassoStartPoint;
-
-    const left = Math.min(startX, currentX);
-    const top = Math.min(startY, currentY);
-    const width = Math.abs(currentX - startX);
-    const height = Math.abs(currentY - startY);
-
-    this.lassoRect.set({
-      x: left - this.mainContentRect.left,
-      y: top - this.mainContentRect.top,
-      width,
-      height
-    });
-
-    this.updateSelectionFromLasso();
-  }
-
-  private stopLasso(): void {
-    if (!this.isLassoing()) return;
-    this.isLassoing.set(false);
-    this.lassoRect.set(null);
-    if (this.unlistenMouseMove) this.unlistenMouseMove();
-    if (this.unlistenMouseUp) this.unlistenMouseUp();
-    this.unlistenMouseMove = null;
-    this.unlistenMouseUp = null;
+    this.unlistenMouseMove = this.renderer.listen('document', 'mousemove', this.onLassoMove.bind(this));
+    this.unlistenMouseUp = this.renderer.listen('document', 'mouseup', this.stopLassoing.bind(this));
   }
   
-  private updateSelectionFromLasso(): void {
-    if (!this.lassoRect() || !this.mainContentRect) return;
+  private onLassoMove(event: MouseEvent): void {
+    if (!this.isLassoing() || !this.mainContentRect) return;
 
-    const lassoAbsoluteRect = {
-      left: this.lassoRect()!.x + this.mainContentRect.left,
-      top: this.lassoRect()!.y + this.mainContentRect.top,
-      right: this.lassoRect()!.x + this.mainContentRect.left + this.lassoRect()!.width,
-      bottom: this.lassoRect()!.y + this.mainContentRect.top + this.lassoRect()!.height
+    const currentX = event.clientX - this.mainContentRect.left;
+    const currentY = event.clientY - this.mainContentRect.top;
+
+    const x = Math.min(this.lassoStartPoint.x, currentX);
+    const y = Math.min(this.lassoStartPoint.y, currentY);
+    const width = Math.abs(currentX - this.lassoStartPoint.x);
+    const height = Math.abs(currentY - this.lassoStartPoint.y);
+
+    const newRect = { x, y, width, height };
+    this.lassoRect.set(newRect);
+
+    this.updateSelectionFromLasso(newRect);
+  }
+  
+  private updateSelectionFromLasso(lasso: { x: number; y: number; width: number; height: number }): void {
+    const lassoWithScroll = {
+        ...lasso,
+        x: lasso.x + this.mainContentEl.nativeElement.scrollLeft,
+        y: lasso.y + this.mainContentEl.nativeElement.scrollTop
     };
+    const newSelection = new Set(this.initialSelectionOnLasso);
+    
+    this.selectableItemElements.forEach(elRef => {
+        const itemEl = elRef.nativeElement;
+        const itemName = this.getItemNameFromElement(itemEl);
+        if (!itemName) return;
+        
+        const itemRect = {
+            left: itemEl.offsetLeft,
+            top: itemEl.offsetTop,
+            right: itemEl.offsetLeft + itemEl.offsetWidth,
+            bottom: itemEl.offsetTop + itemEl.offsetHeight
+        };
+        
+        const isIntersecting = 
+            itemRect.left < lassoWithScroll.x + lassoWithScroll.width &&
+            itemRect.right > lassoWithScroll.x &&
+            itemRect.top < lassoWithScroll.y + lassoWithScroll.height &&
+            itemRect.bottom > lassoWithScroll.y;
 
-    const items = this.sortedItems();
-    const newSelection = new Set<string>(this.initialSelectionOnLasso);
-
-    this.selectableItemElements.forEach((elRef, index) => {
-      const itemRect = elRef.nativeElement.getBoundingClientRect();
-      const intersects = !(itemRect.right < lassoAbsoluteRect.left || 
-                           itemRect.left > lassoAbsoluteRect.right || 
-                           itemRect.bottom < lassoAbsoluteRect.top || 
-                           itemRect.top > lassoAbsoluteRect.bottom);
-
-      if (intersects) {
-        newSelection.add(items[index].name);
-      }
+        if (isIntersecting) {
+            newSelection.add(itemName);
+        } else {
+            // Only remove if it wasn't part of the initial selection on ctrl/meta drag
+            if (!this.initialSelectionOnLasso.has(itemName)) {
+                newSelection.delete(itemName);
+            }
+        }
     });
 
     this.selectedItems.set(newSelection);
+  }
+
+  private getItemNameFromElement(element: HTMLElement): string | null {
+      // Logic to find the item name from the DOM element.
+      // This is brittle. A better way would be a data attribute.
+      const span = element.querySelector('span');
+      return span ? span.textContent : null;
+  }
+
+  private stopLassoing(): void {
+    if (!this.isLassoing()) return;
+    
+    this.isLassoing.set(false);
+    this.lassoRect.set(null);
+    this.updateSingleSelectedItem();
+
+    if (this.unlistenMouseMove) {
+      this.unlistenMouseMove();
+      this.unlistenMouseMove = null;
+    }
+    if (this.unlistenMouseUp) {
+      this.unlistenMouseUp();
+      this.unlistenMouseUp = null;
+    }
+
+    // Re-enable text selection
+    this.renderer.removeStyle(document.body, 'user-select');
   }
 }

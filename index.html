@@ -124,6 +124,13 @@
 
       --color-disabled-bg: 56 56 56;
     }
+    @keyframes slide-in-right {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+    .animate-slide-in-right {
+      animation: slide-in-right 0.2s ease-out;
+    }
   </style>
 <script type="importmap">
 {
@@ -140,7 +147,7 @@
     "@angular/compiler": "https://next.esm.sh/@angular/compiler@^20.3.3?external=rxjs",
     "http": "https://next.esm.sh/http@^0.0.1-security?external=rxjs",
     "url": "https://next.esm.sh/url@^0.11.4?external=rxjs",
-    "convex": "https://aistudiocdn.com/convex@^1.13.0"
+    "convex/browser": "https://aistudiocdn.com/convex@^1.13.0/browser"
   }
 }
 </script>

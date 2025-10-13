@@ -1,20 +1,21 @@
-import { Injectable, inject } from '@angular/core';
+import { inject } from '@angular/core';
 import { FileSystemProvider, ItemReference } from './file-system-provider';
-import { FileSystemNode } from '../models/file-system.model';
+import { FileSystemNode, SearchResultNode } from '../models/file-system.model';
 import { FsService } from './fs.service';
-import { ServerProfileService } from './server-profile.service';
+import { ServerProfile } from '../models/server-profile.model';
 
-@Injectable({
-  providedIn: 'root',
-})
 export class RemoteFileSystemService implements FileSystemProvider {
-  private fsService = inject(FsService);
-  private profileService = inject(ServerProfileService);
-  // The alias is now determined by the active profile
+  private fsService: FsService;
+  public profile: ServerProfile;
   private readonly alias = 'C:';
 
+  constructor(profile: ServerProfile, fsService: FsService) {
+    this.profile = profile;
+    this.fsService = fsService;
+  }
+
   async getContents(path: string[]): Promise<FileSystemNode[]> {
-    const response: any = await this.fsService.listFiles(this.alias, path);
+    const response: any = await this.fsService.listFiles(this.profile.brokerUrl, this.alias, path);
 
     let rawItems: any[] = [];
 
@@ -35,9 +36,6 @@ export class RemoteFileSystemService implements FileSystemProvider {
       }
     }
 
-    // Second, map the raw items to the FileSystemNode model.
-    // This adapts the backend data structure (e.g., type: 'DIRECTORY') 
-    // to the frontend's expected model (e.g., type: 'folder').
     return rawItems.map((item: any): FileSystemNode => {
       const itemType = (item.type || '').toLowerCase();
       const isFolder = itemType === 'folder' || itemType === 'directory';
@@ -45,55 +43,53 @@ export class RemoteFileSystemService implements FileSystemProvider {
       return {
         name: item.name,
         type: isFolder ? 'folder' : 'file',
-        modified: item.modified, // Pass along if it exists
-        content: item.content,   // Pass along if it exists
+        modified: item.modified,
+        content: item.content,
       };
     });
   }
 
   getFolderTree(): Promise<FileSystemNode> {
-    // API SHORTCOMING: The current backend API lacks an efficient endpoint
-    // to retrieve the entire folder hierarchy in a single call.
-    // A proper implementation would require a dedicated `getTree` operation
-    // in the `restFsService` to avoid making numerous recursive `listFiles` calls,
-    // which would be slow and inefficient.
     console.warn('getFolderTree not implemented in live mode. It should be.');
-    // For now, return a minimal tree to prevent errors and keep the UI functional.
-    const rootName = this.profileService.activeProfile()?.name ?? this.alias;
+    const rootName = this.profile.name;
     return Promise.resolve({ name: rootName, type: 'folder', children: [] });
   }
 
   createDirectory(path: string[], name: string): Promise<void> {
-    return this.fsService.createDirectory(this.alias, [...path, name]);
+    return this.fsService.createDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
   }
 
   removeDirectory(path: string[], name: string): Promise<void> {
-    return this.fsService.removeDirectory(this.alias, [...path, name]);
+    return this.fsService.removeDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
   }
 
   createFile(path: string[], name: string): Promise<void> {
-    return this.fsService.createFile(this.alias, path, name);
+    return this.fsService.createFile(this.profile.brokerUrl, this.alias, path, name);
   }
 
   deleteFile(path: string[], name: string): Promise<void> {
-    return this.fsService.deleteFile(this.alias, path, name);
+    return this.fsService.deleteFile(this.profile.brokerUrl, this.alias, path, name);
   }
 
   rename(path: string[], oldName: string, newName: string): Promise<void> {
-    return this.fsService.rename(this.alias, [...path, oldName], newName);
+    return this.fsService.rename(this.profile.brokerUrl, this.alias, [...path, oldName], newName);
   }
 
   uploadFile(path: string[], file: File): Promise<void> {
-    // This would be implemented to upload to a remote server
     console.warn(`File upload not implemented in live mode. File: ${file.name}, Path: ${path.join('/')}`);
-    return this.fsService.copy(this.alias, [], [], []); // No-op for now
+    return this.fsService.copy(this.profile.brokerUrl, this.alias, [], [], []); // No-op for now
   }
 
   move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.fsService.move(this.alias, sourcePath, destPath, items);
+    return this.fsService.move(this.profile.brokerUrl, this.alias, sourcePath, destPath, items);
   }
 
   copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.fsService.copy(this.alias, sourcePath, destPath, items);
+    return this.fsService.copy(this.profile.brokerUrl, this.alias, sourcePath, destPath, items);
+  }
+
+  async search(query: string): Promise<SearchResultNode[]> {
+    console.warn(`Search not implemented in live mode for query: ${query}`);
+    return Promise.resolve([]);
   }
 }

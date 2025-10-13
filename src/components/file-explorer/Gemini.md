@@ -4,7 +4,7 @@ The `FileExplorerComponent` is the most complex and central UI component in the 
 
 ## Core Responsibilities
 
-1.  **Displaying Directory Contents:** It fetches and displays the list of files and folders for the `currentPath` using the provided `fileSystemProvider`.
+1.  **Displaying Directory Contents:** It fetches and displays the list of files and folders for the `path` it receives as an input, using the provided `fileSystemProvider`.
 2.  **State Management:** It manages a local `state` signal to track the status of data loading (`'loading'`, `'success'`, `'error'`).
 3.  **User Interaction & Selection:** It handles all user input for selecting items:
     - Single click
@@ -22,19 +22,20 @@ The `FileExplorerComponent` is the most complex and central UI component in the 
 ### Inputs (`input()`)
 
 -   `id: number`: A unique identifier (1 or 2), crucial for multi-pane management.
--   `isActive: boolean`: Indicates if this pane is the currently active one. Active panes are highlighted and respond to sidebar navigation.
+-   `path: string[]`: The full path that this explorer should display. The component reactively loads content whenever this input changes.
+-   `isActive: boolean`: Indicates if this pane is the currently active one. Active panes are highlighted and are the target for sidebar navigation.
 -   `isSplitView: boolean`: Affects styling and layout.
--   `sidebarNavigationEvent: { path: string[], timestamp: number } | null`: A trigger signal from the parent. An `effect` watches this input and navigates the component to the new path if it's the active pane.
 -   `fileSystemProvider: FileSystemProvider`: **This is the most important input.** It's the abstraction the component uses for all file system operations. It makes the component entirely independent of the data source (local vs. remote).
+-   `searchResults`: Used to push the component into "search results" view mode.
 
 ### Outputs (`output()`)
 
 -   `activated: number`: Emits its `id` when the component's main area is clicked, telling the parent `AppComponent` to set it as the active pane.
--   `pathChanged: {id: number, path: string[]}`: Emits an event whenever the `currentPath` signal changes, keeping the parent `AppComponent` informed of its location.
+-   `pathChanged: string[]`: Emits the new path whenever the user navigates internally (e.g., by double-clicking a folder), keeping the parent `AppComponent` informed of its location.
+-   `itemSelected: FileSystemNode | null`: Emits the selected item when the selection contains exactly one item, or `null` otherwise. This is used by the parent to populate the details pane.
 
 ## Internal State (Signals)
 
--   `currentPath`: An array of strings representing the current directory path (e.g., `['Documents', 'Work']`).
 -   `state`: An object tracking the loading status and the list of `items` in the current directory.
 -   `selectedItems`: A `Set<string>` containing the names of the selected items.
 -   `contextMenu`: Holds the coordinates and target item for rendering the right-click context menu.
