@@ -1,33 +1,24 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "node",
     "experimentalDecorators": true,
-    "useDefineForClassFields": false,
-    "module": "ESNext",
+    "sourceMap": true,
     "lib": [
       "ES2022",
-      "DOM",
-      "DOM.Iterable"
+      "DOM"
     ],
+    "strict": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": [
-      "node"
-    ],
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "allowJs": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    }
+    "declaration": false
   },
-  "files": [
-    "./index.tsx"
+  "include": [
+    "index.ts",
+    "src/**/*.ts"
   ],
-  "angularCompilerOptions": {
-    "disableTypeScriptVersionCheck": true
-  }
+  "exclude": [
+    "node_modules"
+  ]
 }

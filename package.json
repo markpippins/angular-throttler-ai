@@ -4,20 +4,25 @@
   "description": "A web-based file explorer clone that allows you to navigate a virtual file system, inspired by the Windows Explorer interface.",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "build": "electron-builder",
+    "tsc": "tsc",
+    "start": "npm run tsc && electron .",
+    "build": "npm run tsc && electron-builder",
     "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
     "electron": "^29.1.5",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.4.5"
   },
   "build": {
     "appId": "com.example.throttler",
     "productName": "Throttler File Explorer",
     "files": [
-      "**/*",
-      "!node_modules"
+      "main.js",
+      "preload.js",
+      "index.html",
+      "**/*.js",
+      "src/**/*.js"
     ],
     "directories": {
       "output": "dist"
