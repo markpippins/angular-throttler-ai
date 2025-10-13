@@ -5,7 +5,18 @@ import { TreeNodeComponent } from '../tree-node/tree-node.component';
 
 @Component({
   selector: 'app-tree-view',
-  templateUrl: './tree-view.component.html',
+  template: `
+<div class="p-2 h-full overflow-y-auto">
+  @if (rootNode(); as root) {
+    <app-tree-node
+      [node]="root"
+      [path]="[]"
+      [currentPath]="currentPath()"
+      (pathChange)="onPathChange($event)">
+    </app-tree-node>
+  }
+</div>
+  `,
   imports: [CommonModule, TreeNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

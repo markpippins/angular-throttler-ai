@@ -9,7 +9,49 @@ import { TreeViewComponent } from '../tree-view/tree-view.component';
 
 @Component({
   selector: 'app-sidebar',
-  templateUrl: './sidebar.component.html',
+  template: `
+<aside 
+  class="relative h-full flex flex-col bg-[rgb(var(--color-surface-sidebar))] border-r border-[rgb(var(--color-border-base))] ease-in-out"
+  [class.transition-all]="!isResizing()"
+  [class.duration-300]="!isResizing()"
+  [style.width.px]="isCollapsed() ? 64 : width()">
+
+  @if (!isCollapsed()) {
+    <!-- EXPANDED VIEW -->
+    <div class="flex-1 overflow-hidden">
+      <app-tab-control (collapseClick)="toggleCollapse()">
+        <app-tab title="Explorer">
+          @if(folderTree(); as tree) {
+            <app-tree-view 
+              [rootNode]="tree"
+              [currentPath]="currentPath()"
+              (pathChange)="onTreeViewPathChange($event)">
+            </app-tree-view>
+          } @else {
+            <div class="p-4 text-center text-[rgb(var(--color-text-subtle))] text-sm">Loading tree...</div>
+          }
+        </app-tab>
+        <app-tab title="News">
+          <app-newsfeed></app-newsfeed>
+        </app-tab>
+        <app-tab title="Search">
+          <app-search></app-search>
+        </app-tab>
+      </app-tab-control>
+    </div>
+    
+    <!-- Resizer Handle -->
+    <div 
+      class="absolute top-0 right-0 h-full w-1.5 cursor-col-resize group z-10"
+      (mousedown)="startResize($event)">
+        <div class="w-0.5 h-full mx-auto bg-transparent group-hover:bg-[rgb(var(--color-accent-ring))]/50 transition-colors duration-200"></div>
+    </div>
+  } @else {
+    <!-- COLLAPSED VIEW -->
+    <app-vertical-toolbar (expandClick)="toggleCollapse()"></app-vertical-toolbar>
+  }
+</aside>
+  `,
   imports: [TabControlComponent, TabComponent, NewsfeedComponent, VerticalToolbarComponent, SearchComponent, TreeViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

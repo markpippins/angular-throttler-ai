@@ -2,7 +2,33 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-newsfeed',
-  templateUrl: './newsfeed.component.html',
+  template: `
+<div class="p-4 space-y-3 text-sm h-full">
+  <div class="p-3 bg-[rgb(var(--color-surface))] rounded-lg shadow-sm border border-[rgb(var(--color-border-base))]">
+    <h3 class="font-semibold text-[rgb(var(--color-text-base))]">New Feature: Dark Mode</h3>
+    <p class="text-[rgb(var(--color-text-muted))] mt-1">
+      Enjoy a new viewing experience. Enable it in your (non-existent) settings.
+    </p>
+    <span class="text-xs text-[rgb(var(--color-text-subtle))]">2 hours ago</span>
+  </div>
+
+  <div class="p-3 bg-[rgb(var(--color-surface))] rounded-lg shadow-sm border border-[rgb(var(--color-border-base))]">
+    <h3 class="font-semibold text-[rgb(var(--color-text-base))]">System Maintenance Scheduled</h3>
+    <p class="text-[rgb(var(--color-text-muted))] mt-1">
+      Brief downtime expected this Sunday for system upgrades.
+    </p>
+    <span class="text-xs text-[rgb(var(--color-text-subtle))]">1 day ago</span>
+  </div>
+
+  <div class="p-3 bg-[rgb(var(--color-surface))] rounded-lg shadow-sm border border-[rgb(var(--color-border-base))]">
+    <h3 class="font-semibold text-[rgb(var(--color-text-base))]">Context Menus Are Here!</h3>
+    <p class="text-[rgb(var(--color-text-muted))] mt-1">
+      Right-click on files, folders, or the background to access new actions.
+    </p>
+    <span class="text-xs text-[rgb(var(--color-text-subtle))]">3 days ago</span>
+  </div>
+</div>
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NewsfeedComponent {}
