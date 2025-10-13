@@ -1,11 +1,11 @@
 import { Component, ChangeDetectionStrategy, signal, inject, Renderer2, OnDestroy, input, output } from '@angular/core';
-import { TabControlComponent } from '../tabs/tab-control.component';
-import { TabComponent } from '../tabs/tab.component';
-import { NewsfeedComponent } from '../newsfeed/newsfeed.component';
-import { VerticalToolbarComponent } from '../vertical-toolbar/vertical-toolbar.component';
-import { SearchComponent } from '../search/search.component';
-import { FileSystemNode } from '../../models/file-system.model';
-import { TreeViewComponent } from '../tree-view/tree-view.component';
+import { TabControlComponent } from '../tabs/tab-control.component.js';
+import { TabComponent } from '../tabs/tab.component.js';
+import { NewsfeedComponent } from '../newsfeed/newsfeed.component.js';
+import { VerticalToolbarComponent } from '../vertical-toolbar/vertical-toolbar.component.js';
+import { SearchComponent } from '../search/search.component.js';
+import { FileSystemNode } from '../../models/file-system.model.js';
+import { TreeViewComponent } from '../tree-view/tree-view.component.js';
 
 @Component({
   selector: 'app-sidebar',

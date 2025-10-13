@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { ServerProfileService } from './server-profile.service';
+import { ServerProfileService } from './server-profile.service.js';
 
 @Injectable({
   providedIn: 'root',

@@ -1,14 +1,14 @@
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { FileSystemNode, SearchResultNode } from '../../models/file-system.model';
-import { FileSystemProvider, ItemReference } from '../../services/file-system-provider';
-import { ImageService } from '../../services/image.service';
-import { ToolbarComponent, SortCriteria } from '../toolbar/toolbar.component';
-import { FolderComponent } from '../folder/folder.component';
-import { ClipboardService } from '../../services/clipboard.service';
-import { SearchResultsComponent } from '../search-results/search-results.component';
-import { PropertiesDialogComponent } from '../properties-dialog/properties-dialog.component';
-import { DestinationNodeComponent } from '../destination-node/destination-node.component';
+import { FileSystemNode, SearchResultNode } from '../../models/file-system.model.js';
+import { FileSystemProvider, ItemReference } from '../../services/file-system-provider.js';
+import { ImageService } from '../../services/image.service.js';
+import { ToolbarComponent, SortCriteria } from '../toolbar/toolbar.component.js';
+import { FolderComponent } from '../folder/folder.component.js';
+import { ClipboardService } from '../../services/clipboard.service.js';
+import { SearchResultsComponent } from '../search-results/search-results.component.js';
+import { PropertiesDialogComponent } from '../properties-dialog/properties-dialog.component.js';
+import { DestinationNodeComponent } from '../destination-node/destination-node.component.js';
 
 export { SearchResultNode };
 

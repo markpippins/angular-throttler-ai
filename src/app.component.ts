@@ -1,20 +1,20 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
-import { FileExplorerComponent, SearchResultNode } from './components/file-explorer/file-explorer.component';
-import { SidebarComponent } from './components/sidebar/sidebar.component';
-import { FileSystemNode } from './models/file-system.model';
-import { FileSystemProvider } from './services/file-system-provider';
-import { ServerProfilesDialogComponent } from './components/server-profiles-dialog/server-profiles-dialog.component';
-import { ElectronFileSystemService } from './services/electron-file-system.service';
-import { ServerProfileService } from './services/server-profile.service';
-import { SearchDialogComponent } from './components/search-dialog/search-dialog.component';
-import { DetailPaneComponent } from './components/detail-pane/detail-pane.component';
-import { ConvexDesktopService } from './services/convex-desktop.service';
-import { ServerProfile } from './models/server-profile.model';
-import { RemoteFileSystemService } from './services/remote-file-system.service';
-import { FsService } from './services/fs.service';
-import { ImageService } from './services/image.service';
-import { ImageClientService } from './services/image-client.service';
+import { FileExplorerComponent, SearchResultNode } from './components/file-explorer/file-explorer.component.js';
+import { SidebarComponent } from './components/sidebar/sidebar.component.js';
+import { FileSystemNode } from './models/file-system.model.js';
+import { FileSystemProvider } from './services/file-system-provider.js';
+import { ServerProfilesDialogComponent } from './components/server-profiles-dialog/server-profiles-dialog.component.js';
+import { ElectronFileSystemService } from './services/electron-file-system.service.js';
+import { ServerProfileService } from './services/server-profile.service.js';
+import { SearchDialogComponent } from './components/search-dialog/search-dialog.component.js';
+import { DetailPaneComponent } from './components/detail-pane/detail-pane.component.js';
+import { ConvexDesktopService } from './services/convex-desktop.service.js';
+import { ServerProfile } from './models/server-profile.model.js';
+import { RemoteFileSystemService } from './services/remote-file-system.service.js';
+import { FsService } from './services/fs.service.js';
+import { ImageService } from './services/image.service.js';
+import { ImageClientService } from './services/image-client.service.js';
 
 interface PanePath {
   id: number;
@@ -150,6 +150,7 @@ const CONVEX_ROOT_NAME = 'Convex Pins';
       @if (isDetailPaneOpen()) {
         <app-detail-pane
           [item]="selectedDetailItem()"
+          [imageService]="activeImageService()"
           (close)="toggleDetailPane()">
         </app-detail-pane>
       }
@@ -254,6 +255,13 @@ export class AppComponent implements OnDestroy {
   pane2Provider = computed(() => this.getProviderForPath(this.pane2Path()));
   pane1ImageService = computed(() => this.getImageServiceForPath(this.pane1Path()));
   pane2ImageService = computed(() => this.getImageServiceForPath(this.pane2Path()));
+  
+  // FIX: Add a computed signal to get the image service for the active pane.
+  // This is needed to pass the correct service to the detail pane, which was
+  // previously trying to inject a non-injectable service.
+  activeImageService = computed(() => {
+    return this.activePaneId() === 1 ? this.pane1ImageService() : this.pane2ImageService();
+  });
 
   constructor() {
     this.loadTheme();

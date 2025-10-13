@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, output, inject, signal, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ServerProfileService } from '../../services/server-profile.service';
-import { ServerProfile } from '../../models/server-profile.model';
+import { ServerProfileService } from '../../services/server-profile.service.js';
+import { ServerProfile } from '../../models/server-profile.model.js';
 
 type FormState = {
   id: string | null;

@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, contentChildren, signal, AfterContentInit, effect, output } from '@angular/core';
-import { TabComponent } from './tab.component';
+import { TabComponent } from './tab.component.js';
 
 @Component({
   selector: 'app-tab-control',

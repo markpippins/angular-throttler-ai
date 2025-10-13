@@ -2,12 +2,12 @@ import '@angular/compiler';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideZonelessChangeDetection } from '@angular/core';
 
-import { AppComponent } from './src/app.component';
-import { IS_DEBUG_MODE } from './src/services/app-config';
-import { ElectronFileSystemService } from './src/services/electron-file-system.service';
-import { DESKTOP_SERVICE } from './src/services/desktop.service';
-import { ElectronDesktopService } from './src/services/electron-desktop.service';
-import { ConvexDesktopService } from './src/services/convex-desktop.service';
+import { AppComponent } from './src/app.component.js';
+import { IS_DEBUG_MODE } from './src/services/app-config.js';
+import { ElectronFileSystemService } from './src/services/electron-file-system.service.js';
+import { DESKTOP_SERVICE } from './src/services/desktop.service.js';
+import { ElectronDesktopService } from './src/services/electron-desktop.service.js';
+import { ConvexDesktopService } from './src/services/convex-desktop.service.js';
 
 // We assume the build process exposes DEBUG from .env as process.env.DEBUG
 declare const process: any;

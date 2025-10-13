@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { BrokerService } from './broker.service';
-import { FileSystemNode } from '../models/file-system.model';
-import { ItemReference } from './file-system-provider';
+import { BrokerService } from './broker.service.js';
+import { FileSystemNode } from '../models/file-system.model.js';
+import { ItemReference } from './file-system-provider.js';
 
 const SERVICE_NAME = 'restFsService';
 

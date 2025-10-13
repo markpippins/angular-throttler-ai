@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SearchResultNode, FileSystemNode } from '../../models/file-system.model';
-import { ImageService } from '../../services/image.service';
+import { SearchResultNode, FileSystemNode } from '../../models/file-system.model.js';
+import { ImageService } from '../../services/image.service.js';
 
 @Component({
   selector: 'app-search-results',

@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, output, signal, ElementRef, inject, viewChild, input } from '@angular/core';
-import { DestinationNodeComponent } from '../destination-node/destination-node.component';
-import { FileSystemNode } from '../../models/file-system.model';
+import { DestinationNodeComponent } from '../destination-node/destination-node.component.js';
+import { FileSystemNode } from '../../models/file-system.model.js';
 
 export type SortKey = 'name' | 'modified';
 export type SortDirection = 'asc' | 'desc';

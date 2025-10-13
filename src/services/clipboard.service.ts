@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
-import { FileSystemNode } from '../models/file-system.model';
-import { FileSystemProvider } from './file-system-provider';
+import { FileSystemNode } from '../models/file-system.model.js';
+import { FileSystemProvider } from './file-system-provider.js';
 
 export interface ClipboardPayload {
   operation: 'cut' | 'copy';

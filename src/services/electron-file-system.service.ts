@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { FileSystemNode, SearchResultNode } from '../models/file-system.model';
-import { FileSystemProvider, ItemReference } from './file-system-provider';
-import { DESKTOP_SERVICE } from './desktop.service';
+import { FileSystemNode, SearchResultNode } from '../models/file-system.model.js';
+import { FileSystemProvider, ItemReference } from './file-system-provider.js';
+import { DESKTOP_SERVICE } from './desktop.service.js';
 
 @Injectable({
   providedIn: 'root',

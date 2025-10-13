@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { FileSystemNode } from '../models/file-system.model';
-import { ImageClientService } from './image-client.service';
-import { ServerProfile } from '../models/server-profile.model';
+import { FileSystemNode } from '../models/file-system.model.js';
+import { ImageClientService } from './image-client.service.js';
+import { ServerProfile } from '../models/server-profile.model.js';
 
 export class ImageService {
   private imageClientService: ImageClientService;

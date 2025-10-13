@@ -1,7 +1,7 @@
-import { Component, ChangeDetectionStrategy, input, output, inject, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FileSystemNode } from '../../models/file-system.model';
-import { ImageService } from '../../services/image.service';
+import { FileSystemNode } from '../../models/file-system.model.js';
+import { ImageService } from '../../services/image.service.js';
 
 @Component({
   selector: 'app-detail-pane',
@@ -67,12 +67,15 @@ import { ImageService } from '../../services/image.service';
 })
 export class DetailPaneComponent {
   item = input<FileSystemNode | null>(null);
+  // FIX: Change ImageService from `inject` to an `input` signal.
+  // The ImageService is not a singleton and depends on a server profile,
+  // so it must be passed in from a parent component.
+  imageService = input.required<ImageService>();
   close = output<void>();
 
-  private imageService = inject(ImageService);
-
   getIconUrl(item: FileSystemNode): string | null {
-    return this.imageService.getIconUrl(item);
+    // FIX: Access the imageService via the input signal.
+    return this.imageService().getIconUrl(item);
   }
   
   private getFileExtension(filename: string): string | null {

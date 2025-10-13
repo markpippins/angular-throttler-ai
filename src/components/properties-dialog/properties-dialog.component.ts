@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FileSystemNode } from '../../models/file-system.model';
-import { ImageService } from '../../services/image.service';
+import { FileSystemNode } from '../../models/file-system.model.js';
+import { ImageService } from '../../services/image.service.js';
 
 @Component({
   selector: 'app-properties-dialog',

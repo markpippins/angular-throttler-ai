@@ -1,8 +1,8 @@
 import { inject } from '@angular/core';
-import { FileSystemProvider, ItemReference } from './file-system-provider';
-import { FileSystemNode, SearchResultNode } from '../models/file-system.model';
-import { FsService } from './fs.service';
-import { ServerProfile } from '../models/server-profile.model';
+import { FileSystemProvider, ItemReference } from './file-system-provider.js';
+import { FileSystemNode, SearchResultNode } from '../models/file-system.model.js';
+import { FsService } from './fs.service.js';
+import { ServerProfile } from '../models/server-profile.model.js';
 
 export class RemoteFileSystemService implements FileSystemProvider {
   private fsService: FsService;

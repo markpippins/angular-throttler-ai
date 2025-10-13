@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { FileSystemNode, SearchResultNode } from '../models/file-system.model';
-import { FileSystemProvider, ItemReference } from './file-system-provider';
-import { ConvexService } from './convex.service';
-import { Magnet } from '../models/magnet.model';
+import { FileSystemNode, SearchResultNode } from '../models/file-system.model.js';
+import { FileSystemProvider, ItemReference } from './file-system-provider.js';
+import { ConvexService } from './convex.service.js';
+import { Magnet } from '../models/magnet.model.js';
 
 @Injectable({
   providedIn: 'root',

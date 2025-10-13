@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, effect } from '@angular/core';
-import { ServerProfile } from '../models/server-profile.model';
+import { ServerProfile } from '../models/server-profile.model.js';
 
 const PROFILES_STORAGE_KEY = 'file-explorer-server-profiles';
 const ACTIVE_PROFILE_ID_STORAGE_KEY = 'file-explorer-active-profile-id';

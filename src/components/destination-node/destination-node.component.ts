@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, input, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FileSystemNode } from '../../models/file-system.model';
+import { FileSystemNode } from '../../models/file-system.model.js';
 
 @Component({
   selector: 'app-destination-node',
