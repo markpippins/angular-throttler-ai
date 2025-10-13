@@ -5,7 +5,8 @@
       [path]="[]"
       [currentPath]="currentPath()"
       [expansionCommand]="expansionCommand()"
-      (pathChange)="onPathChange($event)">
+      (pathChange)="onPathChange($event)"
+      (loadChildren)="onLoadChildren($event)">
     </app-tree-node>
   }
 </div>

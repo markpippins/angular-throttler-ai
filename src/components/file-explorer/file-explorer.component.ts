@@ -99,6 +99,13 @@ export class FileExplorerComponent implements OnDestroy {
   canRename = computed(() => this.selectedItems().size === 1);
   canGoUp = computed(() => this.path().length > 0);
   
+  displayPath = computed(() => {
+    const p = this.path();
+    // The path from the app component includes the root of the current provider.
+    // We slice it off for display in the address bar, as the root is shown separately.
+    return p.length > 0 ? p.slice(1) : [];
+  });
+
   sortedItems = computed(() => {
     const items = [...this.state().items];
     const { key, direction } = this.sortCriteria();
@@ -185,8 +192,11 @@ export class FileExplorerComponent implements OnDestroy {
     }
   }
 
-  navigateToPath(index: number): void {
-    const newPath = this.path().slice(0, index + 1);
+  navigateToPath(displayIndex: number): void {
+    // We navigate within the full path. The displayIndex is relative to the displayPath.
+    // displayIndex: -1 for the root, 0 for the first segment, etc.
+    // The new path length will be displayIndex + 2 (e.g., -1 -> 1, 0 -> 2)
+    const newPath = this.path().slice(0, displayIndex + 2);
     this.pathChanged.emit(newPath);
   }
 

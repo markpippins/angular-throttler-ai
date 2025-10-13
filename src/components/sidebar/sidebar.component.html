@@ -36,7 +36,8 @@
                   [rootNode]="tree"
                   [currentPath]="currentPath()"
                   [expansionCommand]="treeExpansionCommand()"
-                  (pathChange)="onTreeViewPathChange($event)">
+                  (pathChange)="onTreeViewPathChange($event)"
+                  (loadChildren)="onLoadChildren($event)">
                 </app-tree-view>
               } @else {
                 <div class="p-4 text-center text-[rgb(var(--color-text-subtle))] text-sm">Loading tree...</div>

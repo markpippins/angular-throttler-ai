@@ -49,40 +49,23 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   async getFolderTree(): Promise<FileSystemNode> {
-    const MAX_DEPTH = 3; // To prevent excessively deep recursion and too many API calls.
-
-    const buildTree = async (currentPath: string[], currentDepth: number): Promise<FileSystemNode[]> => {
-      if (currentDepth > MAX_DEPTH) {
-        return [];
+    const topLevelItems = await this.getContents([]);
+    const children = topLevelItems.map((item): FileSystemNode => {
+      if (item.type === 'folder') {
+        return {
+          ...item,
+          children: [],
+          childrenLoaded: false, // Mark for lazy loading
+        };
       }
+      return item;
+    });
 
-      try {
-        const items = await this.getContents(currentPath);
-        const folders = items.filter(item => item.type === 'folder');
-
-        const children = await Promise.all(
-          folders.map(async (folder): Promise<FileSystemNode> => {
-            const children = await buildTree([...currentPath, folder.name], currentDepth + 1);
-            return {
-              name: folder.name,
-              type: 'folder',
-              children: children,
-            };
-          })
-        );
-        return children;
-      } catch (e) {
-        console.error(`Could not build tree for path ${currentPath.join('/')}`, e);
-        return []; // Return empty array on error for this branch
-      }
-    };
-
-    const rootChildren = await buildTree([], 1);
-    
     return {
       name: this.profile.name,
       type: 'folder',
-      children: rootChildren,
+      children: children,
+      childrenLoaded: true, // The root's direct children are now loaded
     };
   }
 

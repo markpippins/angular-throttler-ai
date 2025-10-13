@@ -3,7 +3,7 @@ import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent, SearchResultNode } from './components/file-explorer/file-explorer.component.js';
 import { SidebarComponent } from './components/sidebar/sidebar.component.js';
 import { FileSystemNode } from './models/file-system.model.js';
-import { FileSystemProvider } from './services/file-system-provider.js';
+import { FileSystemProvider, ItemReference } from './services/file-system-provider.js';
 import { ServerProfilesDialogComponent } from './components/server-profiles-dialog/server-profiles-dialog.component.js';
 import { ServerProfileService } from './services/server-profile.service.js';
 import { SearchDialogComponent } from './components/search-dialog/search-dialog.component.js';
@@ -24,6 +24,18 @@ const THEME_STORAGE_KEY = 'file-explorer-theme';
 
 const CONVEX_ROOT_NAME = 'Convex Pins';
 
+const readOnlyProviderOps = {
+  createDirectory: () => Promise.reject(new Error('Operation not supported.')),
+  removeDirectory: () => Promise.reject(new Error('Operation not supported.')),
+  createFile: () => Promise.reject(new Error('Operation not supported.')),
+  deleteFile: () => Promise.reject(new Error('Operation not supported.')),
+  rename: () => Promise.reject(new Error('Operation not supported.')),
+  uploadFile: () => Promise.reject(new Error('Operation not supported.')),
+  move: () => Promise.reject(new Error('Operation not supported.')),
+  copy: () => Promise.reject(new Error('Operation not supported.')),
+  search: () => Promise.resolve([] as SearchResultNode[]),
+};
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -41,6 +53,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private injector = inject(Injector);
   private document = inject(DOCUMENT);
   private elementRef = inject(ElementRef);
+  private homeProvider: FileSystemProvider;
 
   // --- State Management ---
   isSplitView = signal(false);
@@ -96,12 +109,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // --- Computed Per-Pane Services ---
   private getProviderForPath(path: string[]): FileSystemProvider {
-    if (path.length === 0) return this.convexFs;
+    if (path.length === 0) return this.homeProvider;
     const root = path[0];
     if (root === CONVEX_ROOT_NAME) return this.convexFs;
     const remoteProvider = this.remoteProviders().get(root);
     if (remoteProvider) return remoteProvider;
-    return this.convexFs;
+    throw new Error(`No provider found for path: ${path.join('/')}`);
   }
   
   private getImageServiceForPath(path: string[]): ImageService {
@@ -126,6 +139,25 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor() {
     this.loadTheme();
+
+    this.homeProvider = {
+      getContents: async (path: string[]) => {
+        if (path.length > 0) return []; // Home has no subdirectories
+        const convexRoot = await this.convexFs.getFolderTree();
+        const remoteRoots = await Promise.all(
+          Array.from(this.remoteProviders().values()).map((p: FileSystemProvider) => p.getFolderTree())
+        );
+        return [convexRoot, ...remoteRoots];
+      },
+      getFolderTree: async () => {
+        const convexRoot = await this.convexFs.getFolderTree();
+        const remoteRoots = await Promise.all(
+          Array.from(this.remoteProviders().values()).map((p: FileSystemProvider) => p.getFolderTree())
+        );
+        return { name: 'Home', type: 'folder', children: [convexRoot, ...remoteRoots] };
+      },
+      ...readOnlyProviderOps
+    };
     
     effect(() => {
       const theme = this.currentTheme();
@@ -179,20 +211,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.folderTree.set(null); // Clear old tree immediately
     
     try {
-      const convexRoot = await this.convexFs.getFolderTree();
-      
-      // FIX: Explicitly typing `provider` as `FileSystemProvider` resolves a type inference issue.
-      const remoteRoots = await Promise.all(
-        Array.from(this.remoteProviders().values()).map((provider: FileSystemProvider) => provider.getFolderTree())
-      );
-
-      const metaRoot: FileSystemNode = {
-        name: 'Home',
-        type: 'folder',
-        children: [convexRoot, ...remoteRoots]
-      };
-
-      this.folderTree.set(metaRoot);
+      const homeRoot = await this.homeProvider.getFolderTree();
+      this.folderTree.set(homeRoot);
     } catch (e) {
       console.error('Failed to load a complete folder tree', e);
     }
@@ -333,5 +353,48 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onSearchCompleted(): void {
     this.searchResultForPane.set(null);
+  }
+  
+  async onLoadChildren(path: string[]): Promise<void> {
+    const provider = this.getProviderForPath(path);
+    // The path from the tree includes the root name (e.g., server name),
+    // which the provider doesn't need in its own path context.
+    const providerPath = path.slice(1);
+
+    try {
+      const children = await provider.getContents(providerPath);
+
+      this.folderTree.update(root => {
+        if (!root) return null;
+        
+        // Use a recursive function to find and update the node in a deep copy
+        const findAndUpdate = (node: FileSystemNode, currentPath: string[]): FileSystemNode => {
+          const newChildren = node.children?.map(child => {
+            const childPath = [...currentPath, child.name];
+            if (childPath.join('/') === path.join('/')) {
+              return {
+                ...child,
+                childrenLoaded: true,
+                children: children.map(grandchild =>
+                  grandchild.type === 'folder'
+                    ? { ...grandchild, children: [], childrenLoaded: false }
+                    : grandchild
+                ),
+              };
+            }
+            if (path.join('/').startsWith(childPath.join('/'))) {
+              return findAndUpdate(child, childPath);
+            }
+            return child;
+          });
+          return { ...node, children: newChildren };
+        };
+        
+        return findAndUpdate(root, []);
+      });
+
+    } catch (e) {
+      console.error(`Failed to load children for path ${path.join('/')}`, e);
+    }
   }
 }

@@ -8,7 +8,7 @@
   <button 
     (click)="toggleExpand($event)"
     class="mr-1 w-5 h-5 flex-shrink-0 flex items-center justify-center text-[rgb(var(--color-text-subtle))] hover:bg-[rgb(var(--color-surface-hover-subtle))] rounded"
-    [class.invisible]="!hasChildren()">
+    [class.invisible]="!isExpandable()">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-150" [class.rotate-90]="isExpanded()" viewBox="0 0 20 20" fill="currentColor">
       <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
     </svg>
@@ -21,7 +21,7 @@
   <span class="truncate select-none">{{ node().name }}</span>
 </div>
 
-@if(isExpanded() && hasChildren()) {
+@if(isExpanded() && node().children) {
   <div>
     @for(child of node().children; track child.name) {
       <app-tree-node
@@ -29,7 +29,9 @@
         [path]="getChildPath(child)"
         [currentPath]="currentPath()"
         [level]="level() + 1"
-        (pathChange)="onChildPathChange($event)">
+        [expansionCommand]="expansionCommand()"
+        (pathChange)="onChildPathChange($event)"
+        (loadChildren)="onLoadChildren($event)">
       </app-tree-node>
     }
   </div>

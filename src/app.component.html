@@ -71,7 +71,8 @@
       [folderTree]="folderTree()"
       [currentPath]="activePanePath()"
       (pathChange)="onSidebarNavigation($event)"
-      (refreshTree)="loadFolderTree()">
+      (refreshTree)="loadFolderTree()"
+      (loadChildren)="onLoadChildren($event)">
     </app-sidebar>
 
     <div class="flex-1 flex overflow-hidden">

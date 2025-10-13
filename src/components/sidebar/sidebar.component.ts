@@ -18,6 +18,7 @@ export class SidebarComponent implements OnDestroy {
   currentPath = input<string[]>([]);
   pathChange = output<string[]>();
   refreshTree = output<void>();
+  loadChildren = output<string[]>();
 
   isCollapsed = signal(false);
   width = signal(288); // Default width is 288px (w-72)
@@ -97,6 +98,10 @@ export class SidebarComponent implements OnDestroy {
 
   onCollapseAll(): void {
     this.treeExpansionCommand.set({ command: 'collapse', id: Date.now() });
+  }
+
+  onLoadChildren(path: string[]): void {
+    this.loadChildren.emit(path);
   }
 
   ngOnDestroy(): void {

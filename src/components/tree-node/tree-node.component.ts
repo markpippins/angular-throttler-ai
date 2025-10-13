@@ -16,6 +16,7 @@ export class TreeNodeComponent implements OnInit {
   expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
 
   pathChange = output<string[]>();
+  loadChildren = output<string[]>();
 
   isExpanded = signal(false);
   
@@ -25,8 +26,8 @@ export class TreeNodeComponent implements OnInit {
     return p1 === p2;
   });
 
-  hasChildren = computed(() => {
-    return this.node().children && this.node().children!.length > 0;
+  isExpandable = computed(() => {
+    return this.node().type === 'folder';
   });
 
   constructor() {
@@ -38,6 +39,9 @@ export class TreeNodeComponent implements OnInit {
       // Auto-expand if the current path is a descendant of this node,
       // but not the node itself.
       if (currentStr.startsWith(myPathStr) && currentStr !== myPathStr) {
+        if (!this.node().childrenLoaded) {
+          this.loadChildren.emit(this.path());
+        }
         this.isExpanded.set(true);
       }
     });
@@ -48,7 +52,10 @@ export class TreeNodeComponent implements OnInit {
       if (!command) return;
 
       if (command.command === 'expand') {
-          if (this.hasChildren()) {
+          if (this.isExpandable()) {
+              if (!this.node().childrenLoaded) {
+                this.loadChildren.emit(this.path());
+              }
               this.isExpanded.set(true);
           }
       } else if (command.command === 'collapse') {
@@ -69,21 +76,29 @@ export class TreeNodeComponent implements OnInit {
 
   toggleExpand(event: MouseEvent): void {
     event.stopPropagation();
-    if (this.hasChildren()) {
-      this.isExpanded.update(v => !v);
+    if (!this.isExpandable()) return;
+
+    const node = this.node();
+    const isCurrentlyExpanded = this.isExpanded();
+
+    if (!isCurrentlyExpanded && !node.childrenLoaded) {
+      this.loadChildren.emit(this.path());
     }
+    
+    this.isExpanded.update(v => !v);
   }
 
   selectNode(): void {
     if (this.isSelected()) {
-      // If the node is already selected, clicking it again ONLY toggles expansion.
-      if (this.hasChildren()) {
-        this.isExpanded.update(v => !v);
+      if (this.isExpandable()) {
+        this.toggleExpand(new MouseEvent('click'));
       }
     } else {
-      // If the node is not selected, navigate to it AND expand it.
       this.pathChange.emit(this.path());
-      if (this.hasChildren() && !this.isExpanded()) {
+      if (this.isExpandable() && !this.isExpanded()) {
+        if (!this.node().childrenLoaded) {
+          this.loadChildren.emit(this.path());
+        }
         this.isExpanded.set(true);
       }
     }
@@ -91,6 +106,10 @@ export class TreeNodeComponent implements OnInit {
 
   onChildPathChange(path: string[]): void {
     this.pathChange.emit(path);
+  }
+
+  onLoadChildren(path: string[]): void {
+    this.loadChildren.emit(path);
   }
 
   getChildPath(childNode: FileSystemNode): string[] {

@@ -14,8 +14,13 @@ export class TreeViewComponent {
   currentPath = input.required<string[]>();
   expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
   pathChange = output<string[]>();
+  loadChildren = output<string[]>();
 
   onPathChange(path: string[]): void {
     this.pathChange.emit(path);
+  }
+
+  onLoadChildren(path: string[]): void {
+    this.loadChildren.emit(path);
   }
 }
