@@ -9,7 +9,7 @@
   [class.bg-[rgb(var(--color-accent-bg-dragover))]]="isDragOver()">
   
   @if(iconUrl() && !hasFailedToLoadImage()) {
-    <img [ngSrc]="iconUrl()!" 
+    <img [src]="iconUrl()!" 
          [alt]="item().type" 
          width="64" 
          height="64" 

@@ -124,15 +124,12 @@
                     class="flex flex-col items-center p-2 rounded-md hover:bg-[rgb(var(--color-accent-bg))] cursor-pointer transition-colors duration-150 group"
                     [class.bg-[rgb(var(--color-accent-bg-selected))]]="selectedItems().has(item.name)">
                     @let iconUrl = getIconUrl(item);
-                    @if(iconUrl && loadedImageItems().has(item.name)) {
-                      <img [ngSrc]="iconUrl" [alt]="item.type" width="64" height="64" class="h-16 w-16 object-contain pointer-events-none" />
+                    @if(iconUrl && !failedImageItems().has(item.name)) {
+                      <img [src]="iconUrl" [alt]="item.type" width="64" height="64" class="h-16 w-16 object-contain pointer-events-none" (error)="onImageError(item.name)" />
                     } @else {
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-[rgb(var(--color-text-subtle))] pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 1h8a1 1 0 011 1v10a1 1 0 01-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1z" clip-rule="evenodd" />
                       </svg>
-                      @if(iconUrl && !failedImageItems().has(item.name)) {
-                        <img [ngSrc]="iconUrl" [alt]="item.type" width="1" height="1" class="hidden" (load)="onImageLoad(item.name)" (error)="onImageError(item.name)" />
-                      }
                     }
                     <span class="mt-2 text-center text-xs break-all truncate w-full text-[rgb(var(--color-text-muted))] group-hover:text-[rgb(var(--color-accent-text))] pointer-events-none">{{ item.name }}</span>
                   </div>

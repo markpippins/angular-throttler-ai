@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FileSystemNode, SearchResultNode } from '../../models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from '../../services/file-system-provider.js';
 import { ImageService } from '../../services/image.service.js';
@@ -21,7 +21,7 @@ interface FileSystemState {
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, NgOptimizedImage, ToolbarComponent, FolderComponent, SearchResultsComponent, PropertiesDialogComponent, DestinationNodeComponent],
+  imports: [CommonModule, ToolbarComponent, FolderComponent, SearchResultsComponent, PropertiesDialogComponent, DestinationNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent implements OnDestroy {
@@ -49,7 +49,6 @@ export class FileExplorerComponent implements OnDestroy {
   state = signal<FileSystemState>({ status: 'loading', items: [] });
   contextMenu = signal<{ x: number; y: number; item: FileSystemNode | null } | null>(null);
   previewItem = signal<FileSystemNode | null>(null);
-  loadedImageItems = signal<Set<string>>(new Set());
   failedImageItems = signal<Set<string>>(new Set());
   isDragOverMainArea = signal(false);
   
@@ -541,10 +540,6 @@ export class FileExplorerComponent implements OnDestroy {
 
   getIconUrl(item: FileSystemNode): string | null {
     return this.imageService().getIconUrl(item);
-  }
-  
-  onImageLoad(name: string): void {
-    this.loadedImageItems.update(set => new Set(set).add(name));
   }
 
   onImageError(name: string): void {

@@ -1,11 +1,11 @@
 import { Component, ChangeDetectionStrategy, input, output, signal } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model';
 
 @Component({
   selector: 'app-folder',
   templateUrl: './folder.component.html',
-  imports: [CommonModule, NgOptimizedImage],
+  imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FolderComponent {
