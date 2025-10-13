@@ -160,7 +160,8 @@ export class FileExplorerComponent implements OnDestroy {
   async loadContents(path: string[]): Promise<void> {
     this.state.set({ status: 'loading', items: [] });
     try {
-      const items = await this.fileSystemProvider().getContents(path);
+      const providerPath = path.length > 0 ? path.slice(1) : path;
+      const items = await this.fileSystemProvider().getContents(providerPath);
       this.state.set({ status: 'success', items: items });
     } catch (e: unknown) {
       this.state.set({ status: 'error', items: [], error: (e as Error).message });
