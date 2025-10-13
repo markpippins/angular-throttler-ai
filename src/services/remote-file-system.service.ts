@@ -7,7 +7,6 @@ import { ServerProfile } from '../models/server-profile.model.js';
 export class RemoteFileSystemService implements FileSystemProvider {
   private fsService: FsService;
   public profile: ServerProfile;
-  private readonly alias = 'C:';
 
   constructor(profile: ServerProfile, fsService: FsService) {
     this.profile = profile;
@@ -15,7 +14,7 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {
-    const response: any = await this.fsService.listFiles(this.profile.brokerUrl, this.alias, path);
+    const response: any = await this.fsService.listFiles(this.profile.brokerUrl, this.profile.name, path);
 
     let rawItems: any[] = [];
 
@@ -56,36 +55,36 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   createDirectory(path: string[], name: string): Promise<void> {
-    return this.fsService.createDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
+    return this.fsService.createDirectory(this.profile.brokerUrl, this.profile.name, [...path, name]);
   }
 
   removeDirectory(path: string[], name: string): Promise<void> {
-    return this.fsService.removeDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
+    return this.fsService.removeDirectory(this.profile.brokerUrl, this.profile.name, [...path, name]);
   }
 
   createFile(path: string[], name: string): Promise<void> {
-    return this.fsService.createFile(this.profile.brokerUrl, this.alias, path, name);
+    return this.fsService.createFile(this.profile.brokerUrl, this.profile.name, path, name);
   }
 
   deleteFile(path: string[], name: string): Promise<void> {
-    return this.fsService.deleteFile(this.profile.brokerUrl, this.alias, path, name);
+    return this.fsService.deleteFile(this.profile.brokerUrl, this.profile.name, path, name);
   }
 
   rename(path: string[], oldName: string, newName: string): Promise<void> {
-    return this.fsService.rename(this.profile.brokerUrl, this.alias, [...path, oldName], newName);
+    return this.fsService.rename(this.profile.brokerUrl, this.profile.name, [...path, oldName], newName);
   }
 
   uploadFile(path: string[], file: File): Promise<void> {
     console.warn(`File upload not implemented in live mode. File: ${file.name}, Path: ${path.join('/')}`);
-    return this.fsService.copy(this.profile.brokerUrl, this.alias, [], [], []); // No-op for now
+    return this.fsService.copy(this.profile.brokerUrl, this.profile.name, [], [], []); // No-op for now
   }
 
   move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.fsService.move(this.profile.brokerUrl, this.alias, sourcePath, destPath, items);
+    return this.fsService.move(this.profile.brokerUrl, this.profile.name, sourcePath, destPath, items);
   }
 
   copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.fsService.copy(this.profile.brokerUrl, this.alias, sourcePath, destPath, items);
+    return this.fsService.copy(this.profile.brokerUrl, this.profile.name, sourcePath, destPath, items);
   }
 
   async search(query: string): Promise<SearchResultNode[]> {
