@@ -26,7 +26,7 @@
       "main.js",
       "preload.js",
       "index.html",
-      "**/*.js",
+      "index.js",
       "src/**/*.js"
     ],
     "directories": {
