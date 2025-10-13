@@ -28,10 +28,8 @@ export class BrokerService {
         params,
         requestId: this.generateUUID()
     };
-    
-    const fullBrokerUrl = `${brokerUrl}/api/broker/submitRequest`;
 
-    const response = await fetch(fullBrokerUrl, {
+    const response = await fetch(brokerUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
