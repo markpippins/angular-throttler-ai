@@ -14,6 +14,10 @@ export class ImageClientService {
     return `${imageUrl}/name/${encodeURIComponent(name)}?type=${type}`;
   }
 
+  getUiIconUrl(imageUrl: string, name: string): string {
+    return `${imageUrl}/ui/${encodeURIComponent(name)}`;
+  }
+
   getImageUrlByPath(imageUrl: string, folder: string, file: string): string {
     return `${imageUrl}/path/${encodeURIComponent(folder)}/${encodeURIComponent(file)}`;
   }

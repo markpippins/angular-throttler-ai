@@ -36,6 +36,7 @@
                   [rootNode]="tree"
                   [currentPath]="currentPath()"
                   [expansionCommand]="treeExpansionCommand()"
+                  [imageService]="imageService()"
                   (pathChange)="onTreeViewPathChange($event)"
                   (loadChildren)="onLoadChildren($event)">
                 </app-tree-view>

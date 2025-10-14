@@ -14,9 +14,20 @@
     </svg>
   </button>
   
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 flex-shrink-0 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-  </svg>
+  @if (imageService(); as service) {
+    @let iconUrl = service.getIconUrl(node());
+    @if (iconUrl && !imageHasError()) {
+      <img [src]="iconUrl" alt="icon" class="h-5 w-5 mr-2 flex-shrink-0 object-contain" (error)="onImageError()" />
+    } @else {
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 flex-shrink-0 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+      </svg>
+    }
+  } @else {
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 flex-shrink-0 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+    </svg>
+  }
   
   <span class="truncate select-none">{{ node().name }}</span>
 </div>
@@ -30,6 +41,7 @@
         [currentPath]="currentPath()"
         [level]="level() + 1"
         [expansionCommand]="expansionCommand()"
+        [imageService]="imageService()"
         (pathChange)="onChildPathChange($event)"
         (loadChildren)="onLoadChildren($event)">
       </app-tree-node>

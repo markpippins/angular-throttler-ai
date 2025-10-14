@@ -18,6 +18,7 @@ dotenv.config();
 const PORT = process.env.IMAGE_SERVER_PORT || 8081;
 const IMAGE_ROOT_DIR = process.env.IMAGE_ROOT_DIR;
 const PREFERRED_EXTENSIONS = ['.svg', '.png', '.jpg', '.jpeg', '.gif'];
+const UI_ICON_NAMES = ['Users', 'Home', 'Desktop', 'Documents'];
 
 const MIME_TYPES: Record<string, string> = {
   '.png': 'image/png',
@@ -104,6 +105,25 @@ const server = http.createServer(async (req, res) => {
     let fileServed = false;
 
     switch (endpoint) {
+      case 'ui': {
+        const name = decodeURIComponent(params[0] || '');
+        const lowerCaseName = name.toLowerCase();
+        const isAllowed = UI_ICON_NAMES.some(n => n.toLowerCase() === lowerCaseName);
+
+        if (isAllowed) {
+            // Prepend the 'ui' directory to the name before searching
+            const filePathInSubdir = path.join('ui', name);
+            fileServed = await serveStaticFile(filePathInSubdir, res);
+            if (fileServed) return;
+        }
+
+        // Fallback for graceful degradation, just like /name
+        res.setHeader('Content-Type', 'image/svg+xml');
+        const svgResponse = generateSvg(name.substring(0, 3), '#4A5568'); // A neutral color
+        res.writeHead(200).end(svgResponse);
+        return;
+      }
+
       case 'name': {
         const name = decodeURIComponent(params[0] || '').toLowerCase();
         fileServed = await serveStaticFile(name, res);

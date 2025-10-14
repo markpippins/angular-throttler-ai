@@ -59,9 +59,10 @@ This directory is the logical core of the application, containing all the inject
 ### `image-client.service.ts` & `image.service.ts`
 
 -   **Purpose:** A pair of services for resolving file icon URLs.
--   **`ImageClientService`:** A low-level, stateless client that knows how to construct the specific URL paths for the image server (e.g., `/ext/...`, `/name/...`). It receives the base `imageUrl` as a parameter for each call.
--   **`ImageService`:** A higher-level service *class* (not a singleton) that contains the presentation logic for resolving icons. An instance of this class is created for each file explorer pane, holding a specific `ServerProfile`. Its `getIconUrl` method implements the following logic:
-    -   **For folders:** It requests an icon by the folder's specific name (e.g., `/name/MyProject`). This allows the image server to return contextual icons.
+-   **`ImageClientService`:** A low-level, stateless client that knows how to construct the specific URL paths for the image server. It now includes a `getUiIconUrl` method for special UI elements in addition to its existing methods for constructing `/ext/...` and `/name/...` URLs. It receives the base `imageUrl` as a parameter for each call.
+-   **`ImageService`:** A higher-level service *class* (not a singleton) that contains the presentation logic for resolving icons. An instance of this class is created for each file explorer pane, holding a specific `ServerProfile`. Its `getIconUrl` method implements the following logic, in order of priority:
+    -   **For Special UI Elements:** It first checks if the item's name matches a predefined list of UI names (e.g., "Home", "Desktop", "Documents"). If it matches, it uses the `getUiIconUrl` method to request a specific icon (e.g., `/ui/Home`).
+    -   **For folders:** If it's not a special UI element, it requests an icon by the folder's specific name (e.g., `/name/MyProject`). This allows the image server to return contextual icons.
     -   **For files with extensions:** It requests an icon based on the file's extension (e.g., `/ext/pdf`).
     -   **For files without extensions:** It falls back to requesting an icon by the file's full name (e.g., `/name/README`).
     - This contextual approach enables a much richer visual experience than requesting generic "folder" or "file" icons.

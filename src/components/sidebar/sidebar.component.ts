@@ -6,6 +6,7 @@ import { VerticalToolbarComponent } from '../vertical-toolbar/vertical-toolbar.c
 import { SearchComponent } from '../search/search.component.js';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { TreeViewComponent } from '../tree-view/tree-view.component.js';
+import { ImageService } from '../../services/image.service.js';
 
 @Component({
   selector: 'app-sidebar',
@@ -16,6 +17,8 @@ import { TreeViewComponent } from '../tree-view/tree-view.component.js';
 export class SidebarComponent implements OnDestroy {
   folderTree = input<FileSystemNode | null>(null);
   currentPath = input<string[]>([]);
+  imageService = input<ImageService | null>(null);
+  
   pathChange = output<string[]>();
   refreshTree = output<void>();
   loadChildren = output<string[]>();

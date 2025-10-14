@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
+import { ImageService } from '../../services/image.service.js';
 
 @Component({
   selector: 'app-tree-node',
@@ -14,11 +15,13 @@ export class TreeNodeComponent implements OnInit {
   currentPath = input.required<string[]>();
   level = input(0);
   expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
+  imageService = input<ImageService | null>(null);
 
   pathChange = output<string[]>();
   loadChildren = output<string[]>();
 
   isExpanded = signal(false);
+  imageHasError = signal(false);
   
   isSelected = computed(() => {
     const p1 = this.path().join('/');
@@ -115,6 +118,10 @@ export class TreeNodeComponent implements OnInit {
 
   onLoadChildren(path: string[]): void {
     this.loadChildren.emit(path);
+  }
+  
+  onImageError(): void {
+    this.imageHasError.set(true);
   }
 
   getChildPath(childNode: FileSystemNode): string[] {

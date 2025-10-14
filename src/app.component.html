@@ -89,6 +89,7 @@
     <app-sidebar 
       [folderTree]="folderTree()"
       [currentPath]="activePanePath()"
+      [imageService]="defaultImageService()"
       (pathChange)="onSidebarNavigation($event)"
       (refreshTree)="loadFolderTree()"
       (loadChildren)="onLoadChildren($event)">
