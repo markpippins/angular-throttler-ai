@@ -1,3 +1,4 @@
+
 // To run this server, you will need Node.js installed.
 // Execute the following command in your terminal:
 // node serv/image-serv.js
@@ -110,12 +111,21 @@ const server = http.createServer(async (req, res) => {
 
         // Fallback to SVG
         res.setHeader('Content-Type', 'image/svg+xml');
-        let svgResponse = ICONS.DEFAULT;
-        if (ICONS.UI[name as keyof typeof ICONS.UI]) {
-          svgResponse = ICONS.UI[name as keyof typeof ICONS.UI];
-        } else if (ICONS.LOGO[name as keyof typeof ICONS.LOGO]) {
+        const type = parsedUrl.query.type;
+        let svgResponse;
+
+        if (ICONS.LOGO[name as keyof typeof ICONS.LOGO]) {
           svgResponse = ICONS.LOGO[name as keyof typeof ICONS.LOGO];
+        } else if (ICONS.UI[name as keyof typeof ICONS.UI]) { // Keep for explicit requests for "folder", "file"
+          svgResponse = ICONS.UI[name as keyof typeof ICONS.UI];
+        } else if (type === 'folder') {
+          svgResponse = ICONS.UI.folder;
+        } else if (type === 'file') {
+          svgResponse = ICONS.UI.file;
+        } else {
+          svgResponse = ICONS.DEFAULT;
         }
+        
         res.writeHead(200).end(svgResponse);
         return;
       }

@@ -1,3 +1,4 @@
+
 import { Injectable, inject } from '@angular/core';
 import { ServerProfileService } from './server-profile.service';
 
@@ -9,8 +10,8 @@ export class ImageClientService {
     return `${imageUrl}/ext/${encodeURIComponent(extension)}`;
   }
 
-  getImageUrlByName(imageUrl: string, name: string): string {
-    return `${imageUrl}/name/${encodeURIComponent(name)}`;
+  getImageUrlByName(imageUrl: string, name: string, type: 'folder' | 'file'): string {
+    return `${imageUrl}/name/${encodeURIComponent(name)}?type=${type}`;
   }
 
   getImageUrlByPath(imageUrl: string, folder: string, file: string): string {

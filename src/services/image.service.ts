@@ -1,3 +1,4 @@
+
 import { Injectable, inject } from '@angular/core';
 import { FileSystemNode } from '../models/file-system.model.js';
 import { ImageClientService } from './image-client.service.js';
@@ -25,7 +26,7 @@ export class ImageService {
     if (!imageUrl) return null;
 
     if (item.type === 'folder') {
-      return this.imageClientService.getImageUrlByName(imageUrl, item.name);
+      return this.imageClientService.getImageUrlByName(imageUrl, item.name, 'folder');
     }
 
     // Handle files
@@ -35,6 +36,6 @@ export class ImageService {
     }
 
     // Fallback for files without an extension: use the full name
-    return this.imageClientService.getImageUrlByName(imageUrl, item.name);
+    return this.imageClientService.getImageUrlByName(imageUrl, item.name, 'file');
   }
 }
