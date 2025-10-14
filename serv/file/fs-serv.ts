@@ -1,3 +1,6 @@
+// FIX: Added a triple-slash directive to include Node.js type definitions.
+// This resolves errors related to `__dirname`, `process.cwd`, and `process.exit` being unrecognized by TypeScript.
+/// <reference types="node" />
 
 import * as http from 'http';
 import * as fs from 'fs/promises';

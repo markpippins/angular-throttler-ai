@@ -1,3 +1,6 @@
+// FIX: Added a triple-slash directive to include Node.js type definitions.
+// This resolves an error where `__dirname` was unrecognized by TypeScript.
+/// <reference types="node" />
 
 import * as http from 'http';
 import * as dotenv from 'dotenv';

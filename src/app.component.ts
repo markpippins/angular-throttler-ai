@@ -81,7 +81,7 @@ export class AppComponent implements OnInit, OnDestroy {
   // FIX: Converted defaultImageService to a computed signal to prevent a startup crash.
   // This avoids a race condition by ensuring the ImageService is created only after
   // the active profile has been loaded from storage.
-  private defaultImageService = computed(() => {
+  defaultImageService = computed(() => {
     const activeProfile = this.profileService.activeProfile();
     // If there's no active profile, create a temporary, non-functional one to prevent errors.
     const profile = activeProfile ?? { id: 'temp', name: 'Temp', brokerUrl: '', imageUrl: '' };
