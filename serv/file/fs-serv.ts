@@ -17,7 +17,7 @@ interface RequestModel {
     alias: string;
     path: string[];
     operation: string;
-    new_name?: string;
+    newName?: string;
     filename?: string;
     sourcePath?: string[];
     destPath?: string[];
@@ -45,7 +45,7 @@ function getSecurePath(alias: string, subPath: string[] = []): string {
 
 async function handleRequest(req: RequestModel) {
     switch (req.operation) {
-        case "ls": {
+        case "listFiles": {
             const target = getSecurePath(req.alias, req.path);
             const dirents = await fs.readdir(target, { withFileTypes: true });
             const items = await Promise.all(dirents.map(async (p) => {
@@ -60,7 +60,7 @@ async function handleRequest(req: RequestModel) {
             return { path: req.path, items: items };
         }
 
-        case "cd": { // This operation mostly validates existence.
+        case "changeDirectory": { // This operation mostly validates existence.
             const target = getSecurePath(req.alias, req.path);
             await fs.access(target); // Throws if not exists
             const stat = await fs.stat(target);
@@ -68,19 +68,19 @@ async function handleRequest(req: RequestModel) {
             return { path: req.path };
         }
 
-        case "mkdir": {
+        case "createDirectory": {
             const target = getSecurePath(req.alias, req.path);
             await fs.mkdir(target, { recursive: true });
             return { created: target };
         }
 
-        case "rmdir": {
+        case "removeDirectory": {
             const target = getSecurePath(req.alias, req.path);
             await fs.rm(target, { recursive: true, force: true });
             return { deleted: target };
         }
 
-        case "newfile": {
+        case "createFile": {
             if (!req.filename) throw new Error("Filename required");
             const parentDir = getSecurePath(req.alias, req.path);
             const target = path.join(parentDir, req.filename);
@@ -88,7 +88,7 @@ async function handleRequest(req: RequestModel) {
             return { created_file: target };
         }
 
-        case "deletefile": {
+        case "deleteFile": {
             if (!req.filename) throw new Error("Filename required");
             const parentDir = getSecurePath(req.alias, req.path);
             const target = path.join(parentDir, req.filename);
@@ -97,14 +97,14 @@ async function handleRequest(req: RequestModel) {
         }
 
         case "rename": {
-            if (!req.new_name) throw new Error("New name required");
+            if (!req.newName) throw new Error("New name required");
             const target = getSecurePath(req.alias, req.path);
-            const new_target = path.join(path.dirname(target), req.new_name);
+            const new_target = path.join(path.dirname(target), req.newName);
             await fs.rename(target, new_target);
             return { renamed: target, to: new_target };
         }
         
-        case "readfile": {
+        case "getFileContent": {
              if (!req.filename) throw new Error("Filename required");
              const target = getSecurePath(req.alias, [...req.path, req.filename]);
              const content = await fs.readFile(target, 'utf8');
