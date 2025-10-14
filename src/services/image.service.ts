@@ -22,16 +22,19 @@ export class ImageService {
 
   getIconUrl(item: FileSystemNode): string | null {
     const imageUrl = this.profile.imageUrl;
+    if (!imageUrl) return null;
 
     if (item.type === 'folder') {
-      return this.imageClientService.getImageUrlByName(imageUrl, 'folder');
+      return this.imageClientService.getImageUrlByName(imageUrl, item.name);
     }
 
+    // Handle files
     const extension = this.getFileExtension(item.name);
     if (extension) {
       return this.imageClientService.getImageUrlByExtension(imageUrl, extension);
     }
 
-    return this.imageClientService.getImageUrlByName(imageUrl, 'file');
+    // Fallback for files without an extension: use the full name
+    return this.imageClientService.getImageUrlByName(imageUrl, item.name);
   }
 }

@@ -60,4 +60,8 @@ This directory is the logical core of the application, containing all the inject
 
 -   **Purpose:** A pair of services for resolving file icon URLs.
 -   **`ImageClientService`:** A low-level, stateless client that knows how to construct the specific URL paths for the image server (e.g., `/ext/...`, `/name/...`). It receives the base `imageUrl` as a parameter for each call.
--   **`ImageService`:** A higher-level service *class* (not a singleton) that contains the presentation logic. An instance of this class is created for each file explorer pane. It holds a specific `ServerProfile` and uses it to determine *which* icon to request via the `ImageClientService`.
+-   **`ImageService`:** A higher-level service *class* (not a singleton) that contains the presentation logic for resolving icons. An instance of this class is created for each file explorer pane, holding a specific `ServerProfile`. Its `getIconUrl` method implements the following logic:
+    -   **For folders:** It requests an icon by the folder's specific name (e.g., `/name/MyProject`). This allows the image server to return contextual icons.
+    -   **For files with extensions:** It requests an icon based on the file's extension (e.g., `/ext/pdf`).
+    -   **For files without extensions:** It falls back to requesting an icon by the file's full name (e.g., `/name/README`).
+    - This contextual approach enables a much richer visual experience than requesting generic "folder" or "file" icons.

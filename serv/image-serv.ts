@@ -7,8 +7,25 @@
 
 import * as http from 'http';
 import * as url from 'url';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 const PORT = process.env.IMAGE_SERVER_PORT || 8081;
+const IMAGE_ROOT_DIR = process.env.IMAGE_ROOT_DIR;
+const PREFERRED_EXTENSIONS = ['.svg', '.png', '.jpg', '.jpeg', '.gif'];
+
+const MIME_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+};
 
 // --- SVG Generation Helpers ---
 const generateSvg = (text: string, bgColor: string, textColor: string = '#FFFFFF') => {
@@ -40,65 +57,102 @@ const ICONS = {
   DEFAULT: generateSvg('?', '#607D8B'),
 };
 
-const server = http.createServer((req, res) => {
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.setHeader('Access-Control-Allow-Origin', '*'); // For development
+// --- Server Logic ---
+
+// Helper to serve a static file if it exists
+const serveStaticFile = async (baseName: string, res: http.ServerResponse): Promise<boolean> => {
+  if (!IMAGE_ROOT_DIR) return false;
+
+  for (const ext of PREFERRED_EXTENSIONS) {
+    try {
+      const fileName = `${baseName}${ext}`;
+      const filePath = path.join(IMAGE_ROOT_DIR, fileName);
+      
+      await fs.access(filePath); // Check for existence
+
+      const fileContent = await fs.readFile(filePath);
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+      
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(fileContent);
+      return true; // File found and served
+
+    } catch (error) {
+      // File with this extension doesn't exist, try next extension
+    }
+  }
+  return false; // No matching file found
+};
+
+
+const server = http.createServer(async (req, res) => {
+  console.log(`[${new Date().toISOString()}] Request: ${req.method} ${req.url}`);
+  res.setHeader('Access-Control-Allow-Origin', '*');
 
   const parsedUrl = url.parse(req.url ?? '', true);
   const pathParts = (parsedUrl.pathname ?? '').split('/').filter(p => p);
 
   if (pathParts.length === 0) {
-    res.writeHead(404);
-    res.end();
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
     return;
   }
 
-  let svgResponse = ICONS.DEFAULT;
-
   try {
     const [endpoint, ...params] = pathParts;
+    let fileServed = false;
+
     switch (endpoint) {
-      // Endpoint: /name/:name (with failover)
       case 'name': {
         const name = decodeURIComponent(params[0] || '').toLowerCase();
+        fileServed = await serveStaticFile(name, res);
+        if (fileServed) return;
+
+        // Fallback to SVG
+        res.setHeader('Content-Type', 'image/svg+xml');
+        let svgResponse = ICONS.DEFAULT;
         if (ICONS.UI[name as keyof typeof ICONS.UI]) {
           svgResponse = ICONS.UI[name as keyof typeof ICONS.UI];
         } else if (ICONS.LOGO[name as keyof typeof ICONS.LOGO]) {
           svgResponse = ICONS.LOGO[name as keyof typeof ICONS.LOGO];
         }
-        break;
+        res.writeHead(200).end(svgResponse);
+        return;
       }
-      // Endpoint: /ext/:extension
+
       case 'ext': {
         const ext = decodeURIComponent(params[0] || '').toLowerCase();
+        fileServed = await serveStaticFile(ext, res);
+        if (fileServed) return;
+
+        // Fallback to SVG
+        res.setHeader('Content-Type', 'image/svg+xml');
+        let svgResponse = ICONS.DEFAULT;
         if (ICONS.EXT[ext as keyof typeof ICONS.EXT]) {
           svgResponse = ICONS.EXT[ext as keyof typeof ICONS.EXT];
         } else {
           svgResponse = generateSvg(ext, '#757575');
         }
-        break;
-      }
-      // Endpoint: /path/:folder/:file
-      case 'path': {
-        const folder = decodeURIComponent(params[0] || '').toLowerCase();
-        const file = decodeURIComponent(params[1] || '').toLowerCase();
-        if (folder === 'ext' && ICONS.EXT[file as keyof typeof ICONS.EXT]) {
-             svgResponse = ICONS.EXT[file as keyof typeof ICONS.EXT];
-        } else if (folder === 'logo' && ICONS.LOGO[file as keyof typeof ICONS.LOGO]) {
-            svgResponse = ICONS.LOGO[file as keyof typeof ICONS.LOGO];
-        }
-        break;
+        res.writeHead(200).end(svgResponse);
+        return;
       }
     }
   } catch (e) {
     console.error('Error processing request:', e);
-    // Fallback to default
+    res.writeHead(500).end('Server Error');
+    return;
   }
   
-  res.writeHead(200);
-  res.end(svgResponse);
+  // Default fallback for any other endpoint
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.writeHead(200).end(ICONS.DEFAULT);
 });
 
 server.listen(PORT, () => {
   console.log(`Image server listening on http://localhost:${PORT}`);
+  if (IMAGE_ROOT_DIR) {
+    console.log(`Serving static images from: ${IMAGE_ROOT_DIR}`);
+  } else {
+    console.log('IMAGE_ROOT_DIR not set. Serving only dynamic SVGs.');
+  }
 });

@@ -15,13 +15,13 @@ This component is responsible for rendering a single folder item within the main
 -   `item: FileSystemNode`: The data object for the folder to be rendered.
 -   `iconUrl: string | null`: The URL for a custom icon, if available.
 -   `isSelected: boolean`: Determines if the folder should be rendered with a "selected" style.
--   `isImageLoaded` / `hasFailedToLoadImage`: Booleans used for managing the state of loading a custom icon image.
+-   `hasFailedToLoadImage: boolean`: A flag, typically managed by the parent, that indicates a previous attempt to load `iconUrl` failed. This is used to prevent repeated failed network requests and immediately show the fallback icon.
 
 ### Outputs (`output()`)
 
 -   `itemContextMenu: { event: MouseEvent; item: FileSystemNode }`: Emitted when the user right-clicks on the folder.
 -   `itemDrop: { files: FileList; item: FileSystemNode }`: Emitted when files are successfully dropped onto the folder. This payload includes the dropped files and the folder item itself, so the parent knows where to upload them.
--   `imageLoad` / `imageError`: Events related to loading custom icons.
+-   `imageError: string`: Emitted when the browser fails to load the image from the provided `iconUrl`. The payload is the name of the item that failed, allowing the parent to track failed URLs.
 
 ### Internal State (Signals)
 

@@ -10,7 +10,7 @@ This file implements a lightweight HTTP server responsible for generating and se
 
 1.  **HTTP Server:** It uses Node.js's built-in `http` module to create a server that listens for incoming requests.
 2.  **Request Routing:** It parses the URL of incoming requests to determine what kind of icon is being requested. It supports several endpoints:
-    -   `/name/:name`: Requests a generic icon by name (e.g., 'folder', 'file').
+    -   `/name/:name`: Requests an icon by a specific name. This is used by the frontend to request icons for uniquely named folders (e.g., 'My Documents') or for files that lack an extension. The server can be configured with specific images for these names, falling back to a generated SVG if no match is found.
     -   `/ext/:extension`: Requests an icon for a specific file extension (e.g., 'txt', 'pdf', 'jpg').
     -   `/path/...`: Another routing variant.
 3.  **SVG Generation:** It contains a helper function, `generateSvg`, that creates an SVG image as a string. The SVG typically consists of a colored background rectangle and a short text label (like the file extension).
