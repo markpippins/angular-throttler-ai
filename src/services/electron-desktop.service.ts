@@ -29,6 +29,10 @@ export class ElectronDesktopService implements DesktopApi {
     return this.invoke('fs:get-contents', path);
   }
 
+  getFileContent(path: string[], name: string): Promise<string> {
+    return this.invoke('fs:get-file-content', path, name);
+  }
+
   getFolderTree(): Promise<FileSystemNode> {
     return this.invoke('fs:get-folder-tree');
   }

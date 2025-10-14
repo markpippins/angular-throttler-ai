@@ -7,6 +7,7 @@ export interface ItemReference {
 
 export abstract class FileSystemProvider {
   abstract getContents(path: string[]): Promise<FileSystemNode[]>;
+  abstract getFileContent(path: string[], name: string): Promise<string>;
   abstract getFolderTree(): Promise<FileSystemNode>;
   abstract createDirectory(path: string[], name: string): Promise<void>;
   abstract removeDirectory(path: string[], name: string): Promise<void>;

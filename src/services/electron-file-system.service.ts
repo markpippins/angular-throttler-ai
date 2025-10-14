@@ -13,6 +13,10 @@ export class ElectronFileSystemService implements FileSystemProvider {
     return this.desktopService.getContents(path);
   }
 
+  async getFileContent(path: string[], name: string): Promise<string> {
+    return this.desktopService.getFileContent(path, name);
+  }
+
   async getFolderTree(): Promise<FileSystemNode> {
     return this.desktopService.getFolderTree();
   }

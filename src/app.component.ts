@@ -35,6 +35,9 @@ const readOnlyProviderOps = {
   move: () => Promise.reject(new Error('Operation not supported.')),
   copy: () => Promise.reject(new Error('Operation not supported.')),
   search: () => Promise.resolve([] as SearchResultNode[]),
+  // FIX: Added missing `getFileContent` to satisfy the FileSystemProvider interface.
+  // The home provider is a virtual directory and has no files to get content from.
+  getFileContent: () => Promise.reject(new Error('Operation not supported.')),
 };
 
 @Component({

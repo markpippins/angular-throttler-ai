@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('desktopApi', {
         'fs:move',
         'fs:copy',
         'fs:search',
+        'fs:get-file-content',
     ];
     if (allowedChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, ...args);

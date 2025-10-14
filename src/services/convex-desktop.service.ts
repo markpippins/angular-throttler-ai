@@ -73,7 +73,7 @@ export class ConvexDesktopService implements FileSystemProvider {
       return tree.children ?? [];
     }
 
-    let currentNode = tree;
+    let currentNode: FileSystemNode | undefined = tree;
     for (const segment of path) {
       const nextNode = currentNode.children?.find(c => c.name === segment);
       if (nextNode && nextNode.type === 'folder') {
@@ -84,6 +84,25 @@ export class ConvexDesktopService implements FileSystemProvider {
     }
     
     return currentNode.children ?? [];
+  }
+
+  async getFileContent(path: string[], name: string): Promise<string> {
+    const tree = await this.buildAndCacheVirtualTree();
+
+    let currentNode: FileSystemNode | undefined = tree;
+    for (const segment of path) {
+      currentNode = currentNode?.children?.find(c => c.name === segment);
+      if (!currentNode || currentNode.type !== 'folder') {
+        return Promise.reject(new Error('Path not found in Convex virtual FS.'));
+      }
+    }
+
+    const fileNode = currentNode.children?.find(c => c.name === name && c.type === 'file');
+    if (fileNode?.content) {
+      return fileNode.content;
+    }
+
+    return Promise.reject(new Error('File content not found in Convex virtual FS.'));
   }
 
   async search(query: string): Promise<SearchResultNode[]> {

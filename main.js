@@ -197,3 +197,39 @@ ipcMain.handle('fs:search', async (event, query) => {
     await find(rootPath, []);
     return results;
 });
+
+ipcMain.handle('fs:get-file-content', async (event, currentPath, name) => {
+  try {
+    const filePath = resolvePath([...(currentPath || []), name]);
+    const data = await fs.readFile(filePath);
+    const base64 = data.toString('base64');
+    
+    let mimeType = 'application/octet-stream';
+    const ext = path.extname(name).toLowerCase();
+    
+    // Simple MIME type mapping
+    const mimeMap = {
+      '.txt': 'text/plain',
+      '.json': 'application/json',
+      '.html': 'text/html',
+      '.css': 'text/css',
+      '.js': 'application/javascript',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.svg': 'image/svg+xml',
+      '.webp': 'image/webp',
+      '.bmp': 'image/bmp',
+    };
+
+    if (ext in mimeMap) {
+      mimeType = mimeMap[ext];
+    }
+
+    return `data:${mimeType};base64,${base64}`;
+  } catch (err) {
+    console.error(`Error getting file content for ${[...(currentPath || []), name].join('/')}:`, err);
+    throw new Error(err.message);
+  }
+});

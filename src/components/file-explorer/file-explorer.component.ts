@@ -61,6 +61,7 @@ export class FileExplorerComponent implements OnDestroy {
   // View state
   viewMode = signal<'explorer' | 'search'>('explorer');
   currentSearchResults = signal<SearchResultNode[]>([]);
+  isPreviewLoading = signal(false);
 
   // Selection
   selectedItems = signal<Set<string>>(new Set());
@@ -98,11 +99,15 @@ export class FileExplorerComponent implements OnDestroy {
   canRename = computed(() => this.selectedItems().size === 1);
   canGoUp = computed(() => this.path().length > 0);
   
-  displayPath = computed(() => {
+  // The path passed to the provider, which excludes the root segment (server name)
+  private providerPath = computed(() => {
     const p = this.path();
-    // The path from the app component includes the root of the current provider.
-    // We slice it off for display in the address bar, as the root is shown separately.
     return p.length > 0 ? p.slice(1) : [];
+  });
+  
+  displayPath = computed(() => {
+    // The display path is the same as the provider path.
+    return this.providerPath();
   });
 
   sortedItems = computed(() => {
@@ -134,9 +139,8 @@ export class FileExplorerComponent implements OnDestroy {
 
   constructor() {
     effect(() => {
-      const provider = this.fileSystemProvider();
       // When provider or path changes, load contents
-      this.loadContents(this.path());
+      this.loadContents();
     });
 
     effect(() => {
@@ -163,11 +167,10 @@ export class FileExplorerComponent implements OnDestroy {
   }
   
   // --- Data Loading ---
-  async loadContents(path: string[]): Promise<void> {
+  async loadContents(): Promise<void> {
     this.state.set({ status: 'loading', items: [] });
     try {
-      const providerPath = path.length > 0 ? path.slice(1) : path;
-      const items = await this.fileSystemProvider().getContents(providerPath);
+      const items = await this.fileSystemProvider().getContents(this.providerPath());
       this.state.set({ status: 'success', items: items });
     } catch (e: unknown) {
       this.state.set({ status: 'error', items: [], error: (e as Error).message });
@@ -199,12 +202,31 @@ export class FileExplorerComponent implements OnDestroy {
     this.pathChanged.emit(newPath);
   }
 
-  openItem(item: FileSystemNode): void {
+  async openItem(item: FileSystemNode): Promise<void> {
     if (item.type === 'folder') {
       this.pathChanged.emit([...this.path(), item.name]);
-    } else {
-      // Preview file content
-      this.previewItem.set(item);
+      return;
+    }
+
+    // Show preview modal immediately
+    this.previewItem.set(item);
+
+    // If content is already present (e.g., from Convex service), no need to fetch.
+    if (item.content) {
+      return;
+    }
+
+    this.isPreviewLoading.set(true);
+    try {
+      const content = await this.fileSystemProvider().getFileContent(this.providerPath(), item.name);
+      // Update the item in the previewItem signal with the fetched content
+      this.previewItem.update(currentItem => currentItem ? { ...currentItem, content } : null);
+    } catch (e) {
+      console.error('Failed to get file content', e);
+      const errorMessage = `Error loading file content: ${(e as Error).message}`;
+      this.previewItem.update(currentItem => currentItem ? { ...currentItem, content: errorMessage } : null);
+    } finally {
+      this.isPreviewLoading.set(false);
     }
   }
 
@@ -224,6 +246,7 @@ export class FileExplorerComponent implements OnDestroy {
 
   closePreview(): void {
     this.previewItem.set(null);
+    this.isPreviewLoading.set(false);
   }
   
   // --- Selection Logic ---
@@ -367,8 +390,8 @@ export class FileExplorerComponent implements OnDestroy {
     const name = prompt('Enter folder name:', 'New folder');
     if (name) {
       try {
-        await this.fileSystemProvider().createDirectory(this.path(), name);
-        this.loadContents(this.path());
+        await this.fileSystemProvider().createDirectory(this.providerPath(), name);
+        this.loadContents();
       } catch (e) {
         alert(`Error creating folder: ${(e as Error).message}`);
       }
@@ -379,8 +402,8 @@ export class FileExplorerComponent implements OnDestroy {
     const name = prompt('Enter file name:', 'New file.txt');
     if (name) {
       try {
-        await this.fileSystemProvider().createFile(this.path(), name);
-        this.loadContents(this.path());
+        await this.fileSystemProvider().createFile(this.providerPath(), name);
+        this.loadContents();
       } catch (e) {
         alert(`Error creating file: ${(e as Error).message}`);
       }
@@ -391,12 +414,12 @@ export class FileExplorerComponent implements OnDestroy {
     this.state.update(s => ({ ...s, status: 'loading' }));
     try {
       await Promise.all(
-        Array.from(files).map(file => this.fileSystemProvider().uploadFile(this.path(), file))
+        Array.from(files).map(file => this.fileSystemProvider().uploadFile(this.providerPath(), file))
       );
     } catch (e) {
       alert(`Error uploading files: ${(e as Error).message}`);
     } finally {
-      this.loadContents(this.path());
+      this.loadContents();
     }
   }
   
@@ -424,16 +447,17 @@ export class FileExplorerComponent implements OnDestroy {
 
     try {
       const itemRefs = clip.items.map(this.getItemReference);
+      const sourceProviderPath = clip.sourcePath.length > 0 ? clip.sourcePath.slice(1) : [];
       if (clip.operation === 'cut') {
-        await clip.sourceProvider.move(clip.sourcePath, this.path(), itemRefs);
+        await clip.sourceProvider.move(sourceProviderPath, this.providerPath(), itemRefs);
         this.clipboardService.clear();
       } else { // copy
-        await clip.sourceProvider.copy(clip.sourcePath, this.path(), itemRefs);
+        await clip.sourceProvider.copy(sourceProviderPath, this.providerPath(), itemRefs);
       }
     } catch (e) {
       alert(`Paste failed: ${(e as Error).message}`);
     } finally {
-      this.loadContents(this.path());
+      this.loadContents();
     }
   }
 
@@ -446,8 +470,8 @@ export class FileExplorerComponent implements OnDestroy {
     
     if (newName && newName !== oldName) {
       try {
-        await this.fileSystemProvider().rename(this.path(), oldName, newName);
-        this.loadContents(this.path());
+        await this.fileSystemProvider().rename(this.providerPath(), oldName, newName);
+        this.loadContents();
       } catch (e) {
         alert(`Rename failed: ${(e as Error).message}`);
       }
@@ -459,15 +483,16 @@ export class FileExplorerComponent implements OnDestroy {
     if (items.length === 0) return;
     
     try {
+        const destProviderPath = destPath.length > 0 ? destPath.slice(1) : [];
         if (operation === 'copy') {
-            await this.fileSystemProvider().copy(this.path(), destPath, items);
+            await this.fileSystemProvider().copy(this.providerPath(), destProviderPath, items);
         } else { // move
-            await this.fileSystemProvider().move(this.path(), destPath, items);
+            await this.fileSystemProvider().move(this.providerPath(), destProviderPath, items);
         }
     } catch (e) {
         alert(`${operation} failed: ${(e as Error).message}`);
     } finally {
-        this.loadContents(this.path());
+        this.loadContents();
         this.closeDestinationSubMenu();
     }
   }
@@ -496,15 +521,15 @@ export class FileExplorerComponent implements OnDestroy {
       try {
         await Promise.all(selectedNodes.map(node => {
           if (node.type === 'folder') {
-            return this.fileSystemProvider().removeDirectory(this.path(), node.name);
+            return this.fileSystemProvider().removeDirectory(this.providerPath(), node.name);
           } else {
-            return this.fileSystemProvider().deleteFile(this.path(), node.name);
+            return this.fileSystemProvider().deleteFile(this.providerPath(), node.name);
           }
         }));
       } catch (e) {
         alert(`Delete failed: ${(e as Error).message}`);
       } finally {
-        this.loadContents(this.path());
+        this.loadContents();
       }
     }
   }

@@ -4,6 +4,7 @@ import { ItemReference } from './file-system-provider';
 
 export interface DesktopApi {
   getContents(path: string[]): Promise<FileSystemNode[]>;
+  getFileContent(path: string[], name: string): Promise<string>;
   getFolderTree(): Promise<FileSystemNode>;
   createDirectory(path: string[], name: string): Promise<void>;
   removeDirectory(path: string[], name: string): Promise<void>;

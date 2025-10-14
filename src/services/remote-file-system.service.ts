@@ -48,6 +48,10 @@ export class RemoteFileSystemService implements FileSystemProvider {
     });
   }
 
+  getFileContent(path: string[], name: string): Promise<string> {
+    return this.fsService.getFileContent(this.profile.brokerUrl, this.profile.name, path, name);
+  }
+
   async getFolderTree(): Promise<FileSystemNode> {
     const topLevelItems = await this.getContents([]);
     const children = topLevelItems.map((item): FileSystemNode => {
