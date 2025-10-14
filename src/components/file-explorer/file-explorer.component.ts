@@ -44,6 +44,7 @@ export class FileExplorerComponent implements OnDestroy {
   searchCompleted = output<void>();
   quickSearch = output<string>();
   itemSelected = output<FileSystemNode | null>();
+  directoryChanged = output<void>();
 
   rootName = signal('...');
   state = signal<FileSystemState>({ status: 'loading', items: [] });
@@ -392,6 +393,7 @@ export class FileExplorerComponent implements OnDestroy {
       try {
         await this.fileSystemProvider().createDirectory(this.providerPath(), name);
         this.loadContents();
+        this.directoryChanged.emit();
       } catch (e) {
         alert(`Error creating folder: ${(e as Error).message}`);
       }
@@ -458,6 +460,7 @@ export class FileExplorerComponent implements OnDestroy {
       alert(`Paste failed: ${(e as Error).message}`);
     } finally {
       this.loadContents();
+      this.directoryChanged.emit();
     }
   }
 
@@ -472,6 +475,7 @@ export class FileExplorerComponent implements OnDestroy {
       try {
         await this.fileSystemProvider().rename(this.providerPath(), oldName, newName);
         this.loadContents();
+        this.directoryChanged.emit();
       } catch (e) {
         alert(`Rename failed: ${(e as Error).message}`);
       }
@@ -494,6 +498,7 @@ export class FileExplorerComponent implements OnDestroy {
     } finally {
         this.loadContents();
         this.closeDestinationSubMenu();
+        this.directoryChanged.emit();
     }
   }
   
@@ -530,6 +535,7 @@ export class FileExplorerComponent implements OnDestroy {
         alert(`Delete failed: ${(e as Error).message}`);
       } finally {
         this.loadContents();
+        this.directoryChanged.emit();
       }
     }
   }

@@ -111,7 +111,8 @@
             (searchInitiated)="openSearchDialog(1)"
             (searchCompleted)="onSearchCompleted()"
             (quickSearch)="executeQuickSearch(1, $event)"
-            (itemSelected)="onItemSelectedInPane($event)">
+            (itemSelected)="onItemSelectedInPane($event)"
+            (directoryChanged)="loadFolderTree()">
           </app-file-explorer>
         </div>
 
@@ -131,7 +132,8 @@
               (searchInitiated)="openSearchDialog(2)"
               (searchCompleted)="onSearchCompleted()"
               (quickSearch)="executeQuickSearch(2, $event)"
-              (itemSelected)="onItemSelectedInPane($event)">
+              (itemSelected)="onItemSelectedInPane($event)"
+              (directoryChanged)="loadFolderTree()">
             </app-file-explorer>
           </div>
         }
