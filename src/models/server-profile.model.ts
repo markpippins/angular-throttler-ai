@@ -3,5 +3,6 @@ export interface ServerProfile {
   name: string;
   brokerUrl: string;
   imageUrl: string;
+  searchUrl?: string;
   autoConnect?: boolean;
 }

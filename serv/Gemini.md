@@ -10,6 +10,7 @@ This directory contains all the backend microservices for the application. Each 
 -   **Port:** `8080` (or `FS_SERVER_PORT` from `.env`)
 -   **Endpoint:** `POST /fs`
 -   **Functionality:** Handles operations like `listFiles`, `createDirectory`, `deleteFile`, `rename`, `copy`, and `move`.
+-   **Sandboxing:** This service uses the `alias` parameter in the request body to create a unique root directory for each alias inside a main `fs_root` directory. This is a critical security and data-isolation feature. The `alias` is typically a **username** (for authenticated users) or a **profile name** (for anonymous connections), ensuring that file operations for one user or profile cannot affect another's data.
 
 ### Image Service (`serv/image/image-serv.ts`)
 
@@ -27,7 +28,7 @@ This directory contains all the backend microservices for the application. Each 
 -   **Port:** `8082` (or `SEARCH_SERVER_PORT` from `.env`)
 -   **Endpoint:** `POST /search`
 -   **Functionality:** Accepts a JSON body with a `query`, forwards it to the official Google API, and returns the live search results.
--   **Configuration:** This service requires a `GOOGLE_API_KEY` and `SEARCH_ENGINE_ID` to be set in a `.env` file in the project root to function.
+-   **Configuration:** This service **requires** a `GOOGLE_API_KEY` and `SEARCH_ENGINE_ID` to be set in a `.env` file in the project root to function correctly. If these keys are not provided, the service will still run but will return an error to any client that attempts to use it. The frontend application is designed to handle this error and fall back to mock data.
 
 ### Unsplash Service (`serv/unsplash/image-search.ts`)
 

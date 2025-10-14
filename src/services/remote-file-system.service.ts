@@ -3,18 +3,25 @@ import { FileSystemProvider, ItemReference } from './file-system-provider.js';
 import { FileSystemNode, SearchResultNode } from '../models/file-system.model.js';
 import { FsService } from './fs.service.js';
 import { ServerProfile } from '../models/server-profile.model.js';
+import { User } from '../models/user.model.js';
 
 export class RemoteFileSystemService implements FileSystemProvider {
   private fsService: FsService;
   public profile: ServerProfile;
+  private user: User | null;
 
-  constructor(profile: ServerProfile, fsService: FsService) {
+  constructor(profile: ServerProfile, fsService: FsService, user: User | null) {
     this.profile = profile;
     this.fsService = fsService;
+    this.user = user;
+  }
+
+  private get alias(): string {
+    return this.user?.username ?? this.profile.name;
   }
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {
-    const response: any = await this.fsService.listFiles(this.profile.brokerUrl, this.profile.name, path);
+    const response: any = await this.fsService.listFiles(this.profile.brokerUrl, this.alias, path);
 
     let rawItems: any[] = [];
 
@@ -49,7 +56,7 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   getFileContent(path: string[], name: string): Promise<string> {
-    return this.fsService.getFileContent(this.profile.brokerUrl, this.profile.name, path, name);
+    return this.fsService.getFileContent(this.profile.brokerUrl, this.alias, path, name);
   }
 
   async getFolderTree(): Promise<FileSystemNode> {
@@ -74,25 +81,25 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   createDirectory(path: string[], name: string): Promise<void> {
-    return this.fsService.createDirectory(this.profile.brokerUrl, this.profile.name, [...path, name]);
+    return this.fsService.createDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
   }
 
   removeDirectory(path: string[], name: string): Promise<void> {
-    return this.fsService.removeDirectory(this.profile.brokerUrl, this.profile.name, [...path, name]);
+    return this.fsService.removeDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
   }
 
   createFile(path: string[], name: string): Promise<void> {
-    return this.fsService.createFile(this.profile.brokerUrl, this.profile.name, path, name);
+    return this.fsService.createFile(this.profile.brokerUrl, this.alias, path, name);
   }
 
   deleteFile(path: string[], name: string): Promise<void> {
-    return this.fsService.deleteFile(this.profile.brokerUrl, this.profile.name, path, name);
+    return this.fsService.deleteFile(this.profile.brokerUrl, this.alias, path, name);
   }
 
   rename(path: string[], oldName: string, newName: string): Promise<void> {
     const fromPath = [...path, oldName];
     const toPath = [...path, newName];
-    return this.fsService.rename(this.profile.brokerUrl, this.profile.name, fromPath, toPath);
+    return this.fsService.rename(this.profile.brokerUrl, this.alias, fromPath, toPath);
   }
 
   uploadFile(path: string[], file: File): Promise<void> {
@@ -101,12 +108,12 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.fsService.move(this.profile.brokerUrl, this.profile.name, sourcePath, destPath, items);
+    return this.fsService.move(this.profile.brokerUrl, this.alias, sourcePath, destPath, items);
   }
 
   async copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    const fromAlias = this.profile.name;
-    const toAlias = this.profile.name;
+    const fromAlias = this.alias;
+    const toAlias = this.alias;
 
     const copyPromises = items.map(item => {
         const fromPath = [...sourcePath, item.name];

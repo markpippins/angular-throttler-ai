@@ -74,6 +74,12 @@
                     class="mt-1 block w-full px-3 py-2 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] sm:text-sm">
             </div>
 
+            <div>
+              <label for="searchUrl" class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Search Service URL</label>
+              <input type="text" id="searchUrl" [value]="form.searchUrl" (input)="onFormValueChange($event, 'searchUrl')" placeholder="http://..."
+                    class="mt-1 block w-full px-3 py-2 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] sm:text-sm">
+            </div>
+
             <div class="flex items-center mt-4">
               <input type="checkbox" id="autoConnect" [checked]="form.autoConnect" (change)="onFormValueChange($event, 'autoConnect')"
                     class="h-4 w-4 rounded border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-accent-text))] focus:ring-[rgb(var(--color-accent-ring))]">

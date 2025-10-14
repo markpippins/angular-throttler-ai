@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, contentChildren, signal, AfterContentInit, effect, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, contentChildren, signal, AfterContentInit, effect, output, input } from '@angular/core';
 import { TabComponent } from './tab.component.js';
 
 @Component({
@@ -10,6 +10,7 @@ export class TabControlComponent implements AfterContentInit {
   tabs = contentChildren(TabComponent);
   activeTabIndex = signal(0);
   collapseClick = output<void>();
+  showCollapseButton = input(true);
 
   constructor() {
     effect(() => {

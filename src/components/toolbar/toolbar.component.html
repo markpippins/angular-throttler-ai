@@ -101,6 +101,15 @@
       </div>
 
       <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
+       <button 
+        (click)="toggleBottomPane.emit()" 
+        title="Web Search" 
+        class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))]"
+        [class.bg-[rgb(var(--color-accent-bg))]]="isBottomPaneVisible()">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" [class.text-[rgb(var(--color-accent-text))]]="isBottomPaneVisible()" [class.text-[rgb(var(--color-text-muted))]]="!isBottomPaneVisible()" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.75 5.177a3.502 3.502 0 014.22.613l.31.39a.75.75 0 001.442 0l.31-.39a3.502 3.502 0 014.22-.613A4.502 4.502 0 0119 8.5v.081a4.5 4.5 0 01-5.138 4.417l-.27-1.353a.75.75 0 00-1.44-.288l-1.045 1.62a.75.75 0 00.288 1.441l1.354.27a4.5 4.5 0 01-4.416 5.137H8.5a4.502 4.502 0 01-3.323-1.413 3.502 3.502 0 01-.613-4.22l.39-.31a.75.75 0 000-1.442l-.39-.31a3.502 3.502 0 01-.613-4.22A4.502 4.502 0 014.75 5.177z" clip-rule="evenodd" />
+          </svg>
+      </button>
       <button (click)="searchClick.emit()" title="Search" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))]">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[rgb(var(--color-text-muted))]" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />

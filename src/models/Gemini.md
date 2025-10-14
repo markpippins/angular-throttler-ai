@@ -19,5 +19,14 @@ This directory contains the TypeScript `interface` and `type` definitions that e
 -   **`ServerProfile`**: This interface defines the structure of a connection profile for a remote server.
     -   `id: string`: A unique identifier for the profile.
     -   `name: string`: A user-friendly name for the profile (e.g., "Production Server").
-    -   `brokerUrl: string`: The base URL for the backend message broker (e.g., `http://localhost:8080`). The service layer is responsible for appending the specific API path.
+    -   `brokerUrl: string`: The base URL for the backend message broker.
     -   `imageUrl: string`: The base URL for the image server associated with this profile.
+
+### `user.model.ts`
+
+-   **`User`**: This type defines the structure of an authenticated user's data after a successful login. This information is used throughout the application to identify the user and customize their experience.
+    -   `id: string`: The unique identifier for the user.
+    -   `name: string`: The user's full or display name.
+    -   `username: string`: The user's login name or alias. This is critically used as the `alias` for file system operations to provide a sandboxed environment for each user.
+    -   `avatar: string`: URL to the user's avatar image.
+    -   `bio: string`: A short biography or description of the user.

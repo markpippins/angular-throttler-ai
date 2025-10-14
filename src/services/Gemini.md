@@ -23,7 +23,7 @@ This directory is the logical core of the application, containing all the inject
 ### `remote-file-system.service.ts`
 
 -   **Purpose:** An implementation of `FileSystemProvider` that communicates with a generic remote backend via the broker.
--   **Role:** This service is instantiated by the `AppComponent` whenever a user "mounts" a server profile from the Server Profiles dialog. It enables full read/write file operations with the configured remote server.
+-   **Role:** This service is instantiated by the `AppComponent` when a user "mounts" a server profile. Crucially, if the mount is performed after a user login, it associates the connection with that user. It then uses the **user's username** as the `alias` for all backend file system requests, effectively creating a secure, sandboxed file system for each user. If no user is logged in for the profile (e.g., on an auto-connected profile), it falls back to using the profile's name as the alias.
 
 ## State Management Services
 
@@ -40,6 +40,11 @@ This directory is the logical core of the application, containing all the inject
 -   **Persistence:** It uses an `effect` to automatically save all profiles and the active ID to the browser's `localStorage` whenever they change, ensuring they persist between sessions.
 
 ## API Client Services
+
+### `login.service.ts`
+
+-   **Purpose:** A client for the backend `loginService`.
+-   **Functionality:** It provides a `login` method that sends a username and password to the broker. On success, it receives and returns a `User` object, which contains the authenticated user's details.
 
 ### `convex.service.ts`
 

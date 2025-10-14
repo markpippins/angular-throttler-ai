@@ -9,6 +9,7 @@ import { ClipboardService } from '../../services/clipboard.service.js';
 import { SearchResultsComponent } from '../search-results/search-results.component.js';
 import { PropertiesDialogComponent } from '../properties-dialog/properties-dialog.component.js';
 import { DestinationNodeComponent } from '../destination-node/destination-node.component.js';
+import { BottomPaneComponent } from '../bottom-pane/bottom-pane.component.js';
 
 export { SearchResultNode };
 
@@ -21,7 +22,7 @@ interface FileSystemState {
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, ToolbarComponent, FolderComponent, SearchResultsComponent, PropertiesDialogComponent, DestinationNodeComponent],
+  imports: [CommonModule, ToolbarComponent, FolderComponent, SearchResultsComponent, PropertiesDialogComponent, DestinationNodeComponent, BottomPaneComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent implements OnDestroy {
@@ -61,6 +62,7 @@ export class FileExplorerComponent implements OnDestroy {
 
   // View state
   viewMode = signal<'explorer' | 'search'>('explorer');
+  isBottomPaneVisible = signal(false);
   currentSearchResults = signal<SearchResultNode[]>([]);
   isPreviewLoading = signal(false);
 
@@ -614,6 +616,10 @@ export class FileExplorerComponent implements OnDestroy {
 
   onQuickSearchSubmit(): void {
     this.quickSearch.emit(this.quickSearchQuery());
+  }
+  
+  onToggleBottomPane(): void {
+    this.isBottomPaneVisible.update(v => !v);
   }
 
   // --- Drag & Drop ---

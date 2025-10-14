@@ -1,0 +1,43 @@
+<div class="h-full flex flex-col p-2 text-sm">
+  <!-- Search Bar -->
+  <div class="flex items-center space-x-2 p-2 border-b border-[rgb(var(--color-border-base))]">
+    <input 
+      type="text" 
+      placeholder="Search the web..."
+      class="flex-grow px-3 py-1.5 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))]"
+      [value]="query()"
+      (input)="onQueryChange($event)"
+      (keydown.enter)="performSearch()">
+    <button 
+      (click)="performSearch()" 
+      [disabled]="!query().trim() || isLoading()"
+      class="px-4 py-1.5 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed transition-colors font-semibold">
+        @if(isLoading()) {
+          <span>...</span>
+        } @else {
+          <span>Search</span>
+        }
+    </button>
+  </div>
+
+  <!-- Results -->
+  <div class="flex-1 overflow-y-auto p-2">
+    @if(isLoading()) {
+      <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Loading...</div>
+    } @else if (results(); as res) {
+      <div class="space-y-4">
+        @for (result of res; track result.link) {
+          <div class="group">
+            <a [href]="result.link" target="_blank" class="text-blue-500 dark:text-blue-400 group-hover:underline text-base">{{ result.title }}</a>
+            <div class="text-green-700 dark:text-green-500 text-xs">{{ result.displayLink }}</div>
+            <p class="text-[rgb(var(--color-text-muted))] mt-1">{{ result.snippet }}</p>
+          </div>
+        } @empty {
+          <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">No results found.</div>
+        }
+      </div>
+    } @else {
+       <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Enter a query to search the web.</div>
+    }
+  </div>
+</div>

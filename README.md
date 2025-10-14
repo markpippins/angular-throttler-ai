@@ -70,7 +70,7 @@ The application is pre-configured with a "Local (Debug)" server profile that exp
 
 The project also includes other backend services that are not fully integrated into the UI but can be run for development and testing:
 
-- **Google Search Service:** This service acts as a proxy to the live Google Custom Search API. To enable it, you must create a `.env` file in the project root and add your credentials:
+- **Google Search Service:** This service acts as a proxy to the live Google Custom Search API, powering the "Web Search" tab. To enable live results, you must create a `.env` file in the project root and add your credentials:
   ```
   GOOGLE_API_KEY=your_api_key_here
   SEARCH_ENGINE_ID=your_search_engine_id_here
@@ -80,6 +80,7 @@ The project also includes other backend services that are not fully integrated i
   # Google Search Service (runs on port 8082)
   node app/serv/search/gsearch-serv.js
   ```
+  **Note:** If the backend service is running but the API key and Search Engine ID are not provided in its environment, it will return an error. The frontend application is designed to detect this specific error and will gracefully fall back to providing mock search results, ensuring the UI remains functional for all developers.
 
 - **Unsplash Image Search Service (Mock):** This service returns mock data.
   ```bash

@@ -260,11 +260,11 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
   
-  private async mountProfile(profile: ServerProfile): Promise<void> {
+  private async mountProfile(profile: ServerProfile, user: User | null = null): Promise<void> {
     if (this.mountedProfiles().some(p => p.id === profile.id)) return;
 
     try {
-      const provider = new RemoteFileSystemService(profile, this.fsService);
+      const provider = new RemoteFileSystemService(profile, this.fsService, user);
       const imageService = new ImageService(profile, this.imageClientService);
 
       // Test connection by fetching the root. If this fails, it throws.
@@ -285,7 +285,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.connectionStatus.set('connecting');
     try {
       const user = await this.loginService.login(profile.brokerUrl, username, password);
-      await this.mountProfile(profile);
+      await this.mountProfile(profile, user);
       this.mountedProfileUsers.update(map => new Map(map).set(profile.id, user));
       this.connectionStatus.set('connected');
       await this.loadFolderTree();

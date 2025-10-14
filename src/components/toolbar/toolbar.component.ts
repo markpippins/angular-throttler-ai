@@ -37,6 +37,7 @@ export class ToolbarComponent {
   currentSort = input<SortCriteria>({ key: 'name', direction: 'asc' });
   folderTree = input<FileSystemNode | null>(null);
   isSearchView = input(false);
+  isBottomPaneVisible = input(false);
 
   // Outputs for events
   newFolderClick = output<void>();
@@ -53,6 +54,7 @@ export class ToolbarComponent {
   sortChange = output<SortCriteria>();
   searchClick = output<void>();
   closeSearchClick = output<void>();
+  toggleBottomPane = output<void>();
 
   fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 

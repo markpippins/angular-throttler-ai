@@ -9,6 +9,7 @@ type FormState = {
   name: string;
   brokerUrl: string;
   imageUrl: string;
+  searchUrl: string;
   autoConnect: boolean;
 }
 
@@ -51,13 +52,14 @@ export class ServerProfilesDialogComponent {
       name: '',
       brokerUrl: '',
       imageUrl: '',
+      searchUrl: '',
       autoConnect: false,
     });
     this.selectedProfileId.set(null);
   }
   
   startEdit(profile: ServerProfile): void {
-    this.formState.set({ ...profile, autoConnect: profile.autoConnect ?? false });
+    this.formState.set({ ...profile, searchUrl: profile.searchUrl ?? '', autoConnect: profile.autoConnect ?? false });
     this.selectedProfileId.set(profile.id);
     this.loginUsername.set('');
     this.loginPassword.set('');
