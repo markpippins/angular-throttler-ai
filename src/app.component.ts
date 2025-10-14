@@ -141,6 +141,17 @@ export class AppComponent implements OnInit, OnDestroy {
   activeImageService = computed(() => {
     return this.activePaneId() === 1 ? this.pane1ImageService() : this.pane2ImageService();
   });
+  
+  activeProvider = computed(() => {
+    const path = this.activePanePath();
+    return this.getProviderForPath(path);
+  });
+
+  activeProviderPath = computed(() => {
+    const path = this.activePanePath();
+    // The path for the provider needs to be relative (without the root server name)
+    return path.length > 0 ? path.slice(1) : [];
+  });
 
   constructor() {
     this.loadTheme();

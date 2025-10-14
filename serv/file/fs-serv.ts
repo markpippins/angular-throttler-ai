@@ -108,10 +108,32 @@ async function handleRequest(req: RequestModel) {
         }
         
         case "getFileContent": {
-             if (!req.filename) throw new Error("Filename required");
-             const target = getSecurePath(req.alias, [...req.path, req.filename]);
-             const content = await fs.readFile(target, 'utf8');
-             return { content };
+            if (!req.filename) throw new Error("Filename required");
+            const target = getSecurePath(req.alias, [...req.path, req.filename]);
+            const ext = path.extname(req.filename).toLowerCase();
+
+            const imageMimeMap: { [key: string]: string } = {
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.gif': 'image/gif',
+                '.svg': 'image/svg+xml',
+                '.webp': 'image/webp',
+                '.bmp': 'image/bmp',
+            };
+
+            if (ext in imageMimeMap) {
+                // It's an image, return a data URL
+                const data = await fs.readFile(target);
+                const base64 = data.toString('base64');
+                const mimeType = imageMimeMap[ext];
+                const content = `data:${mimeType};base64,${base64}`;
+                return { content };
+            } else {
+                // Not an image, return as text
+                const content = await fs.readFile(target, 'utf8');
+                return { content };
+            }
         }
 
         case "copy":

@@ -15,8 +15,9 @@ export class FsService {
     return this.brokerService.submitRequest<FileSystemNode[]>(brokerUrl, SERVICE_NAME, 'listFiles', { alias, path });
   }
 
-  getFileContent(brokerUrl: string, alias: string, path: string[], filename: string): Promise<string> {
-    return this.brokerService.submitRequest<string>(brokerUrl, SERVICE_NAME, 'getFileContent', { alias, path, filename });
+  async getFileContent(brokerUrl: string, alias: string, path: string[], filename: string): Promise<string> {
+    const response = await this.brokerService.submitRequest<{ content: string }>(brokerUrl, SERVICE_NAME, 'getFileContent', { alias, path, filename });
+    return response.content;
   }
 
   changeDirectory(brokerUrl: string, alias: string, path: string[]): Promise<any> {

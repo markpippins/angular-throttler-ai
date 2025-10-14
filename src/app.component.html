@@ -144,6 +144,8 @@
         <app-detail-pane
           [item]="selectedDetailItem()"
           [imageService]="activeImageService()"
+          [fileSystemProvider]="activeProvider()"
+          [providerPath]="activeProviderPath()"
           (close)="toggleDetailPane()">
         </app-detail-pane>
       }
