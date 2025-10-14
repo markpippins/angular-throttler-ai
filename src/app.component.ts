@@ -14,6 +14,8 @@ import { RemoteFileSystemService } from './services/remote-file-system.service.j
 import { FsService } from './services/fs.service.js';
 import { ImageService } from './services/image.service.js';
 import { ImageClientService } from './services/image-client.service.js';
+import { LoginService } from './services/login.service.js';
+import { User } from './models/user.model.js';
 
 interface PanePath {
   id: number;
@@ -54,6 +56,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private profileService = inject(ServerProfileService);
   private fsService = inject(FsService);
   private imageClientService = inject(ImageClientService);
+  private loginService = inject(LoginService);
   private injector = inject(Injector);
   private document = inject(DOCUMENT);
   private elementRef = inject(ElementRef);
@@ -74,6 +77,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // --- Mounted Profile State ---
   mountedProfiles = signal<ServerProfile[]>([]);
+  mountedProfileUsers = signal<Map<string, User>>(new Map());
   mountedProfileIds = computed(() => this.mountedProfiles().map(p => p.id));
   private remoteProviders = signal<Map<string, RemoteFileSystemService>>(new Map());
   private remoteImageServices = signal<Map<string, ImageService>>(new Map());
@@ -277,14 +281,16 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
   
-  async onMountProfile(profile: ServerProfile): Promise<void> {
+  async onLoginAndMount({ profile, username, password }: { profile: ServerProfile, username: string, password: string }): Promise<void> {
     this.connectionStatus.set('connecting');
     try {
+      const user = await this.loginService.login(profile.brokerUrl, username, password);
       await this.mountProfile(profile);
+      this.mountedProfileUsers.update(map => new Map(map).set(profile.id, user));
       this.connectionStatus.set('connected');
       await this.loadFolderTree();
     } catch (e) {
-      alert(`Failed to connect to server "${profile.name}". Please check the profile settings and network connection.`);
+      alert(`Failed to connect to server "${profile.name}". Please check credentials and profile settings. Error: ${(e as Error).message}`);
       if (this.mountedProfiles().length === 0) {
         this.connectionStatus.set('disconnected');
       } else {
@@ -310,6 +316,11 @@ export class AppComponent implements OnInit, OnDestroy {
         this.connectionStatus.set('disconnected');
       }
       return remainingProfiles;
+    });
+    this.mountedProfileUsers.update(map => {
+      const newMap = new Map(map);
+      newMap.delete(profile.id);
+      return newMap;
     });
     this.loadFolderTree();
   }

@@ -40,15 +40,15 @@ export class FsService {
     return this.brokerService.submitRequest(brokerUrl, SERVICE_NAME, 'deleteFile', { alias, path, filename });
   }
 
-  rename(brokerUrl: string, alias: string, path: string[], newName: string): Promise<any> {
-    return this.brokerService.submitRequest(brokerUrl, SERVICE_NAME, 'rename', { alias, path, newName });
+  rename(brokerUrl: string, alias: string, fromPath: string[], toPath: string[]): Promise<any> {
+    return this.brokerService.submitRequest(brokerUrl, SERVICE_NAME, 'rename', { alias, fromPath, toPath });
   }
 
   move(brokerUrl: string, alias: string, sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
     return this.brokerService.submitRequest(brokerUrl, SERVICE_NAME, 'move', { alias, sourcePath, destPath, items });
   }
 
-  copy(brokerUrl: string, alias: string, sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.brokerService.submitRequest(brokerUrl, SERVICE_NAME, 'copy', { alias, sourcePath, destPath, items });
+  copy(brokerUrl: string, fromAlias: string, fromPath: string[], toAlias: string, toPath: string[]): Promise<void> {
+    return this.brokerService.submitRequest(brokerUrl, SERVICE_NAME, 'copy', { fromAlias, fromPath, toAlias, toPath });
   }
 }

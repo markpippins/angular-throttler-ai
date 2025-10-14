@@ -545,6 +545,27 @@ export class FileExplorerComponent implements OnDestroy {
     this.closeContextMenu();
   }
 
+  handleCutFromContextMenu(): void {
+    if (this.canCutCopyShareDelete()) {
+      this.onCut();
+    }
+    this.closeContextMenu();
+  }
+  
+  handleCopyFromContextMenu(): void {
+    if (this.canCutCopyShareDelete()) {
+      this.onCopy();
+    }
+    this.closeContextMenu();
+  }
+
+  handlePasteFromContextMenu(): void {
+    if (this.canPaste()) {
+      this.onPaste();
+    }
+    this.closeContextMenu();
+  }
+
   handleDeleteFromContextMenu(): void {
     this.onDelete();
     this.closeContextMenu();

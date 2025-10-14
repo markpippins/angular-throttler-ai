@@ -155,8 +155,9 @@
   @if(isServerProfilesDialogOpen()) {
     <app-server-profiles-dialog 
       [mountedProfileIds]="mountedProfileIds()"
+      [mountedProfileUsers]="mountedProfileUsers()"
       (close)="closeServerProfilesDialog()"
-      (mountProfile)="onMountProfile($event)"
+      (loginAndMount)="onLoginAndMount($event)"
       (unmountProfile)="onUnmountProfile($event)">
     </app-server-profiles-dialog>
   }

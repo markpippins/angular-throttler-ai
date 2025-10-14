@@ -187,6 +187,9 @@
          [style.top.px]="cm.y"
          (click)="$event.stopPropagation()">
       @if (cm.item) {
+        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleCutFromContextMenu()">Cut</div>
+        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleCopyFromContextMenu()">Copy</div>
+        <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleRenameFromContextMenu()">Rename</div>
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-danger-bg-hover))] cursor-pointer text-[rgb(var(--color-danger-text))] hover:text-[rgb(var(--color-danger-text-hover))]" (click)="handleDeleteFromContextMenu()">Delete</div>
         <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
@@ -207,6 +210,14 @@
       } @else {
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="createFolder()">New folder</div>
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="createFile()">New file</div>
+        <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))]" 
+            (click)="handlePasteFromContextMenu()"
+            [class.cursor-pointer]="canPaste()"
+            [class.cursor-not-allowed]="!canPaste()"
+            [class.text-[rgb(var(--color-text-disabled))]]="!canPaste()">
+            Paste
+        </div>
       }
     </div>
   }

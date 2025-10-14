@@ -90,20 +90,31 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   rename(path: string[], oldName: string, newName: string): Promise<void> {
-    return this.fsService.rename(this.profile.brokerUrl, this.profile.name, [...path, oldName], newName);
+    const fromPath = [...path, oldName];
+    const toPath = [...path, newName];
+    return this.fsService.rename(this.profile.brokerUrl, this.profile.name, fromPath, toPath);
   }
 
   uploadFile(path: string[], file: File): Promise<void> {
     console.warn(`File upload not implemented in live mode. File: ${file.name}, Path: ${path.join('/')}`);
-    return this.fsService.copy(this.profile.brokerUrl, this.profile.name, [], [], []); // No-op for now
+    return Promise.resolve();
   }
 
   move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
     return this.fsService.move(this.profile.brokerUrl, this.profile.name, sourcePath, destPath, items);
   }
 
-  copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.fsService.copy(this.profile.brokerUrl, this.profile.name, sourcePath, destPath, items);
+  async copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    const fromAlias = this.profile.name;
+    const toAlias = this.profile.name;
+
+    const copyPromises = items.map(item => {
+        const fromPath = [...sourcePath, item.name];
+        const toPath = [...destPath, item.name];
+        return this.fsService.copy(this.profile.brokerUrl, fromAlias, fromPath, toAlias, toPath);
+    });
+    
+    await Promise.all(copyPromises);
   }
 
   async search(query: string): Promise<SearchResultNode[]> {

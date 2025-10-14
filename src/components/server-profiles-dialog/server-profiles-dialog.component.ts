@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, output, inject, signal, input, comp
 import { CommonModule } from '@angular/common';
 import { ServerProfileService } from '../../services/server-profile.service.js';
 import { ServerProfile } from '../../models/server-profile.model.js';
+import { User } from '../../models/user.model.js';
 
 type FormState = {
   id: string | null;
@@ -21,14 +22,19 @@ export class ServerProfilesDialogComponent {
   profileService = inject(ServerProfileService);
   
   mountedProfileIds = input<string[]>([]);
+  mountedProfileUsers = input<Map<string, User>>(new Map());
   close = output<void>();
-  mountProfile = output<ServerProfile>();
+  loginAndMount = output<{ profile: ServerProfile, username: string, password: string }>();
   unmountProfile = output<ServerProfile>();
 
   selectedProfileId = signal<string | null>(null);
   
   // Form state for editing/creating
   formState = signal<FormState | null>(null);
+
+  // State for login form
+  loginUsername = signal('');
+  loginPassword = signal('');
 
   // Computed signal to find the full profile object when editing.
   selectedProfile = computed(() => {
@@ -53,6 +59,8 @@ export class ServerProfilesDialogComponent {
   startEdit(profile: ServerProfile): void {
     this.formState.set({ ...profile, autoConnect: profile.autoConnect ?? false });
     this.selectedProfileId.set(profile.id);
+    this.loginUsername.set('');
+    this.loginPassword.set('');
   }
   
   cancelEdit(): void {
@@ -88,17 +96,31 @@ export class ServerProfilesDialogComponent {
     }
   }
 
-  toggleMount(profile: ServerProfile): void {
-    if (this.mountedProfileIds().includes(profile.id)) {
-      this.unmountProfile.emit(profile);
+  handleLoginAndMount(profile: ServerProfile): void {
+    const username = this.loginUsername().trim();
+    const password = this.loginPassword().trim();
+    if (username && password) {
+      this.loginAndMount.emit({ profile, username, password });
     } else {
-      this.mountProfile.emit(profile);
+      alert('Please enter a username and password.');
     }
+  }
+
+  handleUnmount(profile: ServerProfile): void {
+    this.unmountProfile.emit(profile);
   }
 
   onFormValueChange(event: Event, field: keyof Omit<FormState, 'id'>): void {
     const input = event.target as HTMLInputElement;
     const value = input.type === 'checkbox' ? input.checked : input.value;
     this.formState.update(state => state ? { ...state, [field]: value } : null);
+  }
+
+  onLoginUsernameChange(event: Event): void {
+      this.loginUsername.set((event.target as HTMLInputElement).value);
+  }
+
+  onLoginPasswordChange(event: Event): void {
+      this.loginPassword.set((event.target as HTMLInputElement).value);
   }
 }
