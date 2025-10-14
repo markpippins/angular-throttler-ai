@@ -53,20 +53,36 @@ This will compile and optimize the application, placing the output in the `dist/
 
 ### Optional: Running Backend Services
 
-For the "Remote Connection" mode and for fetching custom file icons, the application relies on two backend services.
+For full "Remote Connection" functionality, the application relies on a suite of backend microservices. Each should be run in its own terminal after being compiled from TypeScript to JavaScript (which the `ng build` or `ng serve` process handles).
 
-#### Image Server
+1.  **File System Service:** Handles file operations for remote connections. The default server profile expects this to be accessible via the broker URL.
+    ```bash
+    node app/serv/file/fs-serv.js
+    ```
 
-This is a simple Node.js server that dynamically generates SVG icons.
+2.  **Image Server:** Serves static and dynamically generated icons.
+    ```bash
+    node app/serv/image/image-serv.js
+    ```
+    _Note: There may be a duplicate `image-serv.ts` file in the `serv` root. This command refers to the one inside `serv/image/`._
+    
+The application is pre-configured with a "Local (Debug)" server profile that expects a broker at `http://localhost:8080` and the image server at `http://localhost:8081`.
 
-To start it, open a new terminal in the project's root directory and run:
+The project also includes other backend services that are not fully integrated into the UI but can be run for development and testing:
 
-```bash
-node serv/image-serv.js
-```
+- **Google Search Service:** This service acts as a proxy to the live Google Custom Search API. To enable it, you must create a `.env` file in the project root and add your credentials:
+  ```
+  GOOGLE_API_KEY=your_api_key_here
+  SEARCH_ENGINE_ID=your_search_engine_id_here
+  ```
+  Then run the service:
+  ```bash
+  # Google Search Service (runs on port 8082)
+  node app/serv/search/gsearch-serv.js
+  ```
 
-You should see the message `Image server listening on http://localhost:8081`.
-
-#### Broker & File System Service
-
-For remote mode, the app needs a compatible message broker. The default configuration points to `http://localhost:8080`.
+- **Unsplash Image Search Service (Mock):** This service returns mock data.
+  ```bash
+  # Mock Unsplash Image Search Service (runs on port 8083)
+  node app/serv/unsplash/image-search.js
+  ```

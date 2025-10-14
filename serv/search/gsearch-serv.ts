@@ -1,5 +1,6 @@
 
 import * as http from 'http';
+import * as https from 'https';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -7,6 +8,8 @@ import * as path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const PORT = process.env.SEARCH_SERVER_PORT || 8082;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const SEARCH_ENGINE_ID = process.env.SEARCH_ENGINE_ID;
 
 const server = http.createServer((req, res) => {
     // CORS headers
@@ -26,21 +29,42 @@ const server = http.createServer((req, res) => {
             body += chunk.toString();
         });
         req.on('end', () => {
+            if (!GOOGLE_API_KEY || !SEARCH_ENGINE_ID) {
+                console.error('ERROR: Missing GOOGLE_API_KEY or SEARCH_ENGINE_ID in environment variables.');
+                const errorPayload = JSON.stringify({ error: 'Server is not configured for Google Search. Missing API Key or Search Engine ID.' });
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(errorPayload);
+                return;
+            }
+
             try {
                 const { query } = JSON.parse(body);
-                console.log(`Received search query: ${query}`);
-                
-                // Mock response
-                const results = [
-                    { title: `Result for "${query}" 1`, url: 'https://google.com/search?q=1', snippet: 'This is the first mock result from the gsearch-serv.' },
-                    { title: `Result for "${query}" 2`, url: 'https://google.com/search?q=2', snippet: 'This is the second mock result from the gsearch-serv.' },
-                ];
+                console.log(`Forwarding search query to Google: ${query}`);
 
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ results }));
+                const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
+                searchUrl.searchParams.append('key', GOOGLE_API_KEY);
+                searchUrl.searchParams.append('cx', SEARCH_ENGINE_ID);
+                searchUrl.searchParams.append('q', query);
+
+                const googleRequest = https.get(searchUrl.toString(), (googleResponse) => {
+                    // Forward headers and status code from Google's response
+                    res.writeHead(googleResponse.statusCode ?? 500, googleResponse.headers);
+                    // Pipe the response body directly to our client
+                    googleResponse.pipe(res, { end: true });
+                });
+
+                googleRequest.on('error', (e) => {
+                    console.error(`Error during Google API request: ${e.message}`);
+                    const errorPayload = JSON.stringify({ error: 'Failed to communicate with the Google Search API.' });
+                    res.writeHead(502, { 'Content-Type': 'application/json' }); // 502 Bad Gateway
+                    res.end(errorPayload);
+                });
+
+                googleRequest.end();
+
             } catch (e) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Invalid JSON' }));
+                res.end(JSON.stringify({ error: 'Invalid JSON in request body' }));
             }
         });
     } else {
@@ -50,5 +74,11 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`Google Search mock server listening on http://localhost:${PORT}`);
+    console.log(`Google Search proxy server listening on http://localhost:${PORT}`);
+    if (!GOOGLE_API_KEY || !SEARCH_ENGINE_ID) {
+        console.warn('*********************************************************************************');
+        console.warn('*** WARNING: GOOGLE_API_KEY or SEARCH_ENGINE_ID is not set in your .env file. ***');
+        console.warn('*** The search service will not function correctly.                           ***');
+        console.warn('*********************************************************************************');
+    }
 });
