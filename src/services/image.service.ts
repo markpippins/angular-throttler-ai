@@ -1,4 +1,5 @@
 
+
 import { Injectable, inject } from '@angular/core';
 import { FileSystemNode } from '../models/file-system.model.js';
 import { ImageClientService } from './image-client.service.js';
@@ -19,7 +20,7 @@ export class ImageService {
     if (lastDot === -1 || lastDot === 0) {
       return null;
     }
-    return filename.substring(lastDot + 1);
+    return filename.substring(lastDot + 1).toLowerCase();
   }
 
   getIconUrl(item: FileSystemNode): string | null {
