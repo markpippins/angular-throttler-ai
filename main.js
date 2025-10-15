@@ -46,7 +46,8 @@ app.whenReady().then(() => {
   // Intercept the 'app' protocol and serve files from the 'dist' directory
   protocol.registerFileProtocol('app', (request, callback) => {
     const url = request.url.replace(/^app:\/\//, '');
-    const filePath = path.join(__dirname, 'dist/myapp/browser', url);
+    // Using app.getAppPath() is more robust for finding the root in dev.
+    const filePath = path.join(app.getAppPath(), 'dist/myapp/browser', url);
     callback({ path: filePath });
   });
   
