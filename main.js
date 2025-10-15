@@ -24,8 +24,8 @@ function createWindow() {
     },
   });
 
-  // Load the app from the custom protocol's root.
-  win.loadURL('app://.');
+  // Load the app from a more standard-looking custom protocol URL.
+  win.loadURL('app://localhost');
 
   // Open DevTools for debugging.
   win.webContents.openDevTools();
@@ -45,29 +45,44 @@ app.whenReady().then(() => {
   });
 
   // Intercept the 'app' protocol and serve files from the 'dist' directory using the modern `handle` API.
-  protocol.handle('app', (request) => {
-    const url = new URL(request.url);
-    let pathname = url.pathname;
+  protocol.handle('app', async (request) => {
+    try {
+        const url = new URL(request.url);
+        // Get the path from the URL, removing the leading slash.
+        // e.g., 'app://localhost/index.js' -> '/index.js' -> 'index.js'
+        let requestedPath = url.pathname.substring(1);
 
-    // Remove any trailing slash to prevent treating files as directories
-    if (pathname.length > 1 && pathname.endsWith('/')) {
-        pathname = pathname.slice(0, -1);
+        // If the path is empty (root request like 'app://localhost'), default to index.html.
+        if (requestedPath === '') {
+            requestedPath = 'index.html';
+        }
+
+        // Decode URI components for filenames with special characters (e.g., spaces).
+        const decodedPath = decodeURIComponent(requestedPath);
+        
+        const buildDir = path.join(app.getAppPath(), 'dist/myapp/browser');
+        const filePath = path.join(buildDir, decodedPath);
+        
+        // Security: Normalize the path and ensure it doesn't access files
+        // outside the intended 'dist/myapp/browser' directory (path traversal).
+        const normalizedPath = path.normalize(filePath);
+        if (!normalizedPath.startsWith(buildDir)) {
+            console.error(`Access Denied: Path traversal attempt: ${normalizedPath}`);
+            return new Response('Access Denied', { status: 403 });
+        }
+
+        // Check if the file exists before trying to fetch it.
+        await fs.access(normalizedPath);
+        
+        // Use net.fetch with a file:// URL. This is the most reliable way to
+        // serve local files, as it correctly handles MIME types and other details.
+        return net.fetch(pathToFileURL(normalizedPath).toString());
+
+    } catch (error) {
+        console.error(`Failed to handle 'app' protocol request for ${request.url}:`, error);
+        // If the file doesn't exist or there's another error, return a 404.
+        return new Response('Not Found', { status: 404 });
     }
-
-    // Remove leading slash to make it relative
-    let relativePath = pathname.startsWith('/') ? pathname.substring(1) : pathname;
-
-    // If path is empty or just a dot, serve index.html
-    if (relativePath === '' || relativePath === '.') {
-        relativePath = 'index.html';
-    }
-    
-    // Construct the absolute path to the file in the build output directory.
-    const absolutePath = path.join(app.getAppPath(), 'dist/myapp/browser', relativePath);
-
-    // Use `net.fetch` with a `file://` URL. This is the most reliable way to
-    // serve local files, as it correctly handles MIME types and other details.
-    return net.fetch(pathToFileURL(absolutePath).toString());
   });
   
   createWindow();
