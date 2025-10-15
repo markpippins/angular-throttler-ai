@@ -24,8 +24,8 @@ function createWindow() {
     },
   });
 
-  // Load the app from the custom protocol
-  win.loadURL('app://index.html');
+  // Load the app from the custom protocol's root.
+  win.loadURL('app://.');
 
   // Open DevTools for debugging.
   win.webContents.openDevTools();
@@ -46,18 +46,22 @@ app.whenReady().then(() => {
 
   // Intercept the 'app' protocol and serve files from the 'dist' directory using the modern `handle` API.
   protocol.handle('app', (request) => {
-    // Create a URL object from the request. This helps parse the path.
     const url = new URL(request.url);
-    
-    // The pathname will be something like '/index.html' or '/styles.css'.
-    // We need to remove the leading slash to make it a relative path.
-    let relativePath = url.pathname.substring(1);
+    let pathname = url.pathname;
 
-    // If the path is empty (request to 'app://'), serve 'index.html'.
-    if (relativePath === '') {
-      relativePath = 'index.html';
+    // Remove any trailing slash to prevent treating files as directories
+    if (pathname.length > 1 && pathname.endsWith('/')) {
+        pathname = pathname.slice(0, -1);
     }
 
+    // Remove leading slash to make it relative
+    let relativePath = pathname.startsWith('/') ? pathname.substring(1) : pathname;
+
+    // If path is empty or just a dot, serve index.html
+    if (relativePath === '' || relativePath === '.') {
+        relativePath = 'index.html';
+    }
+    
     // Construct the absolute path to the file in the build output directory.
     const absolutePath = path.join(app.getAppPath(), 'dist/myapp/browser', relativePath);
 
