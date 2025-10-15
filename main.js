@@ -1,7 +1,8 @@
-const { app, BrowserWindow, ipcMain, protocol, session } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, session, net } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 const os = require('os');
+const { pathToFileURL } = require('url');
 
 // This must be called before the app is ready.
 // Registering a custom protocol is a security best practice for Electron apps.
@@ -43,12 +44,26 @@ app.whenReady().then(() => {
     });
   });
 
-  // Intercept the 'app' protocol and serve files from the 'dist' directory
-  protocol.registerFileProtocol('app', (request, callback) => {
-    const url = request.url.replace(/^app:\/\//, '');
-    // Using app.getAppPath() is more robust for finding the root in dev.
-    const filePath = path.join(app.getAppPath(), 'dist/myapp/browser', url);
-    callback({ path: filePath });
+  // Intercept the 'app' protocol and serve files from the 'dist' directory using the modern `handle` API.
+  protocol.handle('app', (request) => {
+    // Create a URL object from the request. This helps parse the path.
+    const url = new URL(request.url);
+    
+    // The pathname will be something like '/index.html' or '/styles.css'.
+    // We need to remove the leading slash to make it a relative path.
+    let relativePath = url.pathname.substring(1);
+
+    // If the path is empty (request to 'app://'), serve 'index.html'.
+    if (relativePath === '') {
+      relativePath = 'index.html';
+    }
+
+    // Construct the absolute path to the file in the build output directory.
+    const absolutePath = path.join(app.getAppPath(), 'dist/myapp/browser', relativePath);
+
+    // Use `net.fetch` with a `file://` URL. This is the most reliable way to
+    // serve local files, as it correctly handles MIME types and other details.
+    return net.fetch(pathToFileURL(absolutePath).toString());
   });
   
   createWindow();
