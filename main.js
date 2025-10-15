@@ -13,7 +13,7 @@ protocol.registerSchemesAsPrivileged([
 
 const rootPath = os.homedir();
 
-function createWindow() {
+async function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -24,8 +24,27 @@ function createWindow() {
     },
   });
 
-  // Load the app from a more standard-looking custom protocol URL.
-  win.loadURL('app://localhost');
+  // Load index.html content directly to avoid protocol loading issues on startup.
+  const indexHtmlPath = path.join(app.getAppPath(), 'dist/myapp/browser/index.html');
+  try {
+    let htmlContent = await fs.readFile(indexHtmlPath, 'utf8');
+
+    // IMPORTANT: Since we are loading from a data: URL, relative paths for scripts
+    // won't work. We must replace the relative path with an absolute one that uses
+    // our custom 'app://' protocol, which will be handled by our protocol handler.
+    htmlContent = htmlContent.replace(
+      'src="./index.js"',
+      'src="app://localhost/index.js"'
+    );
+
+    win.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(htmlContent)}`);
+
+  } catch (error) {
+    console.error('Failed to load index.html directly:', error);
+    // Display an error message in the window if the app fails to load.
+    win.loadURL(`data:text/html,<h2>Failed to load application</h2><pre>${error.message}</pre>`);
+  }
+
 
   // Open DevTools for debugging.
   win.webContents.openDevTools();
@@ -45,6 +64,7 @@ app.whenReady().then(() => {
   });
 
   // Intercept the 'app' protocol and serve files from the 'dist' directory using the modern `handle` API.
+  // This is still needed for loading assets like index.js, CSS, images, etc.
   protocol.handle('app', async (request) => {
     try {
         const url = new URL(request.url);
