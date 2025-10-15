@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input, output, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model';
 
@@ -19,10 +19,24 @@ export class FolderComponent {
   itemDrop = output<{ files: FileList; item: FileSystemNode }>();
   imageError = output<string>();
 
+  imageIsLoaded = signal(false);
+
+  constructor() {
+    effect(() => {
+      // Reset loaded state when the iconUrl input changes
+      this.iconUrl();
+      this.imageIsLoaded.set(false);
+    });
+  }
+
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
     this.itemContextMenu.emit({ event, item: this.item() });
+  }
+
+  onImageLoad(): void {
+    this.imageIsLoaded.set(true);
   }
 
   onImageError(): void {

@@ -22,6 +22,7 @@ export class TreeNodeComponent implements OnInit {
 
   isExpanded = signal(false);
   imageHasError = signal(false);
+  imageIsLoaded = signal(false);
   
   isSelected = computed(() => {
     const p1 = this.path().join('/');
@@ -73,6 +74,13 @@ export class TreeNodeComponent implements OnInit {
           }
       }
     });
+
+    effect(() => {
+      // Reset image loading state whenever the node changes.
+      this.node();
+      this.imageIsLoaded.set(false);
+      this.imageHasError.set(false);
+    });
   }
 
   ngOnInit(): void {
@@ -118,6 +126,10 @@ export class TreeNodeComponent implements OnInit {
 
   onLoadChildren(path: string[]): void {
     this.loadChildren.emit(path);
+  }
+
+  onImageLoad(): void {
+    this.imageIsLoaded.set(true);
   }
   
   onImageError(): void {

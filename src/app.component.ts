@@ -25,7 +25,7 @@ type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
 const THEME_STORAGE_KEY = 'file-explorer-theme';
-const CONVEX_ROOT_NAME = 'Convex Pins';
+const CONVEX_ROOT_NAME = 'Local';
 
 const readOnlyProviderOps = {
   createDirectory: () => Promise.reject(new Error('Operation not supported.')),
@@ -73,7 +73,7 @@ export class AppComponent implements OnInit, OnDestroy {
   connectionStatus = signal<ConnectionStatus>('disconnected');
   
   // Keep track of each pane's path
-  private panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
+  private panePaths = signal<PanePath[]>([{ id: 1, path: [CONVEX_ROOT_NAME] }]);
 
   // --- Mounted Profile State ---
   mountedProfiles = signal<ServerProfile[]>([]);

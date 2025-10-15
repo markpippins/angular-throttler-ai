@@ -1,138 +1,249 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { FileSystemNode, SearchResultNode } from '../models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './file-system-provider.js';
-import { ConvexService } from './convex.service.js';
-import { Magnet } from '../models/magnet.model.js';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ConvexDesktopService implements FileSystemProvider {
-  private convexService = inject(ConvexService);
-  private virtualTree: FileSystemNode | null = null;
+  private rootNode = signal<FileSystemNode>({
+    name: 'Local',
+    type: 'folder',
+    children: [],
+    modified: new Date().toISOString()
+  });
 
-  private async buildAndCacheVirtualTree(): Promise<FileSystemNode> {
-    if (this.virtualTree) {
-      return this.virtualTree;
+  private findNodeInTree(root: FileSystemNode, path: string[]): FileSystemNode | null {
+    let currentNode: FileSystemNode | null = root;
+    for (const segment of path) {
+      const nextNode = currentNode?.children?.find(c => c.name === segment);
+      if (!nextNode) return null;
+      currentNode = nextNode;
     }
-
-    const magnets = await this.convexService.searchMagnets(''); // Get all magnets
-    const tagsMap = new Map<string, FileSystemNode[]>();
-
-    for (const magnet of magnets) {
-      const tags = magnet.tags.split(',').map(t => t.trim()).filter(Boolean);
-      const magnetNode: FileSystemNode = {
-        name: `${magnet.displayName}.magnet`,
-        type: 'file',
-        modified: new Date(magnet._creationTime).toISOString(),
-        content: JSON.stringify(magnet, null, 2)
-      };
-
-      if (tags.length === 0) {
-        tags.push('Uncategorized');
-      }
-
-      for (const tag of tags) {
-        if (!tagsMap.has(tag)) {
-          tagsMap.set(tag, []);
-        }
-        tagsMap.get(tag)!.push(magnetNode);
-      }
-    }
-    
-    const tagFolders: FileSystemNode[] = [];
-    for (const [tagName, children] of tagsMap.entries()) {
-      tagFolders.push({
-        name: tagName,
-        type: 'folder',
-        children: children,
-        modified: new Date().toISOString()
-      });
-    }
-    
-    this.virtualTree = {
-      name: 'Convex Pins',
-      type: 'folder',
-      children: tagFolders,
-      modified: new Date().toISOString()
-    };
-    
-    return this.virtualTree;
+    return currentNode;
   }
 
   async getFolderTree(): Promise<FileSystemNode> {
-    // Invalidate cache for subsequent loads, in case data changed in Convex.
-    this.virtualTree = null; 
-    return this.buildAndCacheVirtualTree();
+    return JSON.parse(JSON.stringify(this.rootNode()));
   }
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {
-    const tree = await this.buildAndCacheVirtualTree();
-    
-    if (path.length === 0) {
-      return tree.children ?? [];
+    const node = this.findNodeInTree(this.rootNode(), path);
+    if (node && node.type === 'folder') {
+      return [...(node.children ?? [])];
     }
-
-    let currentNode: FileSystemNode | undefined = tree;
-    for (const segment of path) {
-      const nextNode: FileSystemNode | undefined = currentNode.children?.find(c => c.name === segment);
-      if (nextNode && nextNode.type === 'folder') {
-        currentNode = nextNode;
-      } else {
-        return []; // Path not found or is a file
-      }
-    }
-    
-    return currentNode.children ?? [];
+    return [];
   }
 
   async getFileContent(path: string[], name: string): Promise<string> {
-    const tree = await this.buildAndCacheVirtualTree();
-
-    let currentNode: FileSystemNode | undefined = tree;
-    for (const segment of path) {
-      currentNode = currentNode?.children?.find(c => c.name === segment);
-      if (!currentNode || currentNode.type !== 'folder') {
-        return Promise.reject(new Error('Path not found in Convex virtual FS.'));
-      }
+    const parentNode = this.findNodeInTree(this.rootNode(), path);
+    const fileNode = parentNode?.children?.find(c => c.name === name && c.type === 'file');
+    if (fileNode) {
+      return fileNode.content ?? '';
     }
-
-    const fileNode = currentNode.children?.find(c => c.name === name && c.type === 'file');
-    if (fileNode?.content) {
-      return fileNode.content;
-    }
-
-    return Promise.reject(new Error('File content not found in Convex virtual FS.'));
+    throw new Error('File not found in Local file system.');
   }
 
   async search(query: string): Promise<SearchResultNode[]> {
-    const magnets = await this.convexService.searchMagnets(query);
     const results: SearchResultNode[] = [];
+    const lowerCaseQuery = query.toLowerCase();
 
-    for (const magnet of magnets) {
-      const tags = magnet.tags.split(',').map(t => t.trim()).filter(Boolean);
-      // For simplicity, show the path as the first tag.
-      const path = tags.length > 0 ? [tags[0]] : ['Uncategorized'];
-
-      results.push({
-        name: `${magnet.displayName}.magnet`,
-        type: 'file',
-        modified: new Date(magnet._creationTime).toISOString(),
-        content: JSON.stringify(magnet, null, 2),
-        path: path
-      });
+    function find(node: FileSystemNode, path: string[]) {
+      if (node.children) {
+        for (const child of node.children) {
+          if (child.name.toLowerCase().includes(lowerCaseQuery)) {
+            results.push({ ...JSON.parse(JSON.stringify(child)), path: path });
+          }
+          if (child.type === 'folder') {
+            find(child, [...path, child.name]);
+          }
+        }
+      }
     }
 
+    find(this.rootNode(), []);
     return results;
   }
 
-  // --- Read-only operations ---
-  createDirectory(path: string[], name: string): Promise<void> { return Promise.reject(new Error('This operation is not supported in Convex mode.')); }
-  removeDirectory(path: string[], name: string): Promise<void> { return Promise.reject(new Error('This operation is not supported in Convex mode.')); }
-  createFile(path: string[], name: string): Promise<void> { return Promise.reject(new Error('This operation is not supported in Convex mode.')); }
-  deleteFile(path: string[], name: string): Promise<void> { return Promise.reject(new Error('This operation is not supported in Convex mode.')); }
-  rename(path: string[], oldName: string, newName: string): Promise<void> { return Promise.reject(new Error('This operation is not supported in Convex mode.')); }
-  uploadFile(path: string[], file: File): Promise<void> { return Promise.reject(new Error('This operation is not supported in Convex mode.')); }
-  move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> { return Promise.reject(new Error('This operation is not supported in Convex mode.')); }
-  copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> { return Promise.reject(new Error('This operation is not supported in Convex mode.')); }
+  async createDirectory(path: string[], name: string): Promise<void> {
+    this.rootNode.update(root => {
+      const newRoot = JSON.parse(JSON.stringify(root));
+      const parentNode = this.findNodeInTree(newRoot, path);
+      if (parentNode?.type === 'folder') {
+        if (!parentNode.children) parentNode.children = [];
+        if (parentNode.children.some(c => c.name === name)) {
+          throw new Error(`Directory '${name}' already exists.`);
+        }
+        parentNode.children.push({ name, type: 'folder', children: [], modified: new Date().toISOString() });
+        parentNode.modified = new Date().toISOString();
+      } else {
+        throw new Error('Parent path not found or is not a folder.');
+      }
+      return newRoot;
+    });
+  }
+
+  async createFile(path: string[], name: string): Promise<void> {
+    this.rootNode.update(root => {
+      const newRoot = JSON.parse(JSON.stringify(root));
+      const parentNode = this.findNodeInTree(newRoot, path);
+      if (parentNode?.type === 'folder') {
+        if (!parentNode.children) parentNode.children = [];
+        if (parentNode.children.some(c => c.name === name)) {
+          throw new Error(`File '${name}' already exists.`);
+        }
+        parentNode.children.push({ name, type: 'file', content: '', modified: new Date().toISOString() });
+        parentNode.modified = new Date().toISOString();
+      } else {
+        throw new Error('Path not found.');
+      }
+      return newRoot;
+    });
+  }
+
+  async removeDirectory(path: string[], name: string): Promise<void> {
+    this.rootNode.update(root => {
+      const newRoot = JSON.parse(JSON.stringify(root));
+      const parentNode = this.findNodeInTree(newRoot, path);
+      if (parentNode?.children) {
+        const index = parentNode.children.findIndex(c => c.name === name && c.type === 'folder');
+        if (index > -1) {
+          parentNode.children.splice(index, 1);
+          parentNode.modified = new Date().toISOString();
+        } else {
+          throw new Error(`Directory '${name}' not found.`);
+        }
+      } else {
+        throw new Error('Path not found.');
+      }
+      return newRoot;
+    });
+  }
+
+  async deleteFile(path: string[], name: string): Promise<void> {
+    this.rootNode.update(root => {
+      const newRoot = JSON.parse(JSON.stringify(root));
+      const parentNode = this.findNodeInTree(newRoot, path);
+      if (parentNode?.children) {
+        const index = parentNode.children.findIndex(c => c.name === name && c.type === 'file');
+        if (index > -1) {
+          parentNode.children.splice(index, 1);
+          parentNode.modified = new Date().toISOString();
+        } else {
+          throw new Error(`File '${name}' not found.`);
+        }
+      } else {
+        throw new Error('Path not found.');
+      }
+      return newRoot;
+    });
+  }
+
+  async rename(path: string[], oldName: string, newName: string): Promise<void> {
+    this.rootNode.update(root => {
+      const newRoot = JSON.parse(JSON.stringify(root));
+      const parentNode = this.findNodeInTree(newRoot, path);
+      if (parentNode?.children) {
+        if (oldName !== newName && parentNode.children.some(c => c.name === newName)) {
+          throw new Error(`An item named '${newName}' already exists.`);
+        }
+        const childNode = parentNode.children.find(c => c.name === oldName);
+        if (childNode) {
+          childNode.name = newName;
+          childNode.modified = new Date().toISOString();
+          parentNode.modified = new Date().toISOString();
+        } else {
+          throw new Error(`Item '${oldName}' not found.`);
+        }
+      } else {
+        throw new Error('Path not found.');
+      }
+      return newRoot;
+    });
+  }
+
+  async move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    this.rootNode.update(root => {
+      const newRoot = JSON.parse(JSON.stringify(root));
+      const sourceParent = this.findNodeInTree(newRoot, sourcePath);
+      const destParent = this.findNodeInTree(newRoot, destPath);
+
+      if (!sourceParent || !destParent || destParent.type !== 'folder') {
+        throw new Error('Source or destination path not found.');
+      }
+      if (!sourceParent.children) sourceParent.children = [];
+      if (!destParent.children) destParent.children = [];
+
+      const sourceIsDest = sourcePath.join('/') === destPath.join('/');
+      if (sourceIsDest) return newRoot;
+
+      const itemsToMove: FileSystemNode[] = [];
+
+      for (const itemRef of items) {
+        const itemIndex = sourceParent.children.findIndex(c => c.name === itemRef.name);
+        if (itemIndex > -1) {
+          if (destParent.children.some(c => c.name === itemRef.name)) {
+            throw new Error(`An item named '${itemRef.name}' already exists in the destination.`);
+          }
+          const [item] = sourceParent.children.splice(itemIndex, 1);
+          itemsToMove.push(item);
+        }
+      }
+
+      destParent.children.push(...itemsToMove);
+      destParent.modified = new Date().toISOString();
+      sourceParent.modified = new Date().toISOString();
+
+      return newRoot;
+    });
+  }
+
+  async copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    this.rootNode.update(root => {
+        const newRoot = JSON.parse(JSON.stringify(root));
+        const sourceParent = this.findNodeInTree(newRoot, sourcePath);
+
+        if (!sourceParent?.children) {
+            throw new Error('Source path not found during copy.');
+        }
+
+        const itemsToCopy: FileSystemNode[] = [];
+        for (const itemRef of items) {
+            const item = sourceParent.children.find(c => c.name === itemRef.name);
+            if (item) {
+                itemsToCopy.push(JSON.parse(JSON.stringify(item))); 
+            }
+        }
+
+        const destParent = this.findNodeInTree(newRoot, destPath);
+        if (!destParent || destParent.type !== 'folder') {
+            throw new Error('Destination path not found during copy.');
+        }
+        if (!destParent.children) destParent.children = [];
+
+        for (const item of itemsToCopy) {
+            if (destParent.children.some(c => c.name === item.name)) {
+                // Create a unique name for the copy
+                let copyIndex = 1;
+                let newName = '';
+                do {
+                    const extension = item.name.includes('.') ? item.name.substring(item.name.lastIndexOf('.')) : '';
+                    const baseName = extension ? item.name.substring(0, item.name.lastIndexOf('.')) : item.name;
+                    newName = `${baseName} - Copy${copyIndex > 1 ? ` (${copyIndex})` : ''}${extension}`;
+                    copyIndex++;
+                } while (destParent.children.some(c => c.name === newName));
+                item.name = newName;
+            }
+            item.modified = new Date().toISOString();
+            destParent.children.push(item);
+        }
+        destParent.modified = new Date().toISOString();
+        return newRoot;
+    });
+  }
+
+  uploadFile(path: string[], file: File): Promise<void> {
+    // Mock implementation for in-memory FS
+    return this.createFile(path, file.name);
+  }
 }

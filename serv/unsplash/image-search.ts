@@ -1,6 +1,14 @@
-// FIX: Added a triple-slash directive to include Node.js type definitions.
-// This resolves an error where `__dirname` was unrecognized by TypeScript.
+// This is a Node.js server file. The triple-slash directive below ensures that Node.js type definitions are available to the TypeScript compiler.
 /// <reference types="node" />
+
+// FIX: Add declarations for Node.js globals to work around a build environment
+// issue where the triple-slash directive for node types is not being resolved correctly.
+declare const __dirname: string;
+declare const process: {
+    env: { [key: string]: string | undefined };
+    cwd(): string;
+    exit(code?: number): never;
+};
 
 import * as http from 'http';
 import * as dotenv from 'dotenv';

@@ -188,7 +188,11 @@
     
     <!-- Bottom Pane (if visible) -->
     @if (isBottomPaneVisible()) {
-      <div class="h-80 flex-shrink-0">
+      <div 
+        class="h-1.5 flex-shrink-0 bg-[rgb(var(--color-surface-muted))] hover:bg-[rgb(var(--color-accent-solid-bg))] cursor-row-resize transition-colors duration-150"
+        (mousedown)="startBottomPaneResize($event)">
+      </div>
+      <div class="flex-shrink-0 overflow-hidden" [style.height.px]="bottomPaneHeight()">
          <app-bottom-pane></app-bottom-pane>
       </div>
     }
@@ -203,6 +207,12 @@
       @if (cm.item) {
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleCutFromContextMenu()">Cut</div>
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleCopyFromContextMenu()">Copy</div>
+        
+        @if (cm.item.type === 'folder' && !cm.item.name.endsWith('.magnet')) {
+          <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+          <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleMagnetizeFromContextMenu()">Magnetize</div>
+        }
+
         <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleRenameFromContextMenu()">Rename</div>
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-danger-bg-hover))] cursor-pointer text-[rgb(var(--color-danger-text))] hover:text-[rgb(var(--color-danger-text-hover))]" (click)="handleDeleteFromContextMenu()">Delete</div>
@@ -222,8 +232,12 @@
         <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handlePropertiesFromContextMenu()">Properties</div>
       } @else {
-        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="createFolder()">New folder</div>
-        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="createFile()">New file</div>
+        @if (isAtHomeRoot()) {
+          <div class="px-4 py-2 text-[rgb(var(--color-text-disabled))] cursor-not-allowed">New folder</div>
+        } @else {
+          <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="createFolder()">New folder</div>
+          <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="createFile()">New file</div>
+        }
         <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))]" 
             (click)="handlePasteFromContextMenu()"

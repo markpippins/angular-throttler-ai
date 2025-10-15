@@ -1,5 +1,3 @@
-
-
 import { Injectable, inject } from '@angular/core';
 import { FileSystemNode } from '../models/file-system.model.js';
 import { ImageClientService } from './image-client.service.js';
@@ -27,22 +25,14 @@ export class ImageService {
     const imageUrl = this.profile.imageUrl;
     if (!imageUrl) return null;
 
-    // Check for special UI names first for any node.
-    if (this.UI_NAMES.some(n => n.toLowerCase() === item.name.toLowerCase())) {
-        return this.imageClientService.getUiIconUrl(imageUrl, item.name);
+    // Per user request, only request custom icons for "magnetized" folders.
+    if (item.type === 'folder' && item.name.endsWith('.magnet')) {
+      const folderNameWithoutMagnet = item.name.slice(0, -7); // '.magnet' is 7 chars long
+      return this.imageClientService.getImageUrlByName(imageUrl, folderNameWithoutMagnet, 'folder');
     }
 
-    if (item.type === 'folder') {
-      return this.imageClientService.getImageUrlByName(imageUrl, item.name, 'folder');
-    }
-
-    // Handle files
-    const extension = this.getFileExtension(item.name);
-    if (extension) {
-      return this.imageClientService.getImageUrlByExtension(imageUrl, extension);
-    }
-
-    // Fallback for files without an extension: use the full name
-    return this.imageClientService.getImageUrlByName(imageUrl, item.name, 'file');
+    // For all other files and folders, do not request a custom icon.
+    // The UI will use its built-in fallback SVG icons.
+    return null;
   }
 }

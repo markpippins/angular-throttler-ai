@@ -66,6 +66,12 @@ export class FileExplorerComponent implements OnDestroy {
   currentSearchResults = signal<SearchResultNode[]>([]);
   isPreviewLoading = signal(false);
 
+  // Bottom pane resizing
+  bottomPaneHeight = signal(320);
+  isResizingBottomPane = signal(false);
+  private unlistenBottomPaneMouseMove: (() => void) | null = null;
+  private unlistenBottomPaneMouseUp: (() => void) | null = null;
+  
   // Selection
   selectedItems = signal<Set<string>>(new Set());
   private lastSelectedItemName = signal<string | null>(null);
@@ -101,6 +107,7 @@ export class FileExplorerComponent implements OnDestroy {
   });
   canRename = computed(() => this.selectedItems().size === 1);
   canGoUp = computed(() => this.path().length > 0);
+  isAtHomeRoot = computed(() => this.path().length === 0);
   
   // The path passed to the provider, which excludes the root segment (server name)
   private providerPath = computed(() => {
@@ -165,6 +172,7 @@ export class FileExplorerComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stopLassoing();
+    this.stopBottomPaneResize();
     // Re-enable text selection when component is destroyed
     this.renderer.removeStyle(document.body, 'user-select');
   }
@@ -484,6 +492,21 @@ export class FileExplorerComponent implements OnDestroy {
     }
   }
 
+  async onMagnetize(item: FileSystemNode): Promise<void> {
+    if (item.type !== 'folder' || item.name.endsWith('.magnet')) {
+      return;
+    }
+    const oldName = item.name;
+    const newName = `${oldName}.magnet`;
+    try {
+      await this.fileSystemProvider().rename(this.providerPath(), oldName, newName);
+      this.loadContents();
+      this.directoryChanged.emit();
+    } catch (e) {
+      alert(`Failed to magnetize folder: ${(e as Error).message}`);
+    }
+  }
+
   async executeCopyToMoveTo(operation: 'copy' | 'move', destPath: string[]): Promise<void> {
     const items = this.getSelectedItemReferences();
     if (items.length === 0) return;
@@ -564,6 +587,14 @@ export class FileExplorerComponent implements OnDestroy {
   handlePasteFromContextMenu(): void {
     if (this.canPaste()) {
       this.onPaste();
+    }
+    this.closeContextMenu();
+  }
+
+  handleMagnetizeFromContextMenu(): void {
+    const item = this.contextMenu()?.item;
+    if (item?.type === 'folder' && !item.name.endsWith('.magnet')) {
+      this.onMagnetize(item);
     }
     this.closeContextMenu();
   }
@@ -765,6 +796,51 @@ export class FileExplorerComponent implements OnDestroy {
     if (this.unlistenMouseUp) {
       this.unlistenMouseUp();
       this.unlistenMouseUp = null;
+    }
+
+    // Re-enable text selection
+    this.renderer.removeStyle(document.body, 'user-select');
+  }
+
+  // --- Bottom Pane Resizing ---
+  startBottomPaneResize(event: MouseEvent): void {
+    event.preventDefault();
+    this.isResizingBottomPane.set(true);
+
+    const startY = event.clientY;
+    const startHeight = this.bottomPaneHeight();
+
+    // Prevent text selection on the body while resizing
+    this.renderer.setStyle(document.body, 'user-select', 'none');
+
+    this.unlistenBottomPaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+      const dy = e.clientY - startY;
+      let newHeight = startHeight - dy; // Dragging up increases height
+
+      // Add constraints for min/max height
+      if (newHeight < 100) newHeight = 100;
+      if (newHeight > 600) newHeight = 600;
+
+      this.bottomPaneHeight.set(newHeight);
+    });
+
+    this.unlistenBottomPaneMouseUp = this.renderer.listen('document', 'mouseup', () => {
+      this.stopBottomPaneResize();
+    });
+  }
+
+  private stopBottomPaneResize(): void {
+    if (!this.isResizingBottomPane()) return;
+    
+    this.isResizingBottomPane.set(false);
+
+    if (this.unlistenBottomPaneMouseMove) {
+      this.unlistenBottomPaneMouseMove();
+      this.unlistenBottomPaneMouseMove = null;
+    }
+    if (this.unlistenBottomPaneMouseUp) {
+      this.unlistenBottomPaneMouseUp();
+      this.unlistenBottomPaneMouseUp = null;
     }
 
     // Re-enable text selection

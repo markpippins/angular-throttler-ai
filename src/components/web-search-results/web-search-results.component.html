@@ -24,6 +24,18 @@
   <div class="flex-1 overflow-y-auto p-2">
     @if(isLoading()) {
       <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Loading...</div>
+    } @else if (searchError(); as error) {
+      <div class="text-center py-8 text-[rgb(var(--color-danger-text))] bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
+        <h3 class="font-semibold text-lg">{{ error.message }}</h3>
+        @if (error.isConfigError) {
+          <p class="mt-2 text-sm text-[rgb(var(--color-text-muted))]">
+            To enable this feature, a server administrator must provide a Google API Key and Search Engine ID.
+          </p>
+          <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" class="mt-4 inline-block px-4 py-2 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] text-sm font-semibold">
+            Go to Google Cloud Console
+          </a>
+        }
+      </div>
     } @else if (results(); as res) {
       <div class="space-y-4">
         @for (result of res; track result.link) {
