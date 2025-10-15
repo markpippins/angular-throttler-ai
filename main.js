@@ -25,7 +25,7 @@ async function createWindow() {
   });
 
   // Load index.html content directly to avoid protocol loading issues on startup.
-  const indexHtmlPath = path.join(app.getAppPath(), 'dist/myapp/browser/index.html');
+  const indexHtmlPath = path.join(__dirname, 'dist/myapp/browser/index.html');
   try {
     let htmlContent = await fs.readFile(indexHtmlPath, 'utf8');
 
@@ -80,7 +80,7 @@ app.whenReady().then(() => {
         // Decode URI components for filenames with special characters (e.g., spaces).
         const decodedPath = decodeURIComponent(requestedPath);
         
-        const buildDir = path.join(app.getAppPath(), 'dist/myapp/browser');
+        const buildDir = path.join(__dirname, 'dist/myapp/browser');
         const filePath = path.join(buildDir, decodedPath);
         
         // Security: Normalize the path and ensure it doesn't access files
