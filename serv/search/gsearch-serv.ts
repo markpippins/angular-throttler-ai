@@ -1,5 +1,5 @@
 // This is a Node.js server file. The triple-slash directive below ensures that Node.js type definitions are available to the TypeScript compiler.
-/// <reference types="node" />
+// FIX: Removed the line '/// <reference types="node" />' because the build environment cannot resolve node types, causing an error.
 
 // FIX: Add declarations for Node.js globals to work around a build environment
 // issue where the triple-slash directive for node types is not being resolved correctly.

@@ -24,7 +24,7 @@ export class ConvexDesktopService implements FileSystemProvider {
   }
 
   async getFolderTree(): Promise<FileSystemNode> {
-    return JSON.parse(JSON.stringify(this.rootNode()));
+    return JSON.parse(JSON.stringify(this.rootNode())) as FileSystemNode;
   }
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {
@@ -52,7 +52,7 @@ export class ConvexDesktopService implements FileSystemProvider {
       if (node.children) {
         for (const child of node.children) {
           if (child.name.toLowerCase().includes(lowerCaseQuery)) {
-            results.push({ ...JSON.parse(JSON.stringify(child)), path: path });
+            results.push({ ...JSON.parse(JSON.stringify(child)) as FileSystemNode, path: path });
           }
           if (child.type === 'folder') {
             find(child, [...path, child.name]);
@@ -67,7 +67,7 @@ export class ConvexDesktopService implements FileSystemProvider {
 
   async createDirectory(path: string[], name: string): Promise<void> {
     this.rootNode.update(root => {
-      const newRoot = JSON.parse(JSON.stringify(root));
+      const newRoot: FileSystemNode = JSON.parse(JSON.stringify(root));
       const parentNode = this.findNodeInTree(newRoot, path);
       if (parentNode?.type === 'folder') {
         if (!parentNode.children) parentNode.children = [];
@@ -85,7 +85,7 @@ export class ConvexDesktopService implements FileSystemProvider {
 
   async createFile(path: string[], name: string): Promise<void> {
     this.rootNode.update(root => {
-      const newRoot = JSON.parse(JSON.stringify(root));
+      const newRoot: FileSystemNode = JSON.parse(JSON.stringify(root));
       const parentNode = this.findNodeInTree(newRoot, path);
       if (parentNode?.type === 'folder') {
         if (!parentNode.children) parentNode.children = [];
@@ -103,7 +103,7 @@ export class ConvexDesktopService implements FileSystemProvider {
 
   async removeDirectory(path: string[], name: string): Promise<void> {
     this.rootNode.update(root => {
-      const newRoot = JSON.parse(JSON.stringify(root));
+      const newRoot: FileSystemNode = JSON.parse(JSON.stringify(root));
       const parentNode = this.findNodeInTree(newRoot, path);
       if (parentNode?.children) {
         const index = parentNode.children.findIndex(c => c.name === name && c.type === 'folder');
@@ -122,7 +122,7 @@ export class ConvexDesktopService implements FileSystemProvider {
 
   async deleteFile(path: string[], name: string): Promise<void> {
     this.rootNode.update(root => {
-      const newRoot = JSON.parse(JSON.stringify(root));
+      const newRoot: FileSystemNode = JSON.parse(JSON.stringify(root));
       const parentNode = this.findNodeInTree(newRoot, path);
       if (parentNode?.children) {
         const index = parentNode.children.findIndex(c => c.name === name && c.type === 'file');
@@ -141,7 +141,7 @@ export class ConvexDesktopService implements FileSystemProvider {
 
   async rename(path: string[], oldName: string, newName: string): Promise<void> {
     this.rootNode.update(root => {
-      const newRoot = JSON.parse(JSON.stringify(root));
+      const newRoot: FileSystemNode = JSON.parse(JSON.stringify(root));
       const parentNode = this.findNodeInTree(newRoot, path);
       if (parentNode?.children) {
         if (oldName !== newName && parentNode.children.some(c => c.name === newName)) {
@@ -164,7 +164,7 @@ export class ConvexDesktopService implements FileSystemProvider {
 
   async move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
     this.rootNode.update(root => {
-      const newRoot = JSON.parse(JSON.stringify(root));
+      const newRoot: FileSystemNode = JSON.parse(JSON.stringify(root));
       const sourceParent = this.findNodeInTree(newRoot, sourcePath);
       const destParent = this.findNodeInTree(newRoot, destPath);
 
@@ -200,7 +200,7 @@ export class ConvexDesktopService implements FileSystemProvider {
 
   async copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
     this.rootNode.update(root => {
-        const newRoot = JSON.parse(JSON.stringify(root));
+        const newRoot: FileSystemNode = JSON.parse(JSON.stringify(root));
         const sourceParent = this.findNodeInTree(newRoot, sourcePath);
 
         if (!sourceParent?.children) {
@@ -211,7 +211,7 @@ export class ConvexDesktopService implements FileSystemProvider {
         for (const itemRef of items) {
             const item = sourceParent.children.find(c => c.name === itemRef.name);
             if (item) {
-                itemsToCopy.push(JSON.parse(JSON.stringify(item))); 
+                itemsToCopy.push(JSON.parse(JSON.stringify(item)) as FileSystemNode); 
             }
         }
 
