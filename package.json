@@ -54,6 +54,7 @@
     "@angular/build": "^20.3.5",
     "@angular/cli": "^20.3.5",
     "@angular/compiler-cli": "^20.3.0",
+    "@google/genai": "^0.14.0",
     "@types/jasmine": "~5.1.0",
     "electron": "^38.3.0",
     "electron-builder": "^26.0.12",
