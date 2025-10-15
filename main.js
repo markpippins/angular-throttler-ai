@@ -1,8 +1,14 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, session } = require('electron');
 const path = require('path');
-const url = require('url');
 const fs = require('fs/promises');
 const os = require('os');
+
+// This must be called before the app is ready.
+// Registering a custom protocol is a security best practice for Electron apps.
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true } }
+]);
+
 
 const rootPath = os.homedir();
 
@@ -17,18 +23,35 @@ function createWindow() {
     },
   });
 
-  const startUrl = url.format({
-    pathname: path.join(__dirname, 'dist/myapp/browser/index.html'),
-    protocol: 'file:',
-    slashes: true,
-  });
-  win.loadURL(startUrl);
+  // Load the app from the custom protocol
+  win.loadURL('app://index.html');
 
   // Open DevTools for debugging.
   win.webContents.openDevTools();
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  // Add CSP header for security. This is applied to all responses.
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self' app:; script-src 'self' app: https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/ https://esm.sh/ https://next.esm.sh/; style-src 'self' app: 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' app: data: https://picsum.photos http://localhost:8081; connect-src 'self' app: http://localhost:8080 http://localhost:8081 http://localhost:8082 http://localhost:8083;"
+        ]
+      }
+    });
+  });
+
+  // Intercept the 'app' protocol and serve files from the 'dist' directory
+  protocol.registerFileProtocol('app', (request, callback) => {
+    const url = request.url.replace(/^app:\/\//, '');
+    const filePath = path.join(__dirname, 'dist/myapp/browser', url);
+    callback({ path: filePath });
+  });
+  
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
