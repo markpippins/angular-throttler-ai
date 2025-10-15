@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const url = require('url');
 const fs = require('fs/promises');
 const os = require('os');
 
@@ -16,7 +17,13 @@ function createWindow() {
     },
   });
 
-  win.loadFile(path.join(__dirname, 'dist/myapp/browser/index.html'));
+  const startUrl = url.format({
+    pathname: path.join(__dirname, 'dist/myapp/browser/index.html'),
+    protocol: 'file:',
+    slashes: true,
+  });
+  win.loadURL(startUrl);
+
   // Open DevTools for debugging.
   win.webContents.openDevTools();
 }
