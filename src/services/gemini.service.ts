@@ -34,7 +34,7 @@ export class GeminiService {
         model: 'gemini-2.5-flash',
         contents: prompt,
       });
-      return response.text;
+      return response.text ?? '';
     } catch (e) {
       console.error('Gemini API call failed', e);
       // Provide a more user-friendly error message

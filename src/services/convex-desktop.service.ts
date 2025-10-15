@@ -50,7 +50,7 @@ export class ConvexDesktopService implements FileSystemProvider {
   private findNodeInTree(root: FileSystemNode, path: string[]): FileSystemNode | null {
     let currentNode: FileSystemNode | null = root;
     for (const segment of path) {
-      const nextNode = currentNode?.children?.find(c => c.name === segment);
+      const nextNode: FileSystemNode | undefined = currentNode?.children?.find(c => c.name === segment);
       if (!nextNode) return null;
       currentNode = nextNode;
     }
