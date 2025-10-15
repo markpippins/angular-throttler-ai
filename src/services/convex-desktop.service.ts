@@ -1,6 +1,8 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, effect } from '@angular/core';
 import { FileSystemNode, SearchResultNode } from '../models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './file-system-provider.js';
+
+const CONVEX_FS_STORAGE_KEY = 'file-explorer-convex-fs';
 
 @Injectable({
   providedIn: 'root',
@@ -12,6 +14,38 @@ export class ConvexDesktopService implements FileSystemProvider {
     children: [],
     modified: new Date().toISOString()
   });
+
+  constructor() {
+    this.loadTreeFromStorage();
+    // This effect will automatically save the tree to localStorage whenever it changes.
+    effect(() => {
+      this.saveTreeToStorage();
+    });
+  }
+
+  private loadTreeFromStorage(): void {
+    try {
+      const storedTree = localStorage.getItem(CONVEX_FS_STORAGE_KEY);
+      if (storedTree) {
+        const parsedTree: FileSystemNode = JSON.parse(storedTree);
+        // Basic validation
+        if (parsedTree && parsedTree.name && parsedTree.type === 'folder') {
+          this.rootNode.set(parsedTree);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load local file system from storage.', e);
+      // If loading fails, it will just use the default initial state.
+    }
+  }
+
+  private saveTreeToStorage(): void {
+    try {
+      localStorage.setItem(CONVEX_FS_STORAGE_KEY, JSON.stringify(this.rootNode()));
+    } catch (e) {
+      console.error('Failed to save local file system to storage.', e);
+    }
+  }
 
   private findNodeInTree(root: FileSystemNode, path: string[]): FileSystemNode | null {
     let currentNode: FileSystemNode | null = root;
@@ -52,7 +86,7 @@ export class ConvexDesktopService implements FileSystemProvider {
       if (node.children) {
         for (const child of node.children) {
           if (child.name.toLowerCase().includes(lowerCaseQuery)) {
-            results.push({ ...JSON.parse(JSON.stringify(child)) as FileSystemNode, path: path });
+            results.push({ ...(JSON.parse(JSON.stringify(child)) as FileSystemNode), path: path });
           }
           if (child.type === 'folder') {
             find(child, [...path, child.name]);
