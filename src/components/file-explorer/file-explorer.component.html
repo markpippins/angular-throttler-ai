@@ -79,7 +79,7 @@
 
   <!-- Main Area Wrapper -->
   <div class="flex-1 flex flex-col overflow-hidden">
-    <!-- Main content + status bar -->
+    <!-- Main content -->
     <div class="flex-1 flex flex-col overflow-hidden">
       <div #mainContent
         class="flex-1 overflow-y-auto relative transition-colors duration-200"
@@ -173,17 +173,6 @@
         }
 
       </div>
-      <!-- Status Bar -->
-      <div class="p-1 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0">
-        @if (viewMode() === 'explorer') {
-          @if (selectedItems().size > 0) {
-            <span class="mr-4">{{ selectedItems().size }} item(s) selected</span>
-          }
-          <span>{{ state().items.length }} items</span>
-        } @else {
-          <span>{{ currentSearchResults().length }} item(s) found</span>
-        }
-      </div>
     </div>
     
     <!-- Bottom Pane (if visible) -->
@@ -205,17 +194,17 @@
          [style.top.px]="cm.y"
          (click)="$event.stopPropagation()">
       @if (cm.item) {
-        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleCutFromContextMenu()">Cut</div>
-        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleCopyFromContextMenu()">Copy</div>
+        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onCut()">Cut</div>
+        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onCopy()">Copy</div>
         
         @if (cm.item.type === 'folder' && !cm.item.name.endsWith('.magnet')) {
           <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-          <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleMagnetizeFromContextMenu()">Magnetize</div>
+          <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onMagnetizeFromContextMenu()">Magnetize</div>
         }
 
         <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleRenameFromContextMenu()">Rename</div>
-        <div class="px-4 py-2 hover:bg-[rgb(var(--color-danger-bg-hover))] cursor-pointer text-[rgb(var(--color-danger-text))] hover:text-[rgb(var(--color-danger-text-hover))]" (click)="handleDeleteFromContextMenu()">Delete</div>
+        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onRename(); closeContextMenu()">Rename</div>
+        <div class="px-4 py-2 hover:bg-[rgb(var(--color-danger-bg-hover))] cursor-pointer text-[rgb(var(--color-danger-text))] hover:text-[rgb(var(--color-danger-text-hover))]" (click)="onDelete()">Delete</div>
         <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
         <div class="relative px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer flex items-center justify-between"
              (mouseenter)="openDestinationSubMenu('copy', $event)"
@@ -230,17 +219,17 @@
              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 text-[rgb(var(--color-text-subtle))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
         </div>
         <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handlePropertiesFromContextMenu()">Properties</div>
+        <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onPropertiesFromContextMenu()">Properties</div>
       } @else {
         @if (isAtHomeRoot()) {
           <div class="px-4 py-2 text-[rgb(var(--color-text-disabled))] cursor-not-allowed">New folder</div>
         } @else {
-          <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="createFolder()">New folder</div>
-          <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="createFile()">New file</div>
+          <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="createFolder(); closeContextMenu()">New folder</div>
+          <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="createFile(); closeContextMenu()">New file</div>
         }
         <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
         <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))]" 
-            (click)="handlePasteFromContextMenu()"
+            (click)="onPaste()"
             [class.cursor-pointer]="canPaste()"
             [class.cursor-not-allowed]="!canPaste()"
             [class.text-[rgb(var(--color-text-disabled))]]="!canPaste()">
@@ -342,5 +331,27 @@
       [imageService]="imageService()"
       (close)="closePropertiesDialog()">
     </app-properties-dialog>
+  }
+
+  <!-- Input Dialog -->
+  @if (isInputDialogOpen() && inputDialogConfig(); as config) {
+    <app-input-dialog
+      [title]="config.title"
+      [message]="config.message"
+      [initialValue]="config.initialValue"
+      (submitValue)="onInputDialogSubmit($event)"
+      (close)="closeInputDialog()">
+    </app-input-dialog>
+  }
+
+  <!-- Confirm Dialog -->
+  @if (isConfirmDialogOpen() && confirmDialogConfig(); as config) {
+    <app-confirm-dialog
+      [title]="config.title"
+      [message]="config.message"
+      [confirmButtonText]="config.confirmText"
+      (confirm)="onConfirmDialogConfirm()"
+      (close)="closeConfirmDialog()">
+    </app-confirm-dialog>
   }
 </div>

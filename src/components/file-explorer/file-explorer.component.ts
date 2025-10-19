@@ -10,6 +10,8 @@ import { SearchResultsComponent } from '../search-results/search-results.compone
 import { PropertiesDialogComponent } from '../properties-dialog/properties-dialog.component.js';
 import { DestinationNodeComponent } from '../destination-node/destination-node.component.js';
 import { BottomPaneComponent } from '../bottom-pane/bottom-pane.component.js';
+import { InputDialogComponent } from '../input-dialog/input-dialog.component.js';
+import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component.js';
 
 export { SearchResultNode };
 
@@ -22,7 +24,7 @@ interface FileSystemState {
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, ToolbarComponent, FolderComponent, SearchResultsComponent, PropertiesDialogComponent, DestinationNodeComponent, BottomPaneComponent],
+  imports: [CommonModule, ToolbarComponent, FolderComponent, SearchResultsComponent, PropertiesDialogComponent, DestinationNodeComponent, BottomPaneComponent, InputDialogComponent, ConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent implements OnDestroy {
@@ -46,6 +48,12 @@ export class FileExplorerComponent implements OnDestroy {
   quickSearch = output<string>();
   itemSelected = output<FileSystemNode | null>();
   directoryChanged = output<void>();
+  statusChanged = output<{
+    selectedItemsCount: number;
+    totalItemsCount: number;
+    isSearch: boolean;
+    searchResultsCount: number;
+  }>();
 
   rootName = signal('...');
   state = signal<FileSystemState>({ status: 'loading', items: [] });
@@ -81,6 +89,16 @@ export class FileExplorerComponent implements OnDestroy {
   isPropertiesDialogOpen = signal(false);
   propertiesItem = signal<FileSystemNode | null>(null);
   sortCriteria = signal<SortCriteria>({ key: 'name', direction: 'asc' });
+  
+  // Input Dialog State
+  isInputDialogOpen = signal(false);
+  private inputDialogCallback = signal<((value: string) => Promise<void>)>(() => Promise.resolve());
+  inputDialogConfig = signal<{ title: string; message: string; initialValue: string }>({ title: '', message: '', initialValue: '' });
+
+  // Confirm Dialog State
+  isConfirmDialogOpen = signal(false);
+  confirmDialogConfig = signal<{ title: string; message: string; confirmText: string }>({ title: '', message: '', confirmText: 'OK' });
+  private confirmDialogCallback = signal<(() => Promise<void>)>(() => Promise.resolve());
 
   // Lasso selection state
   isLassoing = signal(false);
@@ -167,6 +185,16 @@ export class FileExplorerComponent implements OnDestroy {
 
     effect(() => {
       this.updateForSearchResults(this.searchResults());
+    });
+    
+    effect(() => {
+      // This effect will react to any state change that should be reflected in the status bar.
+      this.statusChanged.emit({
+        selectedItemsCount: this.selectedItems().size,
+        totalItemsCount: this.state().items.length,
+        isSearch: this.viewMode() === 'search',
+        searchResultsCount: this.currentSearchResults().length,
+      });
     });
   }
 
@@ -397,12 +425,21 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   // --- File Operations ---
-  async createFolder(): Promise<void> {
-    const name = prompt('Enter folder name:', 'New folder');
+  createFolder(): void {
+    this.inputDialogConfig.set({
+      title: 'Create New Folder',
+      message: 'Enter a name for the new folder:',
+      initialValue: 'New folder'
+    });
+    this.inputDialogCallback.set(this.executeCreateFolder.bind(this));
+    this.isInputDialogOpen.set(true);
+  }
+
+  private async executeCreateFolder(name: string): Promise<void> {
     if (name) {
       try {
         await this.fileSystemProvider().createDirectory(this.providerPath(), name);
-        this.loadContents();
+        await this.loadContents();
         this.directoryChanged.emit();
       } catch (e) {
         alert(`Error creating folder: ${(e as Error).message}`);
@@ -410,12 +447,22 @@ export class FileExplorerComponent implements OnDestroy {
     }
   }
 
-  async createFile(): Promise<void> {
-    const name = prompt('Enter file name:', 'New file.txt');
+  createFile(): void {
+    this.inputDialogConfig.set({
+      title: 'Create New File',
+      message: 'Enter a name for the new file:',
+      initialValue: 'New file.txt'
+    });
+    this.inputDialogCallback.set(this.executeCreateFile.bind(this));
+    this.isInputDialogOpen.set(true);
+  }
+
+  private async executeCreateFile(name: string): Promise<void> {
     if (name) {
       try {
         await this.fileSystemProvider().createFile(this.providerPath(), name);
-        this.loadContents();
+        await this.loadContents();
+        this.directoryChanged.emit();
       } catch (e) {
         alert(`Error creating file: ${(e as Error).message}`);
       }
@@ -431,7 +478,7 @@ export class FileExplorerComponent implements OnDestroy {
     } catch (e) {
       alert(`Error uploading files: ${(e as Error).message}`);
     } finally {
-      this.loadContents();
+      await this.loadContents();
     }
   }
   
@@ -442,6 +489,7 @@ export class FileExplorerComponent implements OnDestroy {
       sourcePath: this.path(),
       items: this.getSelectedNodes()
     });
+    this.closeContextMenu();
   }
   
   onCopy(): void {
@@ -451,9 +499,11 @@ export class FileExplorerComponent implements OnDestroy {
       sourcePath: this.path(),
       items: this.getSelectedNodes()
     });
+    this.closeContextMenu();
   }
   
   async onPaste(): Promise<void> {
+    this.closeContextMenu();
     const clip = this.clipboardService.get();
     if (!clip || !this.canPaste()) return;
 
@@ -469,22 +519,30 @@ export class FileExplorerComponent implements OnDestroy {
     } catch (e) {
       alert(`Paste failed: ${(e as Error).message}`);
     } finally {
-      this.loadContents();
+      await this.loadContents();
       this.directoryChanged.emit();
     }
   }
 
-  async onRename(): Promise<void> {
+  onRename(): void {
     const selectedNodes = this.getSelectedNodes();
     if (selectedNodes.length !== 1) return;
-
     const oldName = selectedNodes[0].name;
-    const newName = prompt('Enter new name:', oldName);
     
+    this.inputDialogConfig.set({
+        title: 'Rename Item',
+        message: `Enter a new name for "${oldName}":`,
+        initialValue: oldName
+    });
+    this.inputDialogCallback.set(this.executeRename.bind(this, oldName));
+    this.isInputDialogOpen.set(true);
+  }
+
+  private async executeRename(oldName: string, newName: string): Promise<void> {
     if (newName && newName !== oldName) {
       try {
         await this.fileSystemProvider().rename(this.providerPath(), oldName, newName);
-        this.loadContents();
+        await this.loadContents();
         this.directoryChanged.emit();
       } catch (e) {
         alert(`Rename failed: ${(e as Error).message}`);
@@ -500,7 +558,7 @@ export class FileExplorerComponent implements OnDestroy {
     const newName = `${oldName}.magnet`;
     try {
       await this.fileSystemProvider().rename(this.providerPath(), oldName, newName);
-      this.loadContents();
+      await this.loadContents();
       this.directoryChanged.emit();
     } catch (e) {
       alert(`Failed to magnetize folder: ${(e as Error).message}`);
@@ -521,7 +579,7 @@ export class FileExplorerComponent implements OnDestroy {
     } catch (e) {
         alert(`${operation} failed: ${(e as Error).message}`);
     } finally {
-        this.loadContents();
+        await this.loadContents();
         this.closeDestinationSubMenu();
         this.directoryChanged.emit();
     }
@@ -543,68 +601,50 @@ export class FileExplorerComponent implements OnDestroy {
     this.isShareDialogOpen.set(false);
   }
 
-  async onDelete(): Promise<void> {
+  onDelete(): void {
+    this.closeContextMenu();
     const selectedNodes = this.getSelectedNodes();
     if (selectedNodes.length === 0) return;
 
-    if (confirm(`Are you sure you want to delete ${selectedNodes.length} item(s)?`)) {
-      try {
-        await Promise.all(selectedNodes.map(node => {
-          if (node.type === 'folder') {
-            return this.fileSystemProvider().removeDirectory(this.providerPath(), node.name);
-          } else {
-            return this.fileSystemProvider().deleteFile(this.providerPath(), node.name);
-          }
-        }));
-      } catch (e) {
-        alert(`Delete failed: ${(e as Error).message}`);
-      } finally {
-        this.loadContents();
-        this.directoryChanged.emit();
+    this.confirmDialogConfig.set({
+      title: 'Confirm Deletion',
+      message: `Are you sure you want to delete ${selectedNodes.length} item(s)? This action cannot be undone.`,
+      confirmText: 'Delete'
+    });
+    this.confirmDialogCallback.set(this.executeDelete.bind(this));
+    this.isConfirmDialogOpen.set(true);
+  }
+  
+  private async executeDelete(): Promise<void> {
+    const selectedNodes = this.getSelectedNodes();
+    try {
+      // Use a sequential loop to avoid race conditions when using the in-memory provider
+      for (const node of selectedNodes) {
+        if (node.type === 'folder') {
+          await this.fileSystemProvider().removeDirectory(this.providerPath(), node.name);
+        } else {
+          await this.fileSystemProvider().deleteFile(this.providerPath(), node.name);
+        }
       }
+    } catch (e) {
+      alert(`Delete failed: ${(e as Error).message}`);
+    } finally {
+      this.selectedItems.set(new Set()); // Clear selection after deletion
+      this.updateSingleSelectedItem();
+      await this.loadContents();
+      this.directoryChanged.emit();
     }
   }
   
-  handleRenameFromContextMenu(): void {
-    this.onRename();
-    this.closeContextMenu();
-  }
-
-  handleCutFromContextMenu(): void {
-    if (this.canCutCopyShareDelete()) {
-      this.onCut();
-    }
-    this.closeContextMenu();
-  }
-  
-  handleCopyFromContextMenu(): void {
-    if (this.canCutCopyShareDelete()) {
-      this.onCopy();
-    }
-    this.closeContextMenu();
-  }
-
-  handlePasteFromContextMenu(): void {
-    if (this.canPaste()) {
-      this.onPaste();
-    }
-    this.closeContextMenu();
-  }
-
-  handleMagnetizeFromContextMenu(): void {
+  onMagnetizeFromContextMenu(): void {
     const item = this.contextMenu()?.item;
     if (item?.type === 'folder' && !item.name.endsWith('.magnet')) {
       this.onMagnetize(item);
     }
     this.closeContextMenu();
   }
-
-  handleDeleteFromContextMenu(): void {
-    this.onDelete();
-    this.closeContextMenu();
-  }
   
-  handlePropertiesFromContextMenu(): void {
+  onPropertiesFromContextMenu(): void {
     const selected = this.getSelectedNodes();
     if (selected.length === 1) {
         this.propertiesItem.set(selected[0]);
@@ -651,6 +691,32 @@ export class FileExplorerComponent implements OnDestroy {
   
   onToggleBottomPane(): void {
     this.isBottomPaneVisible.update(v => !v);
+  }
+  
+  // --- Input Dialog Handlers ---
+  async onInputDialogSubmit(name: string): Promise<void> {
+    const callback = this.inputDialogCallback();
+    if (callback) {
+      await callback(name);
+    }
+    this.closeInputDialog();
+  }
+
+  closeInputDialog(): void {
+    this.isInputDialogOpen.set(false);
+  }
+
+  // --- Confirm Dialog Handlers ---
+  async onConfirmDialogConfirm(): Promise<void> {
+    const callback = this.confirmDialogCallback();
+    if (callback) {
+      await callback();
+    }
+    this.closeConfirmDialog();
+  }
+
+  closeConfirmDialog(): void {
+    this.isConfirmDialogOpen.set(false);
   }
 
   // --- Drag & Drop ---

@@ -15,10 +15,10 @@ This directory is the logical core of the application, containing all the inject
 -   **Purpose:** An implementation of `FileSystemProvider` that provides access to the user's **local file system** when running in Electron.
 -   **Role:** This service acts as a wrapper around the `ElectronDesktopService`. It translates the `FileSystemProvider` method calls into IPC requests that are sent to the Electron main process via the secure preload script bridge. **Note: This service is not currently used in the web application's default configuration.**
 
-### `convex-desktop.service.ts`
+### `in-memory-file-system.service.ts`
 
--   **Purpose:** An implementation of `FileSystemProvider` that represents data from a **Convex backend** as a file system.
--   **Role:** This service fetches "magnet" data from the `ConvexService` and dynamically builds a *virtual file system*. In this virtual system, folders represent tags, and the files (`.magnet`) are the individual data records. It serves as the default, read-only file system in the application.
+-   **Purpose:** An implementation of `FileSystemProvider` that creates a complete, writable virtual file system that persists in the browser's `localStorage`.
+-   **Role:** This service provides the default "Local Files" drive in the application. It manages a hierarchical tree of files and folders in an Angular Signal. All file operations (create, rename, delete, move, copy) are handled through robust, immutable update patterns, ensuring that the UI reacts reliably to every change. The entire file system state is serialized to JSON and saved to `localStorage`, so any changes made by the user are preserved between sessions.
 
 ### `remote-file-system.service.ts`
 
@@ -45,11 +45,6 @@ This directory is the logical core of the application, containing all the inject
 
 -   **Purpose:** A client for the backend `loginService`.
 -   **Functionality:** It provides a `login` method that sends a username and password to the broker. On success, it receives and returns a `User` object, which contains the authenticated user's details.
-
-### `convex.service.ts`
-
--   **Purpose:** A low-level client for fetching data from the Convex backend.
--   **Functionality:** It's responsible for the actual communication with Convex. Currently, it returns mock data to allow for UI development without a live backend, but it is designed to be replaced with live API calls to Convex's cloud functions.
 
 ### `broker.service.ts`
 

@@ -8,7 +8,7 @@ import { ServerProfilesDialogComponent } from './components/server-profiles-dial
 import { ServerProfileService } from './services/server-profile.service.js';
 import { SearchDialogComponent } from './components/search-dialog/search-dialog.component.js';
 import { DetailPaneComponent } from './components/detail-pane/detail-pane.component.js';
-import { ConvexDesktopService } from './services/convex-desktop.service.js';
+import { InMemoryFileSystemService } from './services/in-memory-file-system.service.js';
 import { ServerProfile } from './models/server-profile.model.js';
 import { RemoteFileSystemService } from './services/remote-file-system.service.js';
 import { FsService } from './services/fs.service.js';
@@ -21,11 +21,17 @@ interface PanePath {
   id: number;
   path: string[];
 }
+interface PaneStatus {
+  selectedItemsCount: number;
+  totalItemsCount: number;
+  isSearch: boolean;
+  searchResultsCount: number;
+}
 type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
 const THEME_STORAGE_KEY = 'file-explorer-theme';
-const CONVEX_ROOT_NAME = 'Local';
+const LOCAL_ROOT_NAME = 'Local Files';
 
 const readOnlyProviderOps = {
   createDirectory: () => Promise.reject(new Error('Operation not supported.')),
@@ -52,7 +58,7 @@ const readOnlyProviderOps = {
   }
 })
 export class AppComponent implements OnInit, OnDestroy {
-  private convexFs = inject(ConvexDesktopService);
+  private localFs = inject(InMemoryFileSystemService);
   private profileService = inject(ServerProfileService);
   private fsService = inject(FsService);
   private imageClientService = inject(ImageClientService);
@@ -73,7 +79,7 @@ export class AppComponent implements OnInit, OnDestroy {
   connectionStatus = signal<ConnectionStatus>('disconnected');
   
   // Keep track of each pane's path
-  private panePaths = signal<PanePath[]>([{ id: 1, path: [CONVEX_ROOT_NAME] }]);
+  private panePaths = signal<PanePath[]>([{ id: 1, path: [LOCAL_ROOT_NAME] }]);
 
   // --- Mounted Profile State ---
   mountedProfiles = signal<ServerProfile[]>([]);
@@ -97,6 +103,18 @@ export class AppComponent implements OnInit, OnDestroy {
   private searchInitiatorPaneId = signal<number | null>(null);
   searchResultForPane = signal<{ id: number; results: SearchResultNode[] } | null>(null);
 
+  // --- Status Bar State ---
+  private pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, isSearch: false, searchResultsCount: 0 });
+  private pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, isSearch: false, searchResultsCount: 0 });
+  
+  activePaneStatus = computed<PaneStatus>(() => {
+    const activeId = this.activePaneId();
+    if (activeId === 1) {
+      return this.pane1Status();
+    }
+    return this.pane2Status();
+  });
+  
   // --- Theme Management ---
   currentTheme = signal<Theme>('theme-steel');
   themes: {id: Theme, name: string}[] = [
@@ -120,7 +138,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private getProviderForPath(path: string[]): FileSystemProvider {
     if (path.length === 0) return this.homeProvider;
     const root = path[0];
-    if (root === CONVEX_ROOT_NAME) return this.convexFs;
+    if (root === LOCAL_ROOT_NAME) return this.localFs;
     const remoteProvider = this.remoteProviders().get(root);
     if (remoteProvider) return remoteProvider;
     throw new Error(`No provider found for path: ${path.join('/')}`);
@@ -163,18 +181,18 @@ export class AppComponent implements OnInit, OnDestroy {
     this.homeProvider = {
       getContents: async (path: string[]) => {
         if (path.length > 0) return []; // Home has no subdirectories
-        const convexRoot = await this.convexFs.getFolderTree();
+        const localRoot = await this.localFs.getFolderTree();
         const remoteRoots = await Promise.all(
           Array.from(this.remoteProviders().values()).map((p: FileSystemProvider) => p.getFolderTree())
         );
-        return [convexRoot, ...remoteRoots];
+        return [localRoot, ...remoteRoots];
       },
       getFolderTree: async () => {
-        const convexRoot = await this.convexFs.getFolderTree();
+        const localRoot = await this.localFs.getFolderTree();
         const remoteRoots = await Promise.all(
           Array.from(this.remoteProviders().values()).map((p: FileSystemProvider) => p.getFolderTree())
         );
-        return { name: 'Home', type: 'folder', children: [convexRoot, ...remoteRoots] };
+        return { name: 'Home', type: 'folder', children: [localRoot, ...remoteRoots] };
       },
       ...readOnlyProviderOps
     };
@@ -360,6 +378,14 @@ export class AppComponent implements OnInit, OnDestroy {
   onPane2PathChanged(path: string[]): void {
     this.updatePanePath(2, path);
   }
+  
+  onPane1StatusChanged(status: PaneStatus): void {
+    this.pane1Status.set(status);
+  }
+
+  onPane2StatusChanged(status: PaneStatus): void {
+    this.pane2Status.set(status);
+  }
 
   private updatePanePath(id: number, path: string[]): void {
     this.panePaths.update(paths => {
@@ -410,7 +436,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     const path = paneId === 1 ? this.pane1Path() : this.pane2Path();
     const provider = this.getProviderForPath(path);
-    const rootPathSegment = path.length > 0 ? path[0] : CONVEX_ROOT_NAME;
+    const rootPathSegment = path.length > 0 ? path[0] : LOCAL_ROOT_NAME;
 
     try {
       const results = await provider.search(query);

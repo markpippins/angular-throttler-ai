@@ -96,48 +96,52 @@
     </app-sidebar>
 
     <div class="flex-1 flex overflow-hidden">
-      <div class="flex-1 flex bg-[rgb(var(--color-background))] p-1 gap-1">
-        <div class="flex-1">
-          <app-file-explorer 
-            [id]="1"
-            [path]="pane1Path()"
-            [isActive]="activePaneId() === 1"
-            [isSplitView]="isSplitView()"
-            [fileSystemProvider]="pane1Provider()"
-            [imageService]="pane1ImageService()"
-            [folderTree]="folderTree()"
-            [searchResults]="searchResultForPane()"
-            (activated)="setActivePane($event)"
-            (pathChanged)="onPane1PathChanged($event)"
-            (searchInitiated)="openSearchDialog(1)"
-            (searchCompleted)="onSearchCompleted()"
-            (quickSearch)="executeQuickSearch(1, $event)"
-            (itemSelected)="onItemSelectedInPane($event)"
-            (directoryChanged)="loadFolderTree()">
-          </app-file-explorer>
-        </div>
-
-        @if (isSplitView()) {
+      <div class="flex-1 flex flex-col">
+        <div class="flex-1 flex bg-[rgb(var(--color-background))] p-1 gap-1 overflow-hidden">
           <div class="flex-1">
             <app-file-explorer 
-              [id]="2"
-              [path]="pane2Path()"
-              [isActive]="activePaneId() === 2"
+              [id]="1"
+              [path]="pane1Path()"
+              [isActive]="activePaneId() === 1"
               [isSplitView]="isSplitView()"
-              [fileSystemProvider]="pane2Provider()"
-              [imageService]="pane2ImageService()"
+              [fileSystemProvider]="pane1Provider()"
+              [imageService]="pane1ImageService()"
               [folderTree]="folderTree()"
               [searchResults]="searchResultForPane()"
               (activated)="setActivePane($event)"
-              (pathChanged)="onPane2PathChanged($event)"
-              (searchInitiated)="openSearchDialog(2)"
+              (pathChanged)="onPane1PathChanged($event)"
+              (searchInitiated)="openSearchDialog(1)"
               (searchCompleted)="onSearchCompleted()"
-              (quickSearch)="executeQuickSearch(2, $event)"
+              (quickSearch)="executeQuickSearch(1, $event)"
               (itemSelected)="onItemSelectedInPane($event)"
-              (directoryChanged)="loadFolderTree()">
+              (directoryChanged)="loadFolderTree()"
+              (statusChanged)="onPane1StatusChanged($event)">
             </app-file-explorer>
           </div>
-        }
+
+          @if (isSplitView()) {
+            <div class="flex-1">
+              <app-file-explorer 
+                [id]="2"
+                [path]="pane2Path()"
+                [isActive]="activePaneId() === 2"
+                [isSplitView]="isSplitView()"
+                [fileSystemProvider]="pane2Provider()"
+                [imageService]="pane2ImageService()"
+                [folderTree]="folderTree()"
+                [searchResults]="searchResultForPane()"
+                (activated)="setActivePane($event)"
+                (pathChanged)="onPane2PathChanged($event)"
+                (searchInitiated)="openSearchDialog(2)"
+                (searchCompleted)="onSearchCompleted()"
+                (quickSearch)="executeQuickSearch(2, $event)"
+                (itemSelected)="onItemSelectedInPane($event)"
+                (directoryChanged)="loadFolderTree()"
+                (statusChanged)="onPane2StatusChanged($event)">
+              </app-file-explorer>
+            </div>
+          }
+        </div>
       </div>
       
       @if (isDetailPaneOpen()) {
@@ -151,6 +155,22 @@
       }
     </div>
   </main>
+
+  <!-- New Footer/Status Bar -->
+  <div class="p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface))]">
+    @if (activePaneStatus(); as status) {
+      @if (status.isSearch) {
+        <span>{{ status.searchResultsCount }} item(s) found</span>
+      } @else {
+        @if (status.selectedItemsCount > 0) {
+          <span class="mr-4">{{ status.selectedItemsCount }} item(s) selected</span>
+        }
+        <span>{{ status.totalItemsCount }} items</span>
+      }
+    } @else {
+      <span>&nbsp;</span>
+    }
+  </div>
 
   @if(isServerProfilesDialogOpen()) {
     <app-server-profiles-dialog 
