@@ -18,7 +18,6 @@ export class InputDialogComponent implements OnInit, AfterViewInit {
 
   inputValue = signal('');
 
-  // FIX: Replaced the @viewChild decorator with the modern `viewChild` signal-based query function.
   inputField = viewChild<ElementRef<HTMLInputElement>>('inputField');
 
   ngOnInit() {
@@ -29,7 +28,6 @@ export class InputDialogComponent implements OnInit, AfterViewInit {
     // Automatically focus the input field and select its content for a better UX.
     // A small timeout is necessary to ensure the element is visible.
     setTimeout(() => {
-        // FIX: Access the view child result, which is a signal, by calling it as a function.
         const inputEl = this.inputField();
         if (inputEl) {
             inputEl.nativeElement.focus();

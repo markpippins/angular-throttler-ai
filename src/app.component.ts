@@ -16,6 +16,7 @@ import { ImageService } from './services/image.service.js';
 import { ImageClientService } from './services/image-client.service.js';
 import { LoginService } from './services/login.service.js';
 import { User } from './models/user.model.js';
+import { PreferencesService } from './services/preferences.service.js';
 
 interface PanePath {
   id: number;
@@ -63,6 +64,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private fsService = inject(FsService);
   private imageClientService = inject(ImageClientService);
   private loginService = inject(LoginService);
+  private preferencesService = inject(PreferencesService);
   private injector = inject(Injector);
   private document = inject(DOCUMENT);
   private elementRef = inject(ElementRef);
@@ -95,7 +97,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const activeProfile = this.profileService.activeProfile();
     // If there's no active profile, create a temporary, non-functional one to prevent errors.
     const profile = activeProfile ?? { id: 'temp', name: 'Temp', brokerUrl: '', imageUrl: '' };
-    return new ImageService(profile, this.imageClientService);
+    return new ImageService(profile, this.imageClientService, this.preferencesService);
   });
   
   // --- Search State ---
@@ -283,7 +285,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     try {
       const provider = new RemoteFileSystemService(profile, this.fsService, user);
-      const imageService = new ImageService(profile, this.imageClientService);
+      const imageService = new ImageService(profile, this.imageClientService, this.preferencesService);
 
       // Test connection by fetching the root. If this fails, it throws.
       await provider.getFolderTree();

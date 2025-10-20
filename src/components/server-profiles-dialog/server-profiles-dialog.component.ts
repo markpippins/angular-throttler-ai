@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ServerProfileService } from '../../services/server-profile.service.js';
 import { ServerProfile } from '../../models/server-profile.model.js';
 import { User } from '../../models/user.model.js';
+import { LoginDialogComponent } from '../login-dialog/login-dialog.component.js';
 
 type FormState = {
   id: string | null;
@@ -16,7 +17,7 @@ type FormState = {
 @Component({
   selector: 'app-server-profiles-dialog',
   templateUrl: './server-profiles-dialog.component.html',
-  imports: [CommonModule],
+  imports: [CommonModule, LoginDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ServerProfilesDialogComponent {
@@ -33,9 +34,9 @@ export class ServerProfilesDialogComponent {
   // Form state for editing/creating
   formState = signal<FormState | null>(null);
 
-  // State for login form
-  loginUsername = signal('');
-  loginPassword = signal('');
+  // State for login dialog
+  isLoginDialogOpen = signal(false);
+  profileToLogin = signal<ServerProfile | null>(null);
 
   // Computed signal to find the full profile object when editing.
   selectedProfile = computed(() => {
@@ -61,8 +62,6 @@ export class ServerProfilesDialogComponent {
   startEdit(profile: ServerProfile): void {
     this.formState.set({ ...profile, searchUrl: profile.searchUrl ?? '', autoConnect: profile.autoConnect ?? false });
     this.selectedProfileId.set(profile.id);
-    this.loginUsername.set('');
-    this.loginPassword.set('');
   }
   
   cancelEdit(): void {
@@ -98,14 +97,22 @@ export class ServerProfilesDialogComponent {
     }
   }
 
-  handleLoginAndMount(profile: ServerProfile): void {
-    const username = this.loginUsername().trim();
-    const password = this.loginPassword().trim();
-    if (username && password) {
+  openLoginDialog(profile: ServerProfile): void {
+    this.profileToLogin.set(profile);
+    this.isLoginDialogOpen.set(true);
+  }
+
+  closeLoginDialog(): void {
+    this.isLoginDialogOpen.set(false);
+    this.profileToLogin.set(null);
+  }
+
+  onLoginSubmitted({ username, password }: { username: string, password: string }): void {
+    const profile = this.profileToLogin();
+    if (profile) {
       this.loginAndMount.emit({ profile, username, password });
-    } else {
-      alert('Please enter a username and password.');
     }
+    this.closeLoginDialog();
   }
 
   handleUnmount(profile: ServerProfile): void {
@@ -116,13 +123,5 @@ export class ServerProfilesDialogComponent {
     const input = event.target as HTMLInputElement;
     const value = input.type === 'checkbox' ? input.checked : input.value;
     this.formState.update(state => state ? { ...state, [field]: value } : null);
-  }
-
-  onLoginUsernameChange(event: Event): void {
-      this.loginUsername.set((event.target as HTMLInputElement).value);
-  }
-
-  onLoginPasswordChange(event: Event): void {
-      this.loginPassword.set((event.target as HTMLInputElement).value);
   }
 }
