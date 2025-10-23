@@ -6,4 +6,9 @@ export interface FileSystemNode {
   children?: FileSystemNode[];
   content?: string; // for files
   modified?: string; // for display
+  childrenLoaded?: boolean;
+}
+
+export interface SearchResultNode extends FileSystemNode {
+  path: string[];
 }

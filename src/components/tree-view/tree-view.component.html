@@ -1,0 +1,13 @@
+<div class="h-full">
+  @if (rootNode(); as root) {
+    <app-tree-node
+      [node]="root"
+      [path]="[]"
+      [currentPath]="currentPath()"
+      [expansionCommand]="expansionCommand()"
+      [imageService]="imageService()"
+      (pathChange)="onPathChange($event)"
+      (loadChildren)="onLoadChildren($event)">
+    </app-tree-node>
+  }
+</div>

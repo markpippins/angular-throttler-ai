@@ -1,0 +1,29 @@
+<div 
+  data-is-selectable-item="true"
+  (contextmenu)="onContextMenu($event)"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+  class="flex flex-col items-center p-2 rounded-md hover:bg-[rgb(var(--color-accent-bg))] cursor-pointer transition-colors duration-150 group"
+  [class.bg-[rgb(var(--color-accent-bg-selected))]]="isSelected() && !isDragOver()"
+  [class.bg-[rgb(var(--color-accent-bg-dragover))]]="isDragOver()">
+  
+  <div class="relative h-16 w-16">
+    <!-- Default icon always present -->
+    <svg xmlns="http://www.w3.org/2000/svg" class="absolute inset-0 h-16 w-16 text-yellow-500 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+    </svg>
+
+    <!-- Custom icon loads on top -->
+    @if(iconUrl() && !hasFailedToLoadImage()) {
+      <img [src]="iconUrl()!" 
+          [alt]="item().type" 
+          class="absolute inset-0 h-16 w-16 object-contain pointer-events-none transition-opacity duration-300"
+          [class.opacity-0]="!imageIsLoaded()"
+          (load)="onImageLoad()"
+          (error)="onImageError()" />
+    }
+  </div>
+  
+  <span class="mt-2 text-center text-xs break-all truncate w-full text-[rgb(var(--color-text-muted))] group-hover:text-[rgb(var(--color-accent-text))] pointer-events-none">{{ item().name }}</span>
+</div>
