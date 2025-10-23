@@ -18,7 +18,7 @@ export class PreferencesService {
   }
   
   private loadPreferences(): void {
-    this.http.get<AppPreferences>('assets/config/preferences.json').subscribe({
+    this.http.get<AppPreferences>('./src/assets/config/preferences.json').subscribe({
       next: prefs => {
         if (prefs && prefs.iconTheme) {
           this.iconTheme.set(prefs.iconTheme);

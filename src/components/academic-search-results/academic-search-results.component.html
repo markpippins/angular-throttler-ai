@@ -3,7 +3,7 @@
   <div class="flex items-center space-x-2 p-2 border-b border-[rgb(var(--color-border-base))]">
     <input 
       type="text" 
-      placeholder="Search the web..."
+      placeholder="Search for papers, articles..."
       class="flex-grow px-3 py-1.5 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))]"
       [value]="query()"
       (input)="onQueryChange($event)"
@@ -23,29 +23,28 @@
   <!-- Results -->
   <div class="flex-1 overflow-y-auto p-2">
     @if(isLoading()) {
-      <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Loading...</div>
+      <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Searching academic sources...</div>
     } @else if (searchError(); as error) {
       <div class="text-center py-8 text-[rgb(var(--color-danger-text))] bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
-        <h3 class="font-semibold text-lg">{{ error.message }}</h3>
-        @if (error.isConfigError) {
-          <p class="mt-2 text-sm text-[rgb(var(--color-text-muted))]">
-            To enable this feature, a server administrator must provide a Google API Key and Search Engine ID.
-          </p>
-          <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" class="mt-4 inline-block px-4 py-2 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] text-sm font-semibold">
-            Go to Google Cloud Console
-          </a>
-        }
+        <h3 class="font-semibold text-lg">An error occurred</h3>
+        <p class="mt-2 text-sm text-[rgb(var(--color-text-muted))]">{{ error }}</p>
       </div>
     } @else if (results(); as res) {
       <div class="space-y-4">
         @for (result of res; track result.link) {
           <div class="group">
-            <a [href]="result.link" target="_blank" class="text-blue-500 dark:text-blue-400 group-hover:underline text-base">{{ result.title }}</a>
-            <div class="text-green-700 dark:text-green-500 text-xs">{{ result.displayLink }}</div>
+            <a [href]="result.link" target="_blank" class="text-blue-500 dark:text-blue-400 group-hover:underline text-base font-semibold">{{ result.title }}</a>
+            <div class="text-xs">
+                <span class="text-green-700 dark:text-green-500">{{ result.authors.join(', ') }}</span>
+                <span class="text-[rgb(var(--color-text-subtle))]"> - {{ result.publication }}, {{ result.year }}</span>
+            </div>
             <p class="text-[rgb(var(--color-text-muted))] mt-1">{{ result.snippet }}</p>
+            @if (result.pdfLink) {
+                <a [href]="result.pdfLink" target="_blank" class="text-xs text-red-600 dark:text-red-500 hover:underline">[PDF]</a>
+            }
           </div>
         } @empty {
-          <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">No results found.</div>
+          <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">No articles found.</div>
         }
       </div>
     } @else {
@@ -54,7 +53,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <p class="mt-2 font-semibold">No results found</p>
-        <p>Enter a query to search the web.</p>
+        <p>Enter a query to search for scholarly articles.</p>
       </div>
     }
   </div>

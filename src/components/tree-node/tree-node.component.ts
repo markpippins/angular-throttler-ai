@@ -1,7 +1,9 @@
-import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { ImageService } from '../../services/image.service.js';
+import { DragDropService, DragDropPayload } from '../../services/drag-drop.service.js';
+import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-tree-node',
@@ -10,6 +12,8 @@ import { ImageService } from '../../services/image.service.js';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TreeNodeComponent implements OnInit {
+  private dragDropService = inject(DragDropService);
+
   node = input.required<FileSystemNode>();
   path = input.required<string[]>();
   currentPath = input.required<string[]>();
@@ -19,10 +23,13 @@ export class TreeNodeComponent implements OnInit {
 
   pathChange = output<string[]>();
   loadChildren = output<string[]>();
+  itemsDropped = output<{ destPath: string[]; payload: DragDropPayload }>();
+  bookmarkDropped = output<{ bookmark: NewBookmark, destPath: string[] }>();
 
   isExpanded = signal(false);
   imageHasError = signal(false);
   imageIsLoaded = signal(false);
+  isDragOver = signal(false);
   
   isSelected = computed(() => {
     const p1 = this.path().join('/');
@@ -34,44 +41,40 @@ export class TreeNodeComponent implements OnInit {
     return this.node().type === 'folder';
   });
 
+  displayName = computed(() => {
+    const name = this.node().name;
+    if (name.endsWith('.magnet')) {
+      return name.slice(0, -7);
+    }
+    return name;
+  });
+
   folderChildren = computed(() => {
     const children = this.node().children;
     return children ? children.filter(c => c.type === 'folder') : [];
   });
 
   constructor() {
-    // Effect for auto-expanding based on navigation in the main pane
+    // Effect for auto-expanding. It does NOT emit or load children.
     effect(() => {
       const currentStr = this.currentPath().join('/');
       const myPathStr = this.path().join('/');
-      
-      // Auto-expand if the current path is a descendant of this node,
-      // but not the node itself.
       if (currentStr.startsWith(myPathStr) && currentStr !== myPathStr) {
-        if (!this.node().childrenLoaded) {
-          this.loadChildren.emit(this.path());
-        }
-        this.isExpanded.set(true);
+        this.expandProgrammatically();
       }
     });
 
-    // Effect for handling commands from the sidebar toolbar
+    // Effect for handling commands. It does NOT emit or load children.
     effect(() => {
       const command = this.expansionCommand();
       if (!command) return;
 
       if (command.command === 'expand') {
-          if (this.isExpandable()) {
-              if (!this.node().childrenLoaded) {
-                this.loadChildren.emit(this.path());
-              }
-              this.isExpanded.set(true);
-          }
+        this.expandProgrammatically();
       } else if (command.command === 'collapse') {
-          // Do not collapse the root "Home" node itself
-          if (this.level() > 0) {
-              this.isExpanded.set(false);
-          }
+        if (this.level() > 0) {
+          this.collapse();
+        }
       }
     });
 
@@ -90,33 +93,42 @@ export class TreeNodeComponent implements OnInit {
     }
   }
 
+  // This method only changes local state. SAFE to be called from effects.
+  private expandProgrammatically(): void {
+    if (this.isExpandable() && !this.isExpanded()) {
+      this.isExpanded.set(true);
+    }
+  }
+
+  private collapse(): void {
+    if (this.isExpandable() && this.isExpanded()) {
+      this.isExpanded.set(false);
+    }
+  }
+
+  // This method has a side-effect (emit) but is only called by a user action. SAFE.
   toggleExpand(event: MouseEvent): void {
     event.stopPropagation();
-    if (!this.isExpandable()) return;
-
-    const node = this.node();
-    const isCurrentlyExpanded = this.isExpanded();
-
-    if (!isCurrentlyExpanded && !node.childrenLoaded) {
+    const willBeExpanded = !this.isExpanded();
+    
+    if (willBeExpanded && !this.node().childrenLoaded) {
       this.loadChildren.emit(this.path());
     }
     
-    this.isExpanded.update(v => !v);
+    this.isExpanded.set(willBeExpanded);
   }
 
   selectNode(): void {
     if (this.isSelected()) {
-      if (this.isExpandable()) {
-        this.toggleExpand(new MouseEvent('click'));
-      }
-    } else {
-      this.pathChange.emit(this.path());
-      if (this.isExpandable() && !this.isExpanded()) {
-        if (!this.node().childrenLoaded) {
+      // If already selected, a click should toggle expansion and load children if needed.
+      const willBeExpanded = !this.isExpanded();
+      if (willBeExpanded && !this.node().childrenLoaded) {
           this.loadChildren.emit(this.path());
-        }
-        this.isExpanded.set(true);
       }
+      this.isExpanded.set(willBeExpanded);
+    } else {
+      // If not selected, just navigate. The auto-expand effect will handle opening the node.
+      this.pathChange.emit(this.path());
     }
   }
 
@@ -138,5 +150,71 @@ export class TreeNodeComponent implements OnInit {
 
   getChildPath(childNode: FileSystemNode): string[] {
     return [...this.path(), childNode.name];
+  }
+
+  // --- Drag and Drop Handlers ---
+  private isDropValid(payload: DragDropPayload): boolean {
+    if (this.node().type !== 'folder') {
+      return false; // Can only drop on folders.
+    }
+
+    if (payload.type === 'bookmark') {
+      return true; // Always allow dropping bookmarks.
+    }
+    
+    // Filesystem drop logic
+    const { sourcePath, items } = payload.payload;
+    const destPath = this.path();
+
+    // Prevent dropping into the same folder.
+    if (destPath.join('/') === sourcePath.join('/')) {
+      return false;
+    }
+
+    // Prevent dropping a folder into itself or one of its descendants.
+    const isDroppingOnSelfOrChild = items.some(item => 
+      item.type === 'folder' && destPath.join('/').startsWith([...sourcePath, item.name].join('/'))
+    );
+    if (isDroppingOnSelfOrChild) {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  onDragOver(event: DragEvent): void {
+    const payload = this.dragDropService.getPayload();
+    if (!payload || !this.isDropValid(payload)) {
+      return; // Not a valid drop target, do nothing.
+    }
+    
+    event.preventDefault(); // This is crucial to allow a drop.
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = payload.type === 'filesystem' ? 'move' : 'copy';
+    }
+    this.isDragOver.set(true);
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.stopPropagation();
+    this.isDragOver.set(false);
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+    
+    const payload = this.dragDropService.getPayload();
+    if (!payload || !this.isDropValid(payload)) {
+      return;
+    }
+
+    if (payload.type === 'filesystem') {
+        this.itemsDropped.emit({ destPath: this.path(), payload });
+    } else if (payload.type === 'bookmark') {
+        this.bookmarkDropped.emit({ bookmark: payload.payload.data, destPath: this.path() });
+    }
   }
 }

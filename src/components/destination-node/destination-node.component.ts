@@ -11,9 +11,17 @@ import { FileSystemNode } from '../../models/file-system.model.js';
 export class DestinationNodeComponent {
   node = input.required<FileSystemNode>();
   path = input.required<string[]>();
+  currentSourcePath = input<string[]>([]);
   destinationSelected = output<string[]>();
 
   isSubmenuOpen = signal(false);
+
+  // Computed property to check if this node should be disabled
+  isDisabled = computed(() => {
+    // Compare array paths by joining them into a string.
+    // This is simple and effective for this use case.
+    return this.path().join('/') === this.currentSourcePath().join('/');
+  });
 
   // Computed properties to simplify the template
   folderChildren = computed(() => {
@@ -26,6 +34,9 @@ export class DestinationNodeComponent {
   });
 
   selectDestination(): void {
+    if (this.isDisabled()) {
+      return; // Do not emit if the node is disabled
+    }
     if (this.node().type === 'folder') {
       this.destinationSelected.emit(this.path());
     }

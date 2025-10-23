@@ -1,13 +1,55 @@
 <div class="h-full flex flex-col bg-[rgb(var(--color-surface))] border-t border-[rgb(var(--color-border-base))]">
   <app-tab-control [showCollapseButton]="false">
-    <app-tab title="Web Search">
-      <app-web-search-results></app-web-search-results>
+    <app-tab title="File">
+      <div class="h-full flex flex-col p-2 text-sm">
+        <!-- Search Bar -->
+        <div class="flex items-center space-x-2 p-2 border-b border-[rgb(var(--color-border-base))]">
+          <input 
+            type="text" 
+            placeholder="Search current location..."
+            class="flex-grow px-3 py-1.5 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))]"
+            [value]="fileSearchQuery()"
+            (input)="onFileQueryChange($event)"
+            (keydown.enter)="performFileSearch()">
+          <button 
+            (click)="performFileSearch()" 
+            [disabled]="!fileSearchQuery().trim() || isFileSearchLoading()"
+            class="px-4 py-1.5 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed transition-colors font-semibold">
+              @if(isFileSearchLoading()) {
+                <span>...</span>
+              } @else {
+                <span>Search</span>
+              }
+          </button>
+        </div>
+        <!-- Results -->
+        <div class="flex-1 overflow-y-auto pt-2">
+          @if(isFileSearchLoading()) {
+            <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Searching files...</div>
+          } @else if (fileSearchError(); as error) {
+            <div class="text-center py-8 text-[rgb(var(--color-danger-text))]">{{ error }}</div>
+          } @else if (displayFileSearchResults(); as results) {
+            <app-search-results [results]="results" [imageService]="imageService()"></app-search-results>
+          } @else {
+            <app-search-results [results]="[]" [imageService]="imageService()"></app-search-results>
+          }
+        </div>
+      </div>
     </app-tab>
-    <app-tab title="Image Search">
-      <app-image-search-results></app-image-search-results>
+    <app-tab title="Web">
+      <app-web-search-results [initialQuery]="webSearchQuery()" (save)="saveBookmark.emit($event)"></app-web-search-results>
     </app-tab>
-    <app-tab title="Gemini Search">
-      <app-gemini-search-results></app-gemini-search-results>
+    <app-tab title="Image">
+      <app-image-search-results [initialQuery]="imageSearchQuery()" (save)="saveBookmark.emit($event)"></app-image-search-results>
+    </app-tab>
+    <app-tab title="Gemini">
+      <app-gemini-search-results [initialQuery]="geminiSearchQuery()" (save)="saveBookmark.emit($event)"></app-gemini-search-results>
+    </app-tab>
+    <app-tab title="YouTube">
+      <app-youtube-search-results [initialQuery]="youtubeSearchQuery()" (save)="saveBookmark.emit($event)"></app-youtube-search-results>
+    </app-tab>
+    <app-tab title="Academic">
+      <app-academic-search-results [initialQuery]="academicSearchQuery()" (save)="saveBookmark.emit($event)"></app-academic-search-results>
     </app-tab>
   </app-tab-control>
 </div>

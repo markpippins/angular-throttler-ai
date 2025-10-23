@@ -6,7 +6,7 @@
       @if (getIconUrl(item()); as iconUrl) {
         <img [src]="iconUrl" [alt]="item().type" class="h-8 w-8 object-contain">
       }
-      <h3 class="text-lg font-semibold text-[rgb(var(--color-text-base))] truncate">{{ item().name }} Properties</h3>
+      <h3 class="text-lg font-semibold text-[rgb(var(--color-text-base))] truncate">{{ displayName() }} Properties</h3>
     </div>
     
     <!-- Body -->
@@ -17,7 +17,7 @@
         </div>
         <div class="flex">
             <span class="w-1/3 text-[rgb(var(--color-text-subtle))]">Name:</span>
-            <span class="w-2/3 text-[rgb(var(--color-text-base))] break-all">{{ item().name }}</span>
+            <span class="w-2/3 text-[rgb(var(--color-text-base))] break-all">{{ displayName() }}</span>
         </div>
          <div class="flex">
             <span class="w-1/3 text-[rgb(var(--color-text-subtle))]">Location:</span>

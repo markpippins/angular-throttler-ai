@@ -7,7 +7,9 @@
       [expansionCommand]="expansionCommand()"
       [imageService]="imageService()"
       (pathChange)="onPathChange($event)"
-      (loadChildren)="onLoadChildren($event)">
+      (loadChildren)="onLoadChildren($event)"
+      (itemsDropped)="onItemsDropped($event)"
+      (bookmarkDropped)="onBookmarkDropped($event)">
     </app-tree-node>
   }
 </div>

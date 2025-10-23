@@ -1,0 +1,32 @@
+<div class="p-2 space-y-2 overflow-y-auto h-full text-sm">
+    @if (filteredItems(); as items) {
+        @for (item of items; track item.title) {
+        <div class="bg-[rgb(var(--color-surface))] p-2 rounded-md border border-[rgb(var(--color-border-base))] group">
+            <div class="flex items-start space-x-3">
+            <div class="flex-shrink-0 pt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7m-6 0a1 1 0 100-2 1 1 0 000 2z" />
+                </svg>
+            </div>
+            <div class="flex-1">
+                <a [href]="item.link" target="_blank" class="font-semibold text-[rgb(var(--color-text-base))] hover:underline hover:text-[rgb(var(--color-accent-text))] break-all line-clamp-2">{{ item.title }}</a>
+                <p class="text-xs text-[rgb(var(--color-text-subtle))] mt-1">
+                <span>{{ item.source }}</span>
+                <span class="mx-1">&middot;</span>
+                <span>{{ item.date }}</span>
+                </p>
+                <p class="text-xs text-[rgb(var(--color-text-muted))] mt-1 line-clamp-2">{{ item.snippet }}</p>
+            </div>
+            </div>
+        </div>
+        } @empty {
+        <div class="h-full flex flex-col items-center justify-center text-center text-[rgb(var(--color-text-subtle))] p-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p class="mt-2 font-semibold">No Results Found</p>
+            <p>No RSS feeds match your filter query.</p>
+        </div>
+        }
+    }
+</div>

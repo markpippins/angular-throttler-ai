@@ -1,5 +1,10 @@
 <div 
-  class="relative flex items-center justify-between text-sm px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer text-[rgb(var(--color-text-muted))]"
+  class="relative flex items-center justify-between text-sm px-3 py-1.5"
+  [class.hover:bg-[rgb(var(--color-surface-hover))]]="!isDisabled()"
+  [class.cursor-pointer]="!isDisabled()"
+  [class.text-[rgb(var(--color-text-muted))]]="!isDisabled()"
+  [class.cursor-not-allowed]="isDisabled()"
+  [class.text-[rgb(var(--color-text-disabled))]]="isDisabled()"
   (click)="selectDestination()"
   (mouseenter)="isSubmenuOpen.set(true)"
   (mouseleave)="isSubmenuOpen.set(false)">
@@ -18,6 +23,7 @@
         <app-destination-node
           [node]="child"
           [path]="getChildPath(child)"
+          [currentSourcePath]="currentSourcePath()"
           (destinationSelected)="onChildSelected($event)">
         </app-destination-node>
       }

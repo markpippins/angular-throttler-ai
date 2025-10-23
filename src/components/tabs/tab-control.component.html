@@ -1,6 +1,6 @@
 <div class="flex flex-col h-full">
   <!-- Tab Headers -->
-  <div class="flex items-end h-[47px] border-b border-[rgb(var(--color-border-base))] px-2">
+  <div class="flex items-end h-12 border-b border-[rgb(var(--color-border-base))] px-2 pb-1">
     <div class="flex">
       @for(tab of tabs(); track tab; let i = $index) {
         <button 
@@ -17,6 +17,13 @@
         </button>
       }
     </div>
+
+    <!-- Filter input projected here -->
+    <ng-content select="[filter]"></ng-content>
+
+    <!-- Actions projected here -->
+    <ng-content select="[actions]"></ng-content>
+
     @if (showCollapseButton()) {
       <button (click)="collapseClick.emit()" title="Collapse" class="ml-auto p-2 rounded-md text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

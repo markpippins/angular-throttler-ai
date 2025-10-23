@@ -25,6 +25,7 @@ export class ToolbarComponent {
   isSearchOptionsDropdownOpen = signal(false);
   isCopyToOpen = signal(false);
   isMoveToOpen = signal(false);
+  isHamburgerMenuOpen = signal(false);
 
   // Inputs for button states
   canCut = input(false);
@@ -36,8 +37,13 @@ export class ToolbarComponent {
   canDelete = input(false);
   currentSort = input<SortCriteria>({ key: 'name', direction: 'asc' });
   folderTree = input<FileSystemNode | null>(null);
+  currentPath = input<string[]>([]);
   isSearchView = input(false);
   isBottomPaneVisible = input(false);
+  displayMode = input<'grid' | 'list'>('grid');
+  filterQuery = input('');
+  isSplitViewActive = input(false);
+  isDetailPaneActive = input(false);
 
   // Outputs for events
   newFolderClick = output<void>();
@@ -55,6 +61,11 @@ export class ToolbarComponent {
   searchClick = output<void>();
   closeSearchClick = output<void>();
   toggleBottomPane = output<void>();
+  displayModeChange = output<'grid' | 'list'>();
+  filterChange = output<string>();
+  splitViewClick = output<void>();
+  detailPaneClick = output<void>();
+  themeMenuClick = output<MouseEvent>();
 
   fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
@@ -84,6 +95,16 @@ export class ToolbarComponent {
     this.isCopyToOpen.set(false);
     this.isMoveToOpen.update(v => !v);
   }
+  
+  toggleHamburgerMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isHamburgerMenuOpen.update(v => !v);
+  }
+  
+  onThemeMenuItemClick(event: MouseEvent): void {
+    this.themeMenuClick.emit(event);
+    this.isHamburgerMenuOpen.set(false);
+  }
 
   onNewFolderItemClick(): void {
     this.newFolderClick.emit();
@@ -102,6 +123,7 @@ export class ToolbarComponent {
       if (this.isSearchOptionsDropdownOpen()) this.isSearchOptionsDropdownOpen.set(false);
       if (this.isCopyToOpen()) this.isCopyToOpen.set(false);
       if (this.isMoveToOpen()) this.isMoveToOpen.set(false);
+      if (this.isHamburgerMenuOpen()) this.isHamburgerMenuOpen.set(false);
     }
   }
 
@@ -130,5 +152,9 @@ export class ToolbarComponent {
   onDestinationSelectedForMove(path: string[]): void {
     this.moveItemsTo.emit(path);
     this.isMoveToOpen.set(false);
+  }
+
+  onFilterInputChange(event: Event): void {
+    this.filterChange.emit((event.target as HTMLInputElement).value);
   }
 }

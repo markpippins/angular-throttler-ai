@@ -1,70 +1,100 @@
-import { Component, ChangeDetectionStrategy, input, output, computed, signal, effect } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, computed, signal, inject, Renderer2, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FileSystemNode } from '../../models/file-system.model.js';
-import { ImageService } from '../../services/image.service.js';
-import { FileSystemProvider } from '../../services/file-system-provider.js';
+import { BookmarkService } from '../../services/bookmark.service.js';
+import { Bookmark } from '../../models/bookmark.model.js';
+import { TabControlComponent } from '../tabs/tab-control.component.js';
+import { TabComponent } from '../tabs/tab.component.js';
+import { RssFeedComponent } from '../rss-feed/rss-feed.component.js';
 
 @Component({
   selector: 'app-detail-pane',
   templateUrl: './detail-pane.component.html',
-  imports: [CommonModule],
+  imports: [CommonModule, TabControlComponent, TabComponent, RssFeedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DetailPaneComponent {
-  item = input<FileSystemNode | null>(null);
-  imageService = input.required<ImageService>();
-  fileSystemProvider = input.required<FileSystemProvider>();
-  providerPath = input.required<string[]>();
+export class DetailPaneComponent implements OnDestroy {
+  path = input.required<string[]>();
   close = output<void>();
 
-  // This signal holds the item, potentially enriched with lazily-loaded content
-  itemWithContent = signal<FileSystemNode | null>(null);
-  isPreviewLoading = signal(false);
+  private bookmarkService = inject(BookmarkService);
+  private renderer = inject(Renderer2);
 
-  constructor() {
-    effect(() => {
-      const currentItem = this.item();
-      // Immediately set the item, so non-image data appears instantly.
-      // The content will be filled in asynchronously if needed.
-      this.itemWithContent.set(currentItem); 
+  // --- Resizing State & Logic ---
+  width = signal(320); // Default w-80 is 20rem = 320px
+  isResizing = signal(false);
 
-      if (this.isImageFile() && currentItem && !currentItem.content) {
-        this.loadPreviewContent(currentItem);
-      }
+  // --- Filtering State ---
+  filterQuery = signal('');
+
+  private unlistenMouseMove: (() => void) | null = null;
+  private unlistenMouseUp: (() => void) | null = null;
+  
+  bookmarks = computed(() => {
+    const currentPathString = this.path().join('/');
+    const query = this.filterQuery().toLowerCase();
+    
+    // Show bookmarks from the current folder and all sub-folders.
+    const allRelevantBookmarks = this.bookmarkService.allBookmarks().filter(b => 
+        b.path.startsWith(currentPathString)
+    );
+
+    if (!query) {
+        return allRelevantBookmarks;
+    }
+
+    return allRelevantBookmarks.filter(b => 
+        b.title.toLowerCase().includes(query) || 
+        (b.snippet && b.snippet.toLowerCase().includes(query))
+    );
+  });
+  
+  deleteBookmark(bookmarkId: string): void {
+    this.bookmarkService.deleteBookmark(bookmarkId);
+  }
+
+  onFilterChange(event: Event): void {
+    this.filterQuery.set((event.target as HTMLInputElement).value);
+  }
+
+  ngOnDestroy(): void {
+    this.stopResize();
+  }
+
+  startResize(event: MouseEvent): void {
+    this.isResizing.set(true);
+    const startX = event.clientX;
+    const startWidth = this.width();
+
+    // Prevent text selection while dragging
+    event.preventDefault();
+
+    this.unlistenMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+      const dx = e.clientX - startX;
+      // Since we are dragging the left handle, moving left (negative dx) increases width
+      let newWidth = startWidth - dx;
+      
+      // Add constraints for min/max width
+      if (newWidth < 200) newWidth = 200;
+      if (newWidth > 600) newWidth = 600;
+      
+      this.width.set(newWidth);
+    });
+
+    this.unlistenMouseUp = this.renderer.listen('document', 'mouseup', () => {
+      this.stopResize();
     });
   }
-  
-  private async loadPreviewContent(item: FileSystemNode): Promise<void> {
-    this.isPreviewLoading.set(true);
-    try {
-      const content = await this.fileSystemProvider().getFileContent(this.providerPath(), item.name);
-      this.itemWithContent.update(currentItem => currentItem ? { ...currentItem, content } : null);
-    } catch (e) {
-      console.error('Failed to load preview content', e);
-      // If loading fails, content will remain undefined, and the template will show a message.
-      this.itemWithContent.update(currentItem => currentItem ? { ...currentItem, content: undefined } : null);
-    } finally {
-      this.isPreviewLoading.set(false);
+
+  private stopResize(): void {
+    if (!this.isResizing()) return;
+    this.isResizing.set(false);
+    if (this.unlistenMouseMove) {
+      this.unlistenMouseMove();
+      this.unlistenMouseMove = null;
+    }
+    if (this.unlistenMouseUp) {
+      this.unlistenMouseUp();
+      this.unlistenMouseUp = null;
     }
   }
-
-  getIconUrl(item: FileSystemNode): string | null {
-    return this.imageService().getIconUrl(item);
-  }
-  
-  private getFileExtension(filename: string): string | null {
-    const lastDot = filename.lastIndexOf('.');
-    if (lastDot === -1 || lastDot === 0) {
-      return null;
-    }
-    return filename.substring(lastDot + 1);
-  }
-
-  isImageFile = computed(() => {
-    const currentItem = this.item();
-    if (!currentItem || currentItem.type !== 'file') return false;
-    const extension = this.getFileExtension(currentItem.name);
-    if (!extension) return false;
-    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(extension.toLowerCase());
-  });
 }

@@ -1,20 +1,21 @@
 import { Component, ChangeDetectionStrategy, inject, signal, input, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { GeminiService } from '../../services/gemini.service.js';
+import { YoutubeSearchService } from '../../services/youtube-search.service.js';
+import { YouTubeSearchResult } from '../../models/youtube-search-result.model.js';
 
 @Component({
-  selector: 'app-gemini-search-results',
+  selector: 'app-youtube-search-results',
   imports: [CommonModule],
-  templateUrl: './gemini-search-results.component.html',
+  templateUrl: './youtube-search-results.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GeminiSearchResultsComponent {
-  private geminiService = inject(GeminiService);
+export class YoutubeSearchResultsComponent {
+  private youtubeSearchService = inject(YoutubeSearchService);
 
   initialQuery = input<string | null>(null);
   query = signal('');
   isLoading = signal(false);
-  result = signal<string | null>(null);
+  results = signal<YouTubeSearchResult[] | null>(null);
   searchError = signal<string | null>(null);
 
   constructor() {
@@ -28,21 +29,22 @@ export class GeminiSearchResultsComponent {
   }
 
   onQueryChange(event: Event) {
-    this.query.set((event.target as HTMLTextAreaElement).value);
+    this.query.set((event.target as HTMLInputElement).value);
   }
 
   async performSearch() {
     if (!this.query().trim()) return;
 
     this.isLoading.set(true);
-    this.result.set(null);
+    this.results.set(null);
     this.searchError.set(null);
-
     try {
-      const searchResult = await this.geminiService.generateContent(this.query());
-      this.result.set(searchResult);
+      const searchResults = await this.youtubeSearchService.search(this.query());
+      this.results.set(searchResults);
     } catch (e) {
+      console.error('YouTube search failed', e);
       this.searchError.set((e as Error).message);
+      this.results.set([]);
     } finally {
       this.isLoading.set(false);
     }

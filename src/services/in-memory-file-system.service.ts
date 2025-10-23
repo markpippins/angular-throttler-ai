@@ -5,12 +5,24 @@ import { FileSystemProvider, ItemReference } from './file-system-provider.js';
 const IN_MEMORY_FS_STORAGE_KEY = 'file-explorer-in-memory-fs';
 
 /**
- * A safe, recursive function to deep-clone a FileSystemNode using JSON serialization.
- * This is robust for the data structures used in this application and ensures
- * all object references are broken.
+ * A safe, recursive function to deep-clone a FileSystemNode. This avoids potential
+ * issues with JSON.stringify (like converting Date objects to strings) and only
+ * copies properties defined in the model.
  */
 function cloneNode(node: FileSystemNode): FileSystemNode {
-  return JSON.parse(JSON.stringify(node));
+  const newNode: FileSystemNode = {
+    name: node.name,
+    type: node.type,
+    modified: node.modified,
+    childrenLoaded: node.childrenLoaded
+  };
+  if (node.content !== undefined) {
+    newNode.content = node.content;
+  }
+  if (node.children) {
+    newNode.children = node.children.map(cloneNode);
+  }
+  return newNode;
 }
 
 @Injectable({
@@ -18,12 +30,97 @@ function cloneNode(node: FileSystemNode): FileSystemNode {
 })
 export class InMemoryFileSystemService implements FileSystemProvider {
   private rootNode = signal<FileSystemNode>({
-    name: 'Local Files',
+    name: 'Session',
     type: 'folder',
     children: [
-        { name: 'Documents', type: 'folder', children: [], modified: new Date().toISOString() },
-        { name: 'Pictures', type: 'folder', children: [], modified: new Date().toISOString() },
-        { name: 'README.txt', type: 'file', content: 'This is a virtual file system stored in your browser\'s local storage.', modified: new Date().toISOString() }
+      {
+        name: 'Documents',
+        type: 'folder',
+        children: [
+          { name: 'project-brief.docx', type: 'file', content: 'Project brief content.', modified: '2023-10-26T10:00:00Z' },
+          { name: 'quarterly-results.xlsx', type: 'file', content: 'Spreadsheet data.', modified: '2023-10-25T14:30:00Z' },
+        ],
+        modified: '2023-10-26T10:00:00Z'
+      },
+      {
+        name: 'Pictures',
+        type: 'folder',
+        children: [
+          { name: 'logo.png', type: 'file', content: 'image data', modified: '2023-09-15T11:00:00Z' },
+          { name: 'team-photo.jpg', type: 'file', content: 'image data', modified: '2023-09-10T18:00:00Z' },
+        ],
+        modified: '2023-09-15T11:00:00Z'
+      },
+      {
+        name: 'Work',
+        type: 'folder',
+        children: [
+          {
+            name: 'Dev',
+            type: 'folder',
+            children: [
+              {
+                name: 'Projects',
+                type: 'folder',
+                children: [
+                  { name: 'Throttler.magnet', type: 'folder', children: [], modified: '2023-10-20T09:00:00Z' },
+                  { name: 'Atomix.magnet', type: 'folder', children: [], modified: '2023-10-18T16:20:00Z' },
+                ],
+                modified: '2023-10-20T09:00:00Z'
+              },
+              {
+                name: 'Users',
+                type: 'folder',
+                children: [
+                  { name: 'j.doe', type: 'folder', children: [], modified: '2023-08-01T12:00:00Z' },
+                  { name: 's.smith', type: 'folder', children: [], modified: '2023-08-02T15:00:00Z' },
+                ],
+                modified: '2023-08-02T15:00:00Z'
+              }
+            ],
+            modified: '2023-10-20T09:00:00Z'
+          },
+          {
+            name: 'Devops',
+            type: 'folder',
+            children: [
+              { name: 'ci-pipeline.yml', type: 'file', content: 'YAML content', modified: '2023-10-24T11:45:00Z' },
+              { name: 'deploy-script.sh', type: 'file', content: 'Shell script', modified: '2023-10-23T09:30:00Z' },
+            ],
+            modified: '2023-10-24T11:45:00Z'
+          },
+          {
+            name: 'Resources',
+            type: 'folder',
+            children: [
+              { name: 'brand-assets.zip', type: 'file', content: 'zip data', modified: '2023-07-30T10:00:00Z' },
+              { name: 'font-license.txt', type: 'file', content: 'License info', modified: '2023-07-29T10:00:00Z' },
+            ],
+            modified: '2023-07-30T10:00:00Z'
+          },
+        ],
+        modified: '2023-10-26T11:00:00Z'
+      },
+      {
+        name: 'Desktop',
+        type: 'folder',
+        children: [
+          { name: 'screenshot.png', type: 'file', content: 'image data', modified: '2023-10-27T13:00:00Z' },
+        ],
+        modified: '2023-10-27T13:00:00Z'
+      },
+      {
+        name: 'Home',
+        type: 'folder',
+        children: [],
+        modified: '2023-08-01T09:00:00Z'
+      },
+      { 
+        name: 'README.txt', 
+        type: 'file', 
+        content: 'This is a virtual file system stored in your browser\'s local storage.', 
+        modified: '2023-08-01T09:00:00Z' 
+      }
     ],
     modified: new Date().toISOString()
   });
@@ -278,48 +375,52 @@ export class InMemoryFileSystemService implements FileSystemProvider {
   }
   
   async copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    // Phase 1: Read and prepare all data outside of the state update.
-    const currentRoot = this.rootNode();
-    const sourceParent = this.findNodeInTree(currentRoot, sourcePath);
-    if (!sourceParent?.children) {
-      throw new Error('Source path not found.');
-    }
-
-    // Create deep clones of the items to be copied. These are now completely
-    // detached from the original state tree.
-    const itemsToCopy = sourceParent.children
-      .filter(child => items.some(itemRef => itemRef.name === child.name && itemRef.type === child.type))
-      .map(node => cloneNode(node));
-
-    if (itemsToCopy.length === 0) {
-      return; // Nothing to do, no state change needed.
-    }
-
-    // Phase 2: Perform a single, atomic state update.
     this.rootNode.update(root => {
-      // Start with a fresh clone of the entire state for mutation.
-      const newRoot = cloneNode(root);
-      const destParent = this.findNodeInTree(newRoot, destPath);
-      
-      if (!destParent || destParent.type !== 'folder') {
-        throw new Error('Destination path not found.');
-      }
-      
-      if (!destParent.children) {
-        destParent.children = [];
-      }
-      
-      // Add the pre-cloned items to the destination.
-      for (const item of itemsToCopy) {
-        // 'item' is already a clone. We can safely modify its properties before adding it.
-        item.name = this.getUniqueCopyName(item.name, destParent.children);
-        item.modified = new Date().toISOString();
-        destParent.children.push(item);
-      }
-      
-      destParent.modified = new Date().toISOString();
-      
-      return newRoot;
+        // Start with a fresh clone of the entire state for this operation.
+        const newRoot = cloneNode(root);
+
+        const sourceParent = this.findNodeInTree(newRoot, sourcePath);
+        if (!sourceParent?.children) {
+            throw new Error('Copy failed: Source path not found.');
+        }
+
+        const destParent = this.findNodeInTree(newRoot, destPath);
+        if (!destParent || destParent.type !== 'folder') {
+            throw new Error('Copy failed: Destination path is not a valid folder.');
+        }
+
+        const nodesToCopy = sourceParent.children.filter(child => 
+            items.some(itemRef => itemRef.name === child.name && itemRef.type === child.type)
+        );
+
+        if (nodesToCopy.length === 0) {
+            return root; // No change needed, return original state.
+        }
+
+        const existingDestChildren = [...(destParent.children || [])];
+        const newClonesToAdd: FileSystemNode[] = [];
+
+        // Phase 1: Calculate all new nodes and their names first.
+        // This avoids reading from the destination array while we are conceptually adding to it.
+        for (const item of nodesToCopy) {
+            const itemCopy = cloneNode(item);
+            
+            // Check for name clashes against both the original destination children AND
+            // any new clones we've already prepared in this same operation.
+            const combinedChildrenCheck = [...existingDestChildren, ...newClonesToAdd];
+            itemCopy.name = this.getUniqueCopyName(item.name, combinedChildrenCheck);
+            itemCopy.modified = new Date().toISOString();
+            newClonesToAdd.push(itemCopy);
+        }
+        
+        // Phase 2: Mutate the state once with the prepared nodes.
+        if (!destParent.children) {
+            destParent.children = [];
+        }
+        destParent.children.push(...newClonesToAdd);
+        destParent.modified = new Date().toISOString();
+
+        return newRoot;
     });
   }
 

@@ -1,70 +1,106 @@
-<aside class="w-80 h-full flex flex-col bg-[rgb(var(--color-surface-sidebar))] border-l border-[rgb(var(--color-border-base))] text-sm animate-slide-in-right">
-  @if (item(); as currentItem) {
-    <!-- Header -->
-    <div class="p-4 border-b border-[rgb(var(--color-border-base))] flex-shrink-0">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-[rgb(var(--color-text-base))]">Details</h3>
-        <button (click)="close.emit()" class="p-1 rounded-full hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))]">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
-      </div>
-      <div class="flex flex-col items-center mt-4 text-center">
-        @if (getIconUrl(currentItem); as iconUrl) {
-          <img [src]="iconUrl" [alt]="currentItem.type" class="h-16 w-16 object-contain">
-        }
-        <p class="mt-2 font-semibold text-[rgb(var(--color-text-base))] break-all">{{ currentItem.name }}</p>
-      </div>
-    </div>
-    
-    <!-- Body -->
-    <div class="p-4 space-y-4 overflow-y-auto flex-1">
-      <!-- Preview Panel -->
-      @if (isImageFile()) {
-        <div>
-          <h4 class="font-semibold text-[rgb(var(--color-text-base))] mb-2">Preview</h4>
-          <div class="flex items-center justify-center p-2 border border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-background))] min-h-[12rem] relative">
-            @if(isPreviewLoading()) {
-              <div class="absolute inset-0 flex items-center justify-center bg-[rgb(var(--color-surface-dialog))]/50 z-10">
-                <svg class="animate-spin h-6 w-6 text-[rgb(var(--color-accent-text))]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </div>
-            } @else if (itemWithContent()?.content) {
-              <img [src]="itemWithContent()?.content" [alt]="currentItem.name" class="max-w-full max-h-48 object-contain rounded">
-            } @else {
-               <span class="text-xs text-[rgb(var(--color-text-subtle))]">No preview available</span>
-            }
-          </div>
-        </div>
-      }
+<aside 
+  class="relative h-full flex flex-col bg-[rgb(var(--color-surface-sidebar))] border-l border-[rgb(var(--color-border-base))] text-sm animate-slide-in-right flex-shrink-0 ease-in-out"
+  [class.transition-all]="!isResizing()"
+  [class.duration-300]="!isResizing()"
+  [style.width.px]="width()">
 
-      <!-- Properties Panel -->
-      <div>
-        <h4 class="font-semibold text-[rgb(var(--color-text-base))]">Properties</h4>
-        <div class="mt-2 space-y-2 text-xs">
-            <div class="flex justify-between">
-                <span class="text-[rgb(var(--color-text-subtle))]">Type:</span>
-                <span class="text-[rgb(var(--color-text-base))] font-medium capitalize">{{ currentItem.type === 'folder' ? 'File folder' : 'File' }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-[rgb(var(--color-text-subtle))]">Modified:</span>
-                <span class="text-[rgb(var(--color-text-base))] font-medium">{{ currentItem.modified || 'Unknown' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-[rgb(var(--color-text-subtle))]">Size:</span>
-              <span class="text-[rgb(var(--color-text-base))] font-medium">N/A (mocked)</span>
-            </div>
-        </div>
+  <!-- Resizer Handle -->
+  <div 
+    class="absolute top-0 left-0 h-full w-1.5 cursor-col-resize group z-10"
+    (mousedown)="startResize($event)">
+      <div class="w-0.5 h-full mx-auto bg-transparent group-hover:bg-[rgb(var(--color-accent-ring))]/50 transition-colors duration-200"></div>
+  </div>
+
+  <app-tab-control [showCollapseButton]="false">
+    <div filter class="relative mx-4 flex-grow max-w-xs">
+      <input 
+          type="text" 
+          placeholder="Filter results..."
+          class="w-full pl-8 pr-2 py-1 text-sm rounded-md border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface))] focus:ring-1 focus:ring-[rgb(var(--color-accent-ring))] focus:outline-none"
+          [value]="filterQuery()"
+          (input)="onFilterChange($event)">
+      <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-text-subtle))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L16 11.414V16a1 1 0 01-1 1l-3-2v-3.586L6.293 6.707A1 1 0 016 6V4z" />
+          </svg>
       </div>
     </div>
-  } @else {
-    <div class="h-full flex flex-col items-center justify-center text-center text-[rgb(var(--color-text-subtle))] p-4">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <p class="mt-2 font-semibold">No item selected</p>
-      <p>Select a single file or folder to view its details.</p>
+
+    <div actions class="ml-auto">
+        <button (click)="close.emit()" title="Close Details" class="p-2 rounded-md text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                <path fill-rule="evenodd" d="M4.293 15.707a1 1 0 010-1.414L8.586 10 4.293 5.707a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+        </button>
     </div>
-  }
+
+    <app-tab title="Saved">
+        <div class="p-2 space-y-2 overflow-y-auto h-full">
+            @if (bookmarks(); as bookmarkList) {
+              @for (bookmark of bookmarkList; track bookmark._id) {
+                <div class="bg-[rgb(var(--color-surface))] p-2 rounded-md border border-[rgb(var(--color-border-base))] group">
+                  <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0 pt-1">
+                      @switch(bookmark.type) {
+                        @case('web') {
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.75 5.177a3.502 3.502 0 014.22.613l.31.39a.75.75 0 001.442 0l.31-.39a3.502 3.502 0 014.22-.613A4.502 4.502 0 0119 8.5v.081a4.5 4.5 0 01-5.138 4.417l-.27-1.353a.75.75 0 00-1.44-.288l-1.045 1.62a.75.75 0 00.288 1.441l1.354.27a4.5 4.5 0 01-4.416 5.137H8.5a4.502 4.502 0 01-3.323-1.413 3.502 3.502 0 01-.613-4.22l.39-.31a.75.75 0 000-1.442l-.39-.31a3.502 3.502 0 01-.613-4.22A4.502 4.502 0 014.75 5.177z" clip-rule="evenodd" />
+                          </svg>
+                        }
+                        @case('image') {
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10zM6 8a1 1 0 100-2 1 1 0 000 2zm2 4l-2 3h8l-3-4-2 2.5L8 12z" clip-rule="evenodd" />
+                          </svg>
+                        }
+                        @case('youtube') {
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                          </svg>
+                        }
+                        @case('academic') {
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 16c1.255 0 2.443-.29 3.5-.804V4.804zM14.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 0114.5 16c1.255 0 2.443-.29 3.5-.804v-10A7.968 7.968 0 0014.5 4z" />
+                          </svg>
+                        }
+                        @case('gemini') {
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                          </svg>
+                        }
+                      }
+                    </div>
+                    <div class="flex-1">
+                      <a [href]="bookmark.link" target="_blank" class="font-semibold text-[rgb(var(--color-text-base))] hover:underline hover:text-[rgb(var(--color-accent-text))] break-all line-clamp-2">{{ bookmark.title }}</a>
+                      <p class="text-xs text-[rgb(var(--color-text-subtle))] mt-1 line-clamp-2">{{ bookmark.snippet || bookmark.source }}</p>
+                    </div>
+                    <button (click)="deleteBookmark(bookmark._id)" class="opacity-0 group-hover:opacity-100 p-1 rounded-full text-[rgb(var(--color-text-subtle))] hover:bg-[rgb(var(--color-danger-bg-hover))] hover:text-[rgb(var(--color-danger-text))] transition-opacity">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              } @empty {
+                <div class="h-full flex flex-col items-center justify-center text-center text-[rgb(var(--color-text-subtle))] p-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                  <p class="mt-2 font-semibold">No Saved Items Found</p>
+                  @if (filterQuery()) {
+                    <p>No items match your filter.</p>
+                  } @else {
+                    <p>No items have been saved to this folder or its subfolders.</p>
+                  }
+                </div>
+              }
+            }
+        </div>
+    </app-tab>
+
+    <app-tab title="RSS">
+      <app-rss-feed [filterQuery]="filterQuery()"></app-rss-feed>
+    </app-tab>
+
+  </app-tab-control>
 </aside>

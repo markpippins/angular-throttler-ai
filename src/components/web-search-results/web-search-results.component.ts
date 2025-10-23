@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, input, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GoogleSearchService, SearchNotConfiguredError } from '../../services/google-search.service.js';
 import { GoogleSearchResult } from '../../models/google-search-result.model.js';
@@ -12,10 +12,21 @@ import { GoogleSearchResult } from '../../models/google-search-result.model.js';
 export class WebSearchResultsComponent {
   private googleSearchService = inject(GoogleSearchService);
 
+  initialQuery = input<string | null>(null);
   query = signal('');
   isLoading = signal(false);
   results = signal<GoogleSearchResult[] | null>(null);
   searchError = signal<{ isConfigError: boolean, message: string } | null>(null);
+
+  constructor() {
+    effect(() => {
+      const newQuery = this.initialQuery();
+      if (newQuery) {
+        this.query.set(newQuery);
+        this.performSearch();
+      }
+    });
+  }
 
   onQueryChange(event: Event) {
     this.query.set((event.target as HTMLInputElement).value);

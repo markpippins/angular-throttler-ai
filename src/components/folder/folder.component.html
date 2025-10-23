@@ -1,5 +1,6 @@
 <div 
   data-is-selectable-item="true"
+  draggable="true"
   (contextmenu)="onContextMenu($event)"
   (dragover)="onDragOver($event)"
   (dragleave)="onDragLeave($event)"
@@ -25,5 +26,15 @@
     }
   </div>
   
-  <span class="mt-2 text-center text-xs break-all truncate w-full text-[rgb(var(--color-text-muted))] group-hover:text-[rgb(var(--color-accent-text))] pointer-events-none">{{ item().name }}</span>
+  @if (isEditing()) {
+    <input type="text" [value]="displayName()"
+           autoFocusSelect
+           (blur)="rename.emit($event.target.value)"
+           (keydown.enter)="$event.target.blur()"
+           (keydown.escape)="cancelRename.emit()"
+           (click)="$event.stopPropagation()"
+           class="mt-2 text-center text-xs w-full bg-[rgb(var(--color-surface))] text-[rgb(var(--color-text-base))] border border-[rgb(var(--color-accent-ring))] rounded p-0.5 focus:outline-none">
+  } @else {
+    <span class="mt-2 text-center text-xs break-all truncate w-full text-[rgb(var(--color-text-muted))] group-hover:text-[rgb(var(--color-accent-text))] pointer-events-none">{{ displayName() }}</span>
+  }
 </div>

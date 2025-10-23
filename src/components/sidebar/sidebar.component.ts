@@ -1,17 +1,18 @@
-import { Component, ChangeDetectionStrategy, signal, inject, Renderer2, OnDestroy, input, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject, Renderer2, OnDestroy, input, output, HostListener, ElementRef } from '@angular/core';
 import { TabControlComponent } from '../tabs/tab-control.component.js';
 import { TabComponent } from '../tabs/tab.component.js';
 import { NewsfeedComponent } from '../newsfeed/newsfeed.component.js';
 import { VerticalToolbarComponent } from '../vertical-toolbar/vertical-toolbar.component.js';
-import { SearchComponent } from '../search/search.component.js';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { TreeViewComponent } from '../tree-view/tree-view.component.js';
 import { ImageService } from '../../services/image.service.js';
+import { DragDropPayload } from '../../services/drag-drop.service.js';
+import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.component.html',
-  imports: [TabControlComponent, TabComponent, NewsfeedComponent, VerticalToolbarComponent, SearchComponent, TreeViewComponent],
+  imports: [TabControlComponent, TabComponent, NewsfeedComponent, VerticalToolbarComponent, TreeViewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnDestroy {
@@ -22,17 +23,29 @@ export class SidebarComponent implements OnDestroy {
   pathChange = output<string[]>();
   refreshTree = output<void>();
   loadChildren = output<string[]>();
+  itemsMoved = output<{ destPath: string[]; payload: DragDropPayload }>();
+  bookmarkDropped = output<{ bookmark: NewBookmark, destPath: string[] }>();
+  serversMenuClick = output<void>();
 
   isCollapsed = signal(false);
   width = signal(288); // Default width is 288px (w-72)
   isResizing = signal(false);
   treeExpansionCommand = signal<{ command: 'expand' | 'collapse', id: number } | null>(null);
+  isHamburgerMenuOpen = signal(false);
 
   private preCollapseWidth = 288;
   private renderer = inject(Renderer2);
+  private elementRef = inject(ElementRef);
   
   private unlistenMouseMove: (() => void) | null = null;
   private unlistenMouseUp: (() => void) | null = null;
+  
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event) {
+    if (this.isHamburgerMenuOpen() && !this.elementRef.nativeElement.contains(event.target)) {
+      this.isHamburgerMenuOpen.set(false);
+    }
+  }
 
   toggleCollapse(): void {
     const collapsing = !this.isCollapsed();
@@ -105,6 +118,24 @@ export class SidebarComponent implements OnDestroy {
 
   onLoadChildren(path: string[]): void {
     this.loadChildren.emit(path);
+  }
+
+  onItemsDropped(event: { destPath: string[]; payload: DragDropPayload }): void {
+    this.itemsMoved.emit(event);
+  }
+
+  onBookmarkDropped(event: { bookmark: NewBookmark, destPath: string[] }): void {
+    this.bookmarkDropped.emit(event);
+  }
+  
+  toggleHamburgerMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isHamburgerMenuOpen.update(v => !v);
+  }
+
+  onServersMenuClick(): void {
+    this.serversMenuClick.emit();
+    this.isHamburgerMenuOpen.set(false);
   }
 
   ngOnDestroy(): void {

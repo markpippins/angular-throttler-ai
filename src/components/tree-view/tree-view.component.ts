@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { TreeNodeComponent } from '../tree-node/tree-node.component.js';
 import { ImageService } from '../../services/image.service.js';
+import { DragDropPayload } from '../../services/drag-drop.service.js';
+import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-tree-view',
@@ -18,6 +20,8 @@ export class TreeViewComponent {
   
   pathChange = output<string[]>();
   loadChildren = output<string[]>();
+  itemsDropped = output<{ destPath: string[]; payload: DragDropPayload }>();
+  bookmarkDropped = output<{ bookmark: NewBookmark, destPath: string[] }>();
 
   onPathChange(path: string[]): void {
     this.pathChange.emit(path);
@@ -25,5 +29,13 @@ export class TreeViewComponent {
 
   onLoadChildren(path: string[]): void {
     this.loadChildren.emit(path);
+  }
+
+  onItemsDropped(event: { destPath: string[]; payload: DragDropPayload }): void {
+    this.itemsDropped.emit(event);
+  }
+
+  onBookmarkDropped(event: { bookmark: NewBookmark, destPath: string[] }): void {
+    this.bookmarkDropped.emit(event);
   }
 }

@@ -35,7 +35,13 @@
         }
       </div>
     } @else {
-       <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Enter a query to search for images.</div>
+      <div class="h-full flex flex-col items-center justify-center text-center text-[rgb(var(--color-text-subtle))] p-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <p class="mt-2 font-semibold">No results found</p>
+        <p>Enter a query to search for images.</p>
+      </div>
     }
   </div>
 </div>

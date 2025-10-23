@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent, SearchResultNode } from './components/file-explorer/file-explorer.component.js';
 import { SidebarComponent } from './components/sidebar/sidebar.component.js';
@@ -6,7 +6,7 @@ import { FileSystemNode } from './models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './services/file-system-provider.js';
 import { ServerProfilesDialogComponent } from './components/server-profiles-dialog/server-profiles-dialog.component.js';
 import { ServerProfileService } from './services/server-profile.service.js';
-import { SearchDialogComponent } from './components/search-dialog/search-dialog.component.js';
+import { SearchDialogComponent, SearchEngines } from './components/search-dialog/search-dialog.component.js';
 import { DetailPaneComponent } from './components/detail-pane/detail-pane.component.js';
 import { InMemoryFileSystemService } from './services/in-memory-file-system.service.js';
 import { ServerProfile } from './models/server-profile.model.js';
@@ -17,6 +17,11 @@ import { ImageClientService } from './services/image-client.service.js';
 import { LoginService } from './services/login.service.js';
 import { User } from './models/user.model.js';
 import { PreferencesService } from './services/preferences.service.js';
+import { DragDropPayload } from './services/drag-drop.service.js';
+import { ToolbarComponent, SortCriteria } from './components/toolbar/toolbar.component.js';
+import { ClipboardService } from './services/clipboard.service.js';
+import { BookmarkService } from './services/bookmark.service.js';
+import { NewBookmark } from './models/bookmark.model.js';
 
 interface PanePath {
   id: number;
@@ -27,12 +32,13 @@ interface PaneStatus {
   totalItemsCount: number;
   isSearch: boolean;
   searchResultsCount: number;
+  filteredItemsCount: number | null;
 }
 type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
 const THEME_STORAGE_KEY = 'file-explorer-theme';
-const LOCAL_ROOT_NAME = 'Local Files';
+const LOCAL_ROOT_NAME = 'Session';
 
 const readOnlyProviderOps = {
   createDirectory: () => Promise.reject(new Error('Operation not supported.')),
@@ -53,7 +59,7 @@ const readOnlyProviderOps = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, SearchDialogComponent, DetailPaneComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, SearchDialogComponent, DetailPaneComponent, ToolbarComponent],
   host: {
     '(document:click)': 'onDocumentClick($event)',
   }
@@ -65,8 +71,11 @@ export class AppComponent implements OnInit, OnDestroy {
   private imageClientService = inject(ImageClientService);
   private loginService = inject(LoginService);
   private preferencesService = inject(PreferencesService);
+  private clipboardService = inject(ClipboardService);
+  private bookmarkService = inject(BookmarkService);
   private injector = inject(Injector);
   private document = inject(DOCUMENT);
+  private renderer = inject(Renderer2);
   private elementRef = inject(ElementRef);
   private homeProvider: FileSystemProvider;
 
@@ -79,6 +88,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isDetailPaneOpen = signal(false);
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
+  refreshPanes = signal(0);
   
   // Keep track of each pane's path
   private panePaths = signal<PanePath[]>([{ id: 1, path: [LOCAL_ROOT_NAME] }]);
@@ -104,10 +114,11 @@ export class AppComponent implements OnInit, OnDestroy {
   isSearchDialogOpen = signal(false);
   private searchInitiatorPaneId = signal<number | null>(null);
   searchResultForPane = signal<{ id: number; results: SearchResultNode[] } | null>(null);
+  externalSearchRequest = signal<{ query: string; engines: Partial<SearchEngines>, timestamp: number } | null>(null);
 
   // --- Status Bar State ---
-  private pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, isSearch: false, searchResultsCount: 0 });
-  private pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, isSearch: false, searchResultsCount: 0 });
+  private pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, isSearch: false, searchResultsCount: 0, filteredItemsCount: null });
+  private pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, isSearch: false, searchResultsCount: 0, filteredItemsCount: null });
   
   activePaneStatus = computed<PaneStatus>(() => {
     const activeId = this.activePaneId();
@@ -118,7 +129,8 @@ export class AppComponent implements OnInit, OnDestroy {
   });
   
   // --- Theme Management ---
-  currentTheme = signal<Theme>('theme-steel');
+  currentTheme = signal<Theme>('theme-light');
+  themeMenuPosition = signal({ x: 0, y: 0 });
   themes: {id: Theme, name: string}[] = [
     { id: 'theme-light', name: 'Light' },
     { id: 'theme-steel', name: 'Steel' },
@@ -135,6 +147,14 @@ export class AppComponent implements OnInit, OnDestroy {
   // Computed paths for each pane to pass as inputs
   pane1Path = computed(() => this.panePaths().find(p => p.id === 1)?.path ?? []);
   pane2Path = computed(() => this.panePaths().find(p => p.id === 2)?.path ?? []);
+
+  // --- Pane Resizing State ---
+  pane1Width = signal(50); // Initial width as percentage
+  isResizingPanes = signal(false);
+  private unlistenPaneMouseMove: (() => void) | null = null;
+  private unlistenPaneMouseUp: (() => void) | null = null;
+  
+  @ViewChild('paneContainer') paneContainerEl!: ElementRef<HTMLDivElement>;
 
   // --- Computed Per-Pane Services ---
   private getProviderForPath(path: string[]): FileSystemProvider {
@@ -177,6 +197,35 @@ export class AppComponent implements OnInit, OnDestroy {
     return path.length > 0 ? path.slice(1) : [];
   });
 
+  // --- Global Toolbar State ---
+  toolbarAction = signal<{ name: string, payload?: any, id: number } | null>(null);
+  
+  pane1SortCriteria = signal<SortCriteria>({ key: 'name', direction: 'asc' });
+  pane2SortCriteria = signal<SortCriteria>({ key: 'name', direction: 'asc' });
+  activeSortCriteria = computed(() => this.activePaneId() === 1 ? this.pane1SortCriteria() : this.pane2SortCriteria());
+
+  pane1DisplayMode = signal<'grid' | 'list'>('grid');
+  pane2DisplayMode = signal<'grid' | 'list'>('grid');
+  activeDisplayMode = computed(() => this.activePaneId() === 1 ? this.pane1DisplayMode() : this.pane2DisplayMode());
+  
+  pane1FilterQuery = signal('');
+  pane2FilterQuery = signal('');
+  activeFilterQuery = computed(() => this.activePaneId() === 1 ? this.pane1FilterQuery() : this.pane2FilterQuery());
+
+  pane1IsBottomPaneVisible = signal(false);
+  pane2IsBottomPaneVisible = signal(false);
+  activeIsBottomPaneVisible = computed(() => this.activePaneId() === 1 ? this.pane1IsBottomPaneVisible() : this.pane2IsBottomPaneVisible());
+
+  canCutCopyShareDelete = computed(() => this.activePaneStatus().selectedItemsCount > 0);
+  canRename = computed(() => this.activePaneStatus().selectedItemsCount === 1);
+  canPaste = computed(() => {
+    const clip = this.clipboardService.clipboard();
+    if (!clip) return false;
+    // For simplicity, let's assume paste is possible if something is on the clipboard.
+    // The file explorer component's internal logic will handle provider compatibility.
+    return true;
+  });
+
   constructor() {
     this.loadTheme();
 
@@ -213,6 +262,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.document.body.className = '';
+    this.stopPaneResize();
   }
 
   loadTheme(): void {
@@ -221,11 +271,11 @@ export class AppComponent implements OnInit, OnDestroy {
       if (storedTheme && this.themes.some(t => t.id === storedTheme)) {
         this.currentTheme.set(storedTheme);
       } else {
-        this.currentTheme.set('theme-steel');
+        this.currentTheme.set('theme-light');
       }
     } catch (e) {
       console.error('Failed to load theme from localStorage', e);
-      this.currentTheme.set('theme-steel');
+      this.currentTheme.set('theme-light');
     }
   }
 
@@ -234,17 +284,17 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isThemeDropdownOpen.set(false);
   }
 
-  toggleThemeDropdown(event: MouseEvent): void {
+  openThemeMenu(event: MouseEvent): void {
     event.stopPropagation();
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    this.themeMenuPosition.set({ x: rect.left, y: rect.bottom + 5 });
     this.isThemeDropdownOpen.update(v => !v);
   }
   
   onDocumentClick(event: Event): void {
-    const dropdownElement = this.elementRef.nativeElement.querySelector('.relative.inline-block');
-    if (dropdownElement && !dropdownElement.contains(event.target)) {
-        if (this.isThemeDropdownOpen()) {
-            this.isThemeDropdownOpen.set(false);
-        }
+    if (this.isThemeDropdownOpen()) {
+      this.isThemeDropdownOpen.set(false);
     }
   }
 
@@ -414,8 +464,8 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   // --- Search Handling ---
-  openSearchDialog(paneId: number): void {
-    this.searchInitiatorPaneId.set(paneId);
+  openSearchDialog(): void {
+    this.searchInitiatorPaneId.set(this.activePaneId());
     this.isSearchDialogOpen.set(true);
   }
 
@@ -426,16 +476,42 @@ export class AppComponent implements OnInit, OnDestroy {
 
   executeQuickSearch(paneId: number, query: string): void {
     this.searchInitiatorPaneId.set(paneId);
-    this.executeSearch(query);
+    this.executeSearch({ 
+        query, 
+        engines: { files: true, web: false, image: false, gemini: false, youtube: false, academic: false }
+    });
   }
 
-  async executeSearch(query: string): Promise<void> {
+  async executeSearch({ query, engines }: { query: string; engines: SearchEngines }): Promise<void> {
     const paneId = this.searchInitiatorPaneId();
     if (!query || !paneId) {
       this.closeSearchDialog();
       return;
     }
 
+    // Handle file search
+    if (engines.files) {
+      await this.executeFileSearch(query, paneId);
+    }
+    
+    // Handle external searches
+    const externalEngines: Partial<SearchEngines> = { ...engines };
+    delete (externalEngines as any).files;
+    
+    const hasExternalSearch = Object.values(externalEngines).some(v => v);
+    if (hasExternalSearch) {
+        this.externalSearchRequest.set({ query, engines: externalEngines, timestamp: Date.now() });
+        if (this.activePaneId() === 1) {
+          this.pane1IsBottomPaneVisible.set(true);
+        } else {
+          this.pane2IsBottomPaneVisible.set(true);
+        }
+    }
+
+    this.closeSearchDialog();
+  }
+  
+  private async executeFileSearch(query: string, paneId: number): Promise<void> {
     const path = paneId === 1 ? this.pane1Path() : this.pane2Path();
     const provider = this.getProviderForPath(path);
     const rootPathSegment = path.length > 0 ? path[0] : LOCAL_ROOT_NAME;
@@ -450,10 +526,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
       this.searchResultForPane.set({ id: paneId, results: processedResults });
     } catch (e) {
-      console.error('Search failed', e);
-      alert(`Search failed: ${(e as Error).message}`);
-    } finally {
-      this.closeSearchDialog();
+      console.error('File search failed', e);
+      alert(`File search failed: ${(e as Error).message}`);
     }
   }
 
@@ -502,5 +576,121 @@ export class AppComponent implements OnInit, OnDestroy {
     } catch (e) {
       console.error(`Failed to load children for path ${path.join('/')}`, e);
     }
+  }
+
+  async onSidebarItemsMoved({ destPath, payload }: { destPath: string[]; payload: DragDropPayload }): Promise<void> {
+    if (payload.type !== 'filesystem') return;
+    const { sourceProvider, sourcePath, items } = payload.payload;
+    const itemRefs = items.map(i => ({ name: i.name, type: i.type }));
+    
+    // Providers need relative paths (without the root server/local name)
+    const sourceProviderPath = sourcePath.length > 0 ? sourcePath.slice(1) : [];
+    const destProviderPath = destPath.length > 0 ? destPath.slice(1) : [];
+
+    try {
+      await sourceProvider.move(sourceProviderPath, destProviderPath, itemRefs);
+    } catch (e) {
+      alert(`Move failed: ${(e as Error).message}`);
+    } finally {
+      // Refresh the sidebar tree and the main panes to reflect the changes.
+      await this.loadFolderTree();
+      this.refreshPanes.update(v => v + 1);
+    }
+  }
+
+  // --- Pane Resizing Logic ---
+  startPaneResize(event: MouseEvent): void {
+    if (!this.isSplitView()) return;
+    
+    this.isResizingPanes.set(true);
+    const container = this.paneContainerEl.nativeElement;
+    const containerRect = container.getBoundingClientRect();
+
+    event.preventDefault(); // Prevent text selection
+    this.renderer.setStyle(this.document.body, 'user-select', 'none'); // Disable text selection globally
+
+    this.unlistenPaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+        const mouseX = e.clientX - containerRect.left;
+        let newWidthPercent = (mouseX / containerRect.width) * 100;
+
+        const minWidthPercent = 20;
+        const maxWidthPercent = 80;
+        if (newWidthPercent < minWidthPercent) newWidthPercent = minWidthPercent;
+        if (newWidthPercent > maxWidthPercent) newWidthPercent = maxWidthPercent;
+
+        this.pane1Width.set(newWidthPercent);
+    });
+    
+    this.unlistenPaneMouseUp = this.renderer.listen('document', 'mouseup', () => {
+        this.stopPaneResize();
+    });
+  }
+
+  private stopPaneResize(): void {
+    if (!this.isResizingPanes()) return;
+    this.isResizingPanes.set(false);
+    this.renderer.removeStyle(this.document.body, 'user-select'); // Re-enable text selection
+    if (this.unlistenPaneMouseMove) {
+        this.unlistenPaneMouseMove();
+        this.unlistenPaneMouseMove = null;
+    }
+    if (this.unlistenPaneMouseUp) {
+        this.unlistenPaneMouseUp();
+        this.unlistenPaneMouseUp = null;
+    }
+  }
+
+  // --- Global Toolbar Event Handlers ---
+  
+  onToolbarAction(name: string, payload?: any) {
+    this.toolbarAction.set({ name, payload, id: Date.now() });
+  }
+
+  onSortChange(criteria: SortCriteria) {
+    if (this.activePaneId() === 1) {
+      this.pane1SortCriteria.set(criteria);
+    } else {
+      this.pane2SortCriteria.set(criteria);
+    }
+  }
+
+  onDisplayModeChange(mode: 'grid' | 'list') {
+    if (this.activePaneId() === 1) {
+      this.pane1DisplayMode.set(mode);
+    } else {
+      this.pane2DisplayMode.set(mode);
+    }
+  }
+  
+  onFilterChange(query: string) {
+    if (this.activePaneId() === 1) {
+      this.pane1FilterQuery.set(query);
+    } else {
+      this.pane2FilterQuery.set(query);
+    }
+  }
+  
+  onToggleBottomPane() {
+    if (this.activePaneId() === 1) {
+      this.pane1IsBottomPaneVisible.update(v => !v);
+    } else {
+      this.pane2IsBottomPaneVisible.update(v => !v);
+    }
+  }
+
+  // --- Bookmark Handlers ---
+  onSaveBookmark(bookmark: NewBookmark): void {
+    const path = this.activePanePath();
+    this.bookmarkService.addBookmark(path, bookmark);
+  }
+
+  onBookmarkDroppedOnPane(event: { bookmark: NewBookmark, dropOn: FileSystemNode }): void {
+    const path = this.activePaneId() === 1 ? this.pane1Path() : this.pane2Path();
+    const destPath = [...path, event.dropOn.name];
+    this.bookmarkService.addBookmark(destPath, event.bookmark);
+  }
+
+  onBookmarkDroppedOnSidebar(event: { bookmark: NewBookmark, destPath: string[] }): void {
+    this.bookmarkService.addBookmark(event.destPath, event.bookmark);
   }
 }

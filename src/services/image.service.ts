@@ -31,7 +31,7 @@ export class ImageService {
     if (activeTheme && item.type === 'folder') {
       // Convert folder name to a suitable filename format (e.g., lowercase).
       const iconName = item.name.toLowerCase();
-      return `assets/images/ui/${activeTheme}/${iconName}.svg`;
+      return `src/assets/images/ui/${activeTheme}/${iconName}.svg`;
     }
 
     // Priority 2: Fallback to existing logic for remote icons (e.g., .magnet folders)
