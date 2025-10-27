@@ -1,30 +1,12 @@
 {
   "name": "myapp",
   "version": "0.0.0",
-  "main": "main.js",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test",
-    "electron": "ng build --base-href ./ && electron .",
-    "electron:build": "ng build --base-href ./ && electron-builder"
-  },
-  "build": {
-    "appId": "com.example.myapp",
-    "productName": "MyAngularApp",
-    "directories": {
-      "output": "dist/electron"
-    },
-    "files": [
-      "main.js",
-      "dist/myapp/browser/**",
-      "package.json"
-    ],
-    "linux": {
-      "target": "AppImage"
-    }
+    "test": "ng test"
   },
   "prettier": {
     "printWidth": 100,
@@ -55,8 +37,6 @@
     "@angular/compiler-cli": "^20.3.0",
     "@google/genai": "^0.14.0",
     "@types/jasmine": "~5.1.0",
-    "electron": "^38.3.0",
-    "electron-builder": "^26.0.12",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",

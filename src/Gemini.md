@@ -25,7 +25,14 @@ The `AppComponent` is the top-level component that acts as the central controlle
     -   It uses `computed` signals (`pane1Provider`, `pane2Provider`) to dynamically assign the correct file system service to each file explorer pane based on its current path.
     -   This design makes the `FileExplorerComponent` completely agnostic about its data source; it simply interacts with the `FileSystemProvider` interface it is given.
 
-4.  **Component Coordination:**
+4.  **Search Orchestration:**
+    - It manages the visibility of the bottom search pane via the `isBottomPaneVisible` signal.
+    - It controls the visibility of the `SearchDialogComponent` via the `isSearchDialogOpen` signal.
+    - When a search is executed from the dialog, it receives the query and the selected search engines.
+    - It then updates a set of dedicated signals (`webSearchQuery`, `imageSearchQuery`, `geminiSearchQuery`, etc.) with the query string. These signals are passed as inputs to the `BottomPaneComponent`, which triggers the searches within the appropriate tabs.
+    - For file searches, it calls the `search()` method on the correct provider and passes the results down via the `fileSearchResults` signal.
+
+5.  **Component Coordination:**
     -   It orchestrates interactions between the `SidebarComponent`, `FileExplorerComponent`(s), and various dialogs.
     -   It handles the `(loginAndMount)` event from the `ServerProfilesDialogComponent`, initiating the authentication flow and creating a new user-specific file system provider upon success.
 
@@ -39,4 +46,4 @@ The `AppComponent` is the top-level component that acts as the central controlle
     -   `onUnmountProfile()`: Destroys a `RemoteFileSystemService` instance and clears the associated user session.
     -   `toggleSplitView()`: Manages the split-view layout.
     -   `onPane1PathChanged()` / `onPane2PathChanged()`: Keeps the parent component's record of each pane's path in sync.
-    -   `executeSearch()`: A context-aware search method that delegates the search to the correct provider.
+    -   `executeSearch()`: Receives the search payload from the dialog, triggers the necessary file searches, and updates the query signals to propagate searches to the bottom pane.
