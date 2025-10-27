@@ -1,1 +1,1 @@
-// This file is unused and can be deleted.
+// This file has been removed as it was unused.

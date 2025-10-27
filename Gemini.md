@@ -9,7 +9,7 @@ This document provides a high-level overview of the files located in the project
 This is the main entry point for the entire Angular application. Its primary responsibilities are:
 - **Bootstrapping:** It uses `bootstrapApplication` to launch the root `AppComponent`.
 - **Zoneless Change Detection:** It enables Angular's modern, more performant change detection strategy.
-- **Dependency Injection:** It configures application-wide services. In its current configuration, it provides services for remote and virtual file systems (`RemoteFileSystemService`, `ConvexDesktopService`), which are then orchestrated by the `AppComponent`.
+- **Dependency Injection:** It configures application-wide services. In its current configuration, it provides services for remote and virtual file systems (`RemoteFileSystemService`, `InMemoryFileSystemService`), which are then orchestrated by the `AppComponent`.
 
 ### `index.html` - Main HTML Document
 

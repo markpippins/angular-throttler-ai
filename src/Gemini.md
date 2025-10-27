@@ -16,7 +16,7 @@ The `AppComponent` is the top-level component that acts as the central controlle
     -   `mountedProfiles` & `mountedProfileUsers`: Signals that track active server connections and the authenticated users for each session.
 
 2.  **Multi-Root & Per-User File System Orchestration:** This is the key architectural feature of the component.
-    -   On startup, it constructs a virtual "Home" folder that contains the root from the `ConvexDesktopService` and roots from any mounted remote servers.
+    -   On startup, it constructs a virtual "Home" folder that contains the root from the `InMemoryFileSystemService` and roots from any mounted remote servers.
     -   When a user logs into a remote server, it creates a `RemoteFileSystemService` instance *specifically for that user*. This service uses the user's username as an `alias` for all backend file operations, ensuring each user has a sandboxed view of the remote file system.
     -   This virtual tree, including user-specific remote roots, is passed to the sidebar, allowing seamless navigation across different data sources.
 

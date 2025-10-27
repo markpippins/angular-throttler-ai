@@ -4,7 +4,7 @@ The `SidebarComponent` is a stateful container component that forms the collapsi
 
 ## Core Responsibilities
 
-1.  **Layout and Structure:** It provides the main structure for the sidebar, containing a tabbed interface for different views (`Explorer`, `News`, `Search`).
+1.  **Layout and Structure:** It provides the main structure for the sidebar, containing a tabbed interface for different views (`Explorer`, `News`).
 2.  **Collapsibility:** It manages its own collapsed/expanded state. When collapsed, it displays a minimal `VerticalToolbarComponent`. When expanded, it shows the full tabbed interface.
 3.  **Resizability:** When expanded, it features a handle that allows the user to click and drag to resize its width. It manages the resize logic and updates its own width.
 4.  **Navigation Hub:** Its primary role in the "Explorer" tab is to host the `TreeViewComponent`. It acts as an intermediary, receiving path change events from the tree view and emitting them up to the `AppComponent`.
