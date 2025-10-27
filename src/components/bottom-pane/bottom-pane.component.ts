@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input, output, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, signal, computed, viewChild, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TabControlComponent } from '../tabs/tab-control.component.js';
 import { TabComponent } from '../tabs/tab.component.js';
@@ -37,6 +37,7 @@ export class BottomPaneComponent {
   youtubeSearchQuery = input<string | null>(null);
   academicSearchQuery = input<string | null>(null);
   fileSearchResults = input<SearchResultNode[] | null>(null);
+  initialTabRequest = input<{ tab: string | undefined; timestamp: number } | undefined>();
   
   // Inputs for services/context
   imageService = input.required<ImageService>();
@@ -53,8 +54,27 @@ export class BottomPaneComponent {
   // Displayed results are either from external trigger or internal search
   displayFileSearchResults = computed(() => this.fileSearchResults() ?? this.internalFileSearchResults());
 
+  private tabControl = viewChild.required(TabControlComponent);
+
   constructor() {
     console.log('BottomPaneComponent constructor: Initializing.');
+    effect(() => {
+      const request = this.initialTabRequest();
+      // Reading the signal here establishes a dependency. When the viewChild is resolved,
+      // the effect will re-run.
+      const tabControl = this.tabControl();
+      if (request) {
+        let tabIndex = 0;
+        switch (request.tab) {
+          case 'web': tabIndex = 1; break;
+          case 'image': tabIndex = 2; break;
+          case 'gemini': tabIndex = 3; break;
+          case 'youtube': tabIndex = 4; break;
+          case 'academic': tabIndex = 5; break;
+        }
+        tabControl.setActiveTab(tabIndex);
+      }
+    });
   }
 
   onFileQueryChange(event: Event) {

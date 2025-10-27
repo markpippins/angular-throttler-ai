@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, contentChildren, signal, AfterContentInit, effect, output, input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, contentChildren, signal, effect, output, input } from '@angular/core';
 import { TabComponent } from './tab.component.js';
 
 @Component({
@@ -6,8 +6,9 @@ import { TabComponent } from './tab.component.js';
   templateUrl: './tab-control.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TabControlComponent implements AfterContentInit {
+export class TabControlComponent {
   tabs = contentChildren(TabComponent);
+
   activeTabIndex = signal(0);
   collapseClick = output<void>();
   showCollapseButton = input(true);
@@ -17,12 +18,12 @@ export class TabControlComponent implements AfterContentInit {
         this.updateActiveTabs(this.activeTabIndex());
     });
   }
-
-  ngAfterContentInit() {
-    this.updateActiveTabs(this.activeTabIndex());
-  }
   
   selectTab(index: number) {
+    this.activeTabIndex.set(index);
+  }
+
+  setActiveTab(index: number) {
     this.activeTabIndex.set(index);
   }
 

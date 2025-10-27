@@ -308,6 +308,7 @@
             [fileSearchResults]="fileSearchResults()"
             [imageService]="imageService()"
             [activeProvider]="fileSystemProvider()"
+            [initialTabRequest]="activeSearchRequest()"
             (saveBookmark)="saveBookmark.emit($event)">
          </app-bottom-pane>
       </div>

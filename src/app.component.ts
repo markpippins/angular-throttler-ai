@@ -114,7 +114,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isSearchDialogOpen = signal(false);
   private searchInitiatorPaneId = signal<number | null>(null);
   searchResultForPane = signal<{ id: number; results: SearchResultNode[] } | null>(null);
-  externalSearchRequest = signal<{ query: string; engines: Partial<SearchEngines>, timestamp: number } | null>(null);
+  externalSearchRequest = signal<{ query: string; engines: Partial<SearchEngines>, targetTab?: string, timestamp: number } | null>(null);
 
   // --- Status Bar State ---
   private pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, isSearch: false, searchResultsCount: 0, filteredItemsCount: null });
@@ -501,7 +501,14 @@ export class AppComponent implements OnInit, OnDestroy {
     
     const hasExternalSearch = Object.values(externalEngines).some(v => v);
     if (hasExternalSearch) {
-        this.externalSearchRequest.set({ query, engines: externalEngines, timestamp: Date.now() });
+        let targetTab: string | undefined = undefined;
+        if (engines.web) targetTab = 'web';
+        else if (engines.image) targetTab = 'image';
+        else if (engines.gemini) targetTab = 'gemini';
+        else if (engines.youtube) targetTab = 'youtube';
+        else if (engines.academic) targetTab = 'academic';
+
+        this.externalSearchRequest.set({ query, engines: externalEngines, targetTab, timestamp: Date.now() });
         if (this.activePaneId() === 1) {
           this.pane1IsBottomPaneVisible.set(true);
         } else {

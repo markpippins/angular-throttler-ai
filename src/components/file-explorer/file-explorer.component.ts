@@ -51,7 +51,7 @@ export class FileExplorerComponent implements OnDestroy {
   imageService = input.required<ImageService>();
   folderTree = input<FileSystemNode | null>(null);
   searchResults = input<{ id: number; results: SearchResultNode[] } | null>(null);
-  externalSearchRequest = input<{ query: string; engines: Partial<SearchEngines>, timestamp: number } | null>(null);
+  externalSearchRequest = input<{ query: string; engines: Partial<SearchEngines>, targetTab?: string, timestamp: number } | null>(null);
   refresh = input<number>(0);
   toolbarAction = input<{ name: string; payload?: any; id: number } | null>(null);
   sortCriteria = input<SortCriteria>({ key: 'name', direction: 'asc' });
@@ -102,6 +102,13 @@ export class FileExplorerComponent implements OnDestroy {
   geminiSearchQuery = signal<string | null>(null);
   youtubeSearchQuery = signal<string | null>(null);
   academicSearchQuery = signal<string | null>(null);
+  activeSearchRequest = computed(() => {
+    const request = this.externalSearchRequest();
+    if (request && this.isActive()) {
+        return { tab: request.targetTab, timestamp: request.timestamp };
+    }
+    return undefined;
+  });
   private unlistenBottomPaneMouseMove: (() => void) | null = null;
   private unlistenBottomPaneMouseUp: (() => void) | null = null;
   
