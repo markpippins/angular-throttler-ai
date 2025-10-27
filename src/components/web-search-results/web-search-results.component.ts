@@ -1,12 +1,11 @@
 import { Component, ChangeDetectionStrategy, inject, signal, input, effect, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { GoogleSearchService, SearchNotConfiguredError } from '../../services/google-search.service.js';
 import { GoogleSearchResult } from '../../models/google-search-result.model.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-web-search-results',
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './web-search-results.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
