@@ -212,8 +212,8 @@ export class AppComponent implements OnInit, OnDestroy {
   pane2FilterQuery = signal('');
   activeFilterQuery = computed(() => this.activePaneId() === 1 ? this.pane1FilterQuery() : this.pane2FilterQuery());
 
-  pane1IsBottomPaneVisible = signal(true);
-  pane2IsBottomPaneVisible = signal(true);
+  pane1IsBottomPaneVisible = signal(false);
+  pane2IsBottomPaneVisible = signal(false);
   activeIsBottomPaneVisible = computed(() => this.activePaneId() === 1 ? this.pane1IsBottomPaneVisible() : this.pane2IsBottomPaneVisible());
 
   canCutCopyShareDelete = computed(() => this.activePaneStatus().selectedItemsCount > 0);
