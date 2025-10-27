@@ -6,7 +6,6 @@ import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-academic-search-results',
-  standalone: true,
   imports: [CommonModule],
   templateUrl: './academic-search-results.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

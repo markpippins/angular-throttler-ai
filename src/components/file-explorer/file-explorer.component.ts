@@ -208,6 +208,7 @@ export class FileExplorerComponent implements OnDestroy {
   });
 
   constructor() {
+    console.log('FileExplorerComponent constructor: Initializing component.');
     effect(() => {
       // This effect runs when path, provider, or refresh changes.
       this.refresh(); // dependency

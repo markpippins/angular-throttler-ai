@@ -11,7 +11,6 @@ interface RssItem {
 
 @Component({
   selector: 'app-rss-feed',
-  standalone: true,
   imports: [CommonModule],
   templateUrl: './rss-feed.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

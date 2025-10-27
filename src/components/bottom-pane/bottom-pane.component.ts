@@ -53,6 +53,10 @@ export class BottomPaneComponent {
   // Displayed results are either from external trigger or internal search
   displayFileSearchResults = computed(() => this.fileSearchResults() ?? this.internalFileSearchResults());
 
+  constructor() {
+    console.log('BottomPaneComponent constructor: Initializing.');
+  }
+
   onFileQueryChange(event: Event) {
     this.fileSearchQuery.set((event.target as HTMLInputElement).value);
   }

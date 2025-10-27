@@ -227,6 +227,7 @@ export class AppComponent implements OnInit, OnDestroy {
   });
 
   constructor() {
+    console.log('AppComponent constructor: Initializing application.');
     this.loadTheme();
 
     this.homeProvider = {

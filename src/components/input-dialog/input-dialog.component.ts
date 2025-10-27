@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-input-dialog',
-  standalone: true,
   imports: [CommonModule],
   templateUrl: './input-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
