@@ -27,9 +27,15 @@
     } @else if (results(); as res) {
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
         @for (result of res; track result.id) {
-          <a [href]="result.urls.regular" target="_blank" class="block group aspect-w-1 aspect-h-1">
+          <div class="block group aspect-w-1 aspect-h-1 relative">
             <img [src]="result.urls.thumb" [alt]="result.alt_description" class="w-full h-full object-cover rounded-md group-hover:opacity-80 transition-opacity">
-          </a>
+             <a [href]="result.urls.regular" target="_blank" class="absolute inset-0"></a>
+             <button (click)="onSave(result)" title="Save image" class="absolute top-1 right-1 p-1.5 rounded-full bg-black/50 text-white/80 hover:bg-black/70 hover:text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />
+              </svg>
+            </button>
+          </div>
         } @empty {
           <div class="col-span-full text-center py-8 text-[rgb(var(--color-text-subtle))]">No images found.</div>
         }

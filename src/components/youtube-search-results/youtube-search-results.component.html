@@ -32,20 +32,27 @@
     } @else if (results(); as res) {
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         @for (result of res; track result.id) {
-          <a href="https://www.youtube.com/watch?v={{ result.id }}" target="_blank" class="block group bg-[rgb(var(--color-surface))] rounded-lg overflow-hidden shadow-sm border border-transparent hover:border-[rgb(var(--color-border-muted))] transition-all">
-            <div class="aspect-video">
-              <img [src]="result.thumbnailUrl" [alt]="result.title" class="w-full h-full object-cover">
-            </div>
-            <div class="p-3">
-              <h4 class="font-semibold text-sm text-[rgb(var(--color-text-base))] group-hover:text-[rgb(var(--color-accent-text))] line-clamp-2">{{ result.title }}</h4>
-              <p class="text-xs text-[rgb(var(--color-text-subtle))] mt-1 truncate">{{ result.channelTitle }}</p>
-              <div class="text-xs text-[rgb(var(--color-text-subtle))] mt-1">
-                <span>{{ result.viewCount }} views</span>
-                <span class="mx-1">&middot;</span>
-                <span>{{ result.publishedAt }}</span>
+          <div class="block group bg-[rgb(var(--color-surface))] rounded-lg overflow-hidden shadow-sm border border-transparent hover:border-[rgb(var(--color-border-muted))] transition-all relative">
+            <a href="https://www.youtube.com/watch?v={{ result.id }}" target="_blank" class="block">
+              <div class="aspect-video">
+                <img [src]="result.thumbnailUrl" [alt]="result.title" class="w-full h-full object-cover">
               </div>
-            </div>
-          </a>
+              <div class="p-3">
+                <h4 class="font-semibold text-sm text-[rgb(var(--color-text-base))] group-hover:text-[rgb(var(--color-accent-text))] line-clamp-2">{{ result.title }}</h4>
+                <p class="text-xs text-[rgb(var(--color-text-subtle))] mt-1 truncate">{{ result.channelTitle }}</p>
+                <div class="text-xs text-[rgb(var(--color-text-subtle))] mt-1">
+                  <span>{{ result.viewCount }} views</span>
+                  <span class="mx-1">&middot;</span>
+                  <span>{{ result.publishedAt }}</span>
+                </div>
+              </div>
+            </a>
+            <button (click)="onSave(result)" title="Save video" class="absolute top-1 right-1 p-1.5 rounded-full bg-black/50 text-white/80 hover:bg-black/70 hover:text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />
+              </svg>
+            </button>
+          </div>
         } @empty {
           <div class="col-span-full text-center py-8 text-[rgb(var(--color-text-subtle))]">No videos found.</div>
         }

@@ -1,6 +1,7 @@
-import { Component, ChangeDetectionStrategy, inject, signal, input, effect } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, input, effect, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GeminiService } from '../../services/gemini.service.js';
+import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-gemini-search-results',
@@ -12,6 +13,8 @@ export class GeminiSearchResultsComponent {
   private geminiService = inject(GeminiService);
 
   initialQuery = input<string | null>(null);
+  save = output<NewBookmark>();
+
   query = signal('');
   isLoading = signal(false);
   result = signal<string | null>(null);
@@ -46,5 +49,19 @@ export class GeminiSearchResultsComponent {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  onSave(): void {
+    const res = this.result();
+    const q = this.query();
+    if (!res || !q) return;
+    
+    this.save.emit({
+      type: 'gemini',
+      title: `Gemini: ${q.substring(0, 40)}${q.length > 40 ? '...' : ''}`,
+      link: '#',
+      snippet: res,
+      source: 'Gemini Search',
+    });
   }
 }

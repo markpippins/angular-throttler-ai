@@ -32,7 +32,7 @@
     } @else if (results(); as res) {
       <div class="space-y-4">
         @for (result of res; track result.link) {
-          <div class="group">
+          <div class="group relative pr-8">
             <a [href]="result.link" target="_blank" class="text-blue-500 dark:text-blue-400 group-hover:underline text-base font-semibold">{{ result.title }}</a>
             <div class="text-xs">
                 <span class="text-green-700 dark:text-green-500">{{ result.authors.join(', ') }}</span>
@@ -42,6 +42,11 @@
             @if (result.pdfLink) {
                 <a [href]="result.pdfLink" target="_blank" class="text-xs text-red-600 dark:text-red-500 hover:underline">[PDF]</a>
             }
+            <button (click)="onSave(result); $event.preventDefault(); $event.stopPropagation()" title="Save article" class="absolute top-0 right-0 p-1 rounded-full text-[rgb(var(--color-text-subtle))] hover:bg-[rgb(var(--color-surface-hover))] hover:text-[rgb(var(--color-accent-text))] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />
+              </svg>
+            </button>
           </div>
         } @empty {
           <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">No articles found.</div>

@@ -1,7 +1,8 @@
-import { Component, ChangeDetectionStrategy, inject, signal, input, effect } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, input, effect, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GoogleSearchService, SearchNotConfiguredError } from '../../services/google-search.service.js';
 import { GoogleSearchResult } from '../../models/google-search-result.model.js';
+import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-web-search-results',
@@ -13,6 +14,8 @@ export class WebSearchResultsComponent {
   private googleSearchService = inject(GoogleSearchService);
 
   initialQuery = input<string | null>(null);
+  save = output<NewBookmark>();
+
   query = signal('');
   isLoading = signal(false);
   results = signal<GoogleSearchResult[] | null>(null);
@@ -52,5 +55,15 @@ export class WebSearchResultsComponent {
     } finally {
       this.isLoading.set(false);
     }
+  }
+  
+  onSave(result: GoogleSearchResult): void {
+    this.save.emit({
+      type: 'web',
+      title: result.title,
+      link: result.link,
+      snippet: result.snippet,
+      source: 'Web Search',
+    });
   }
 }
