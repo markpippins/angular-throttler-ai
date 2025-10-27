@@ -3,7 +3,7 @@ import { Component, ChangeDetectionStrategy, input, signal } from '@angular/core
 @Component({
   selector: 'app-tab',
   template: `
-    <div [hidden]="!active()">
+    <div [hidden]="!active()" class="h-full">
       <ng-content></ng-content>
     </div>
   `,
