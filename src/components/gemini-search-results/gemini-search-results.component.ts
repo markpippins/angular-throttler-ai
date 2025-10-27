@@ -8,6 +8,9 @@ import { NewBookmark } from '../../models/bookmark.model.js';
   imports: [CommonModule],
   templateUrl: './gemini-search-results.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    class: 'block h-full'
+  }
 })
 export class GeminiSearchResultsComponent {
   private geminiService = inject(GeminiService);

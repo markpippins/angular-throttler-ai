@@ -8,6 +8,9 @@ import { ImageService } from '../../services/image.service.js';
   templateUrl: './search-results.component.html',
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    class: 'block h-full'
+  }
 })
 export class SearchResultsComponent {
   results = input.required<SearchResultNode[]>();
