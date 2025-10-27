@@ -9,7 +9,8 @@ interface AppPreferences {
   providedIn: 'root',
 })
 export class PreferencesService {
-  private http = inject(HttpClient);
+  // FIX: Explicitly type 'http' as 'HttpClient' to resolve a compiler error where 'get' was not found on type 'unknown'.
+  private http: HttpClient = inject(HttpClient);
   
   iconTheme = signal<string | null>(null);
   

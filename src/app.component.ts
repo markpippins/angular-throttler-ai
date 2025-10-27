@@ -75,7 +75,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private clipboardService = inject(ClipboardService);
   private bookmarkService = inject(BookmarkService);
   private injector = inject(Injector);
-  private document = inject(DOCUMENT);
+  // FIX: Explicitly type 'document' as 'Document' to resolve errors where 'body' was considered a property of an 'unknown' type.
+  private document: Document = inject(DOCUMENT);
   private renderer = inject(Renderer2);
   private elementRef = inject(ElementRef);
   private homeProvider: FileSystemProvider;

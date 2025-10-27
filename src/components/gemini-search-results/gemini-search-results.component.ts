@@ -1,11 +1,10 @@
 import { Component, ChangeDetectionStrategy, inject, signal, input, effect, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { GeminiService } from '../../services/gemini.service.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-gemini-search-results',
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './gemini-search-results.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {

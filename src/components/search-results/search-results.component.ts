@@ -6,7 +6,7 @@ import { ImageService } from '../../services/image.service.js';
 @Component({
   selector: 'app-search-results',
   templateUrl: './search-results.component.html',
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'block h-full'

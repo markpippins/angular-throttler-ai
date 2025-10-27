@@ -1,12 +1,11 @@
 import { Component, ChangeDetectionStrategy, inject, signal, input, effect, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { AcademicSearchService } from '../../services/academic-search.service.js';
 import { AcademicSearchResult } from '../../models/academic-search-result.model.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-academic-search-results',
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './academic-search-results.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
