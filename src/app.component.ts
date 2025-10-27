@@ -22,6 +22,7 @@ import { ToolbarComponent, SortCriteria } from './components/toolbar/toolbar.com
 import { ClipboardService } from './services/clipboard.service.js';
 import { BookmarkService } from './services/bookmark.service.js';
 import { NewBookmark } from './models/bookmark.model.js';
+import { BottomPaneComponent } from './components/bottom-pane/bottom-pane.component.js';
 
 interface PanePath {
   id: number;
@@ -59,7 +60,7 @@ const readOnlyProviderOps = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, SearchDialogComponent, DetailPaneComponent, ToolbarComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, SearchDialogComponent, DetailPaneComponent, ToolbarComponent, BottomPaneComponent],
   host: {
     '(document:click)': 'onDocumentClick($event)',
   }
@@ -110,11 +111,19 @@ export class AppComponent implements OnInit, OnDestroy {
     return new ImageService(profile, this.imageClientService, this.preferencesService);
   });
   
-  // --- Search State ---
+  // --- Search & Bottom Pane State ---
   isSearchDialogOpen = signal(false);
+  isBottomPaneVisible = signal(false);
   private searchInitiatorPaneId = signal<number | null>(null);
-  searchResultForPane = signal<{ id: number; results: SearchResultNode[] } | null>(null);
-  externalSearchRequest = signal<{ query: string; engines: Partial<SearchEngines>, targetTab?: string, timestamp: number } | null>(null);
+  
+  webSearchQuery = signal<string | null>(null);
+  imageSearchQuery = signal<string | null>(null);
+  geminiSearchQuery = signal<string | null>(null);
+  youtubeSearchQuery = signal<string | null>(null);
+  academicSearchQuery = signal<string | null>(null);
+  fileSearchResults = signal<SearchResultNode[] | null>(null);
+  initialTabRequest = signal<{ tab: string | undefined; timestamp: number } | undefined>();
+  isSearchView = computed(() => this.fileSearchResults() !== null);
 
   // --- Status Bar State ---
   private pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, isSearch: false, searchResultsCount: 0, filteredItemsCount: null });
@@ -153,6 +162,12 @@ export class AppComponent implements OnInit, OnDestroy {
   isResizingPanes = signal(false);
   private unlistenPaneMouseMove: (() => void) | null = null;
   private unlistenPaneMouseUp: (() => void) | null = null;
+
+  // --- Bottom Pane Resizing State ---
+  bottomPaneHeight = signal(320);
+  isResizingBottomPane = signal(false);
+  private unlistenBottomPaneMouseMove: (() => void) | null = null;
+  private unlistenBottomPaneMouseUp: (() => void) | null = null;
   
   @ViewChild('paneContainer') paneContainerEl!: ElementRef<HTMLDivElement>;
 
@@ -212,10 +227,6 @@ export class AppComponent implements OnInit, OnDestroy {
   pane2FilterQuery = signal('');
   activeFilterQuery = computed(() => this.activePaneId() === 1 ? this.pane1FilterQuery() : this.pane2FilterQuery());
 
-  pane1IsBottomPaneVisible = signal(false);
-  pane2IsBottomPaneVisible = signal(false);
-  activeIsBottomPaneVisible = computed(() => this.activePaneId() === 1 ? this.pane1IsBottomPaneVisible() : this.pane2IsBottomPaneVisible());
-
   canCutCopyShareDelete = computed(() => this.activePaneStatus().selectedItemsCount > 0);
   canRename = computed(() => this.activePaneStatus().selectedItemsCount === 1);
   canPaste = computed(() => {
@@ -264,6 +275,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.document.body.className = '';
     this.stopPaneResize();
+    this.stopBottomPaneResize();
   }
 
   loadTheme(): void {
@@ -490,29 +502,37 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.isBottomPaneVisible.set(true);
+
     // Handle file search
     if (engines.files) {
+      this.initialTabRequest.set({ tab: 'file', timestamp: Date.now() });
       await this.executeFileSearch(query, paneId);
     }
     
     // Handle external searches
+    if (engines.web) this.webSearchQuery.set(query);
+    if (engines.image) this.imageSearchQuery.set(query);
+    if (engines.gemini) this.geminiSearchQuery.set(query);
+    if (engines.youtube) this.youtubeSearchQuery.set(query);
+    if (engines.academic) this.academicSearchQuery.set(query);
+    
     const externalEngines: Partial<SearchEngines> = { ...engines };
     delete (externalEngines as any).files;
-    
     const hasExternalSearch = Object.values(externalEngines).some(v => v);
+
     if (hasExternalSearch) {
         let targetTab: string | undefined = undefined;
+        // Set tab based on a priority order if multiple are selected
         if (engines.web) targetTab = 'web';
         else if (engines.image) targetTab = 'image';
         else if (engines.gemini) targetTab = 'gemini';
         else if (engines.youtube) targetTab = 'youtube';
         else if (engines.academic) targetTab = 'academic';
-
-        this.externalSearchRequest.set({ query, engines: externalEngines, targetTab, timestamp: Date.now() });
-        if (this.activePaneId() === 1) {
-          this.pane1IsBottomPaneVisible.set(true);
-        } else {
-          this.pane2IsBottomPaneVisible.set(true);
+        
+        // Don't overwrite the 'file' tab request if it was set
+        if (targetTab && !engines.files) {
+          this.initialTabRequest.set({ tab: targetTab, timestamp: Date.now() });
         }
     }
 
@@ -532,7 +552,7 @@ export class AppComponent implements OnInit, OnDestroy {
         path: [rootPathSegment, ...r.path]
       }));
 
-      this.searchResultForPane.set({ id: paneId, results: processedResults });
+      this.fileSearchResults.set(processedResults);
     } catch (e) {
       console.error('File search failed', e);
       alert(`File search failed: ${(e as Error).message}`);
@@ -540,7 +560,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onSearchCompleted(): void {
-    this.searchResultForPane.set(null);
+    this.fileSearchResults.set(null);
   }
   
   async onLoadChildren(path: string[]): Promise<void> {
@@ -648,6 +668,42 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  // --- Bottom Pane Resizing Logic ---
+  startBottomPaneResize(event: MouseEvent): void {
+    this.isResizingBottomPane.set(true);
+    const startY = event.clientY;
+    const startHeight = this.bottomPaneHeight();
+
+    event.preventDefault();
+
+    this.unlistenBottomPaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+      const dy = startY - e.clientY;
+      let newHeight = startHeight + dy;
+
+      if (newHeight < 100) newHeight = 100;
+      if (newHeight > window.innerHeight - 200) newHeight = window.innerHeight - 200;
+
+      this.bottomPaneHeight.set(newHeight);
+    });
+
+    this.unlistenBottomPaneMouseUp = this.renderer.listen('document', 'mouseup', () => {
+      this.stopBottomPaneResize();
+    });
+  }
+
+  private stopBottomPaneResize(): void {
+    if (!this.isResizingBottomPane()) return;
+    this.isResizingBottomPane.set(false);
+    if (this.unlistenBottomPaneMouseMove) {
+      this.unlistenBottomPaneMouseMove();
+      this.unlistenBottomPaneMouseMove = null;
+    }
+    if (this.unlistenBottomPaneMouseUp) {
+      this.unlistenBottomPaneMouseUp();
+      this.unlistenBottomPaneMouseUp = null;
+    }
+  }
+
   // --- Global Toolbar Event Handlers ---
   
   onToolbarAction(name: string, payload?: any) {
@@ -679,11 +735,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
   
   onToggleBottomPane() {
-    if (this.activePaneId() === 1) {
-      this.pane1IsBottomPaneVisible.update(v => !v);
-    } else {
-      this.pane2IsBottomPaneVisible.update(v => !v);
-    }
+    this.isBottomPaneVisible.update(v => !v);
   }
 
   // --- Bookmark Handlers ---

@@ -6,7 +6,6 @@ import { ImageService } from '../../services/image.service.js';
 import { SortCriteria, SortKey } from '../toolbar/toolbar.component.js';
 import { FolderComponent } from '../folder/folder.component.js';
 import { ClipboardService } from '../../services/clipboard.service.js';
-import { SearchResultsComponent } from '../search-results/search-results.component.js';
 import { PropertiesDialogComponent } from '../properties-dialog/properties-dialog.component.js';
 import { DestinationNodeComponent } from '../destination-node/destination-node.component.js';
 import { BottomPaneComponent } from '../bottom-pane/bottom-pane.component.js';
@@ -15,7 +14,6 @@ import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.compone
 import { AutoFocusSelectDirective } from '../../directives/auto-focus-select.directive.js';
 // FIX: Import `DragDropPayload` to resolve type error.
 import { DragDropService, DragDropPayload } from '../../services/drag-drop.service.js';
-import { SearchEngines } from '../search-dialog/search-dialog.component.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
 
 export { SearchResultNode };
@@ -34,7 +32,7 @@ interface Thumbnail {
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, DatePipe, FolderComponent, SearchResultsComponent, PropertiesDialogComponent, DestinationNodeComponent, BottomPaneComponent, InputDialogComponent, ConfirmDialogComponent, AutoFocusSelectDirective],
+  imports: [CommonModule, DatePipe, FolderComponent, PropertiesDialogComponent, DestinationNodeComponent, BottomPaneComponent, InputDialogComponent, ConfirmDialogComponent, AutoFocusSelectDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent implements OnDestroy {
@@ -50,14 +48,11 @@ export class FileExplorerComponent implements OnDestroy {
   fileSystemProvider = input.required<FileSystemProvider>();
   imageService = input.required<ImageService>();
   folderTree = input<FileSystemNode | null>(null);
-  searchResults = input<{ id: number; results: SearchResultNode[] } | null>(null);
-  externalSearchRequest = input<{ query: string; engines: Partial<SearchEngines>, targetTab?: string, timestamp: number } | null>(null);
   refresh = input<number>(0);
   toolbarAction = input<{ name: string; payload?: any; id: number } | null>(null);
   sortCriteria = input<SortCriteria>({ key: 'name', direction: 'asc' });
   displayMode = input<'grid' | 'list'>('grid');
   filterQuery = input('');
-  isBottomPaneVisible = input(false);
 
   activated = output<number>();
   pathChanged = output<string[]>();
@@ -89,29 +84,8 @@ export class FileExplorerComponent implements OnDestroy {
   private destinationSubMenuTimer: any;
 
   // View state
-  viewMode = signal<'explorer' | 'search'>('explorer');
-  currentSearchResults = signal<SearchResultNode[]>([]);
   isPreviewLoading = signal(false);
 
-  // Bottom pane resizing & search state
-  bottomPaneHeight = signal(320);
-  isResizingBottomPane = signal(false);
-  fileSearchResults = signal<SearchResultNode[] | null>(null);
-  webSearchQuery = signal<string | null>(null);
-  imageSearchQuery = signal<string | null>(null);
-  geminiSearchQuery = signal<string | null>(null);
-  youtubeSearchQuery = signal<string | null>(null);
-  academicSearchQuery = signal<string | null>(null);
-  activeSearchRequest = computed(() => {
-    const request = this.externalSearchRequest();
-    if (request && this.isActive()) {
-        return { tab: request.targetTab, timestamp: request.timestamp };
-    }
-    return undefined;
-  });
-  private unlistenBottomPaneMouseMove: (() => void) | null = null;
-  private unlistenBottomPaneMouseUp: (() => void) | null = null;
-  
   // Selection
   selectedItems = signal<Set<string>>(new Set());
   private lastSelectedItemName = signal<string | null>(null);
@@ -250,24 +224,10 @@ export class FileExplorerComponent implements OnDestroy {
     }, { allowSignalWrites: true });
 
     effect(() => {
-      this.updateForSearchResults(this.searchResults());
       // Defer the status update to the next microtask to avoid NG0103.
       Promise.resolve().then(() => this.updateStatus());
     });
     
-    effect(() => {
-      const request = this.externalSearchRequest();
-      // Only react if this pane is the active one that initiated the search
-      if (request && this.isActive()) {
-        const { query, engines } = request;
-        if (engines.web) this.webSearchQuery.set(query);
-        if (engines.image) this.imageSearchQuery.set(query);
-        if (engines.gemini) this.geminiSearchQuery.set(query);
-        if (engines.youtube) this.youtubeSearchQuery.set(query);
-        if (engines.academic) this.academicSearchQuery.set(query);
-      }
-    });
-
     // This effect handles loading thumbnails whenever the list of visible items changes.
     effect(() => {
       // Only run this logic for grid view.
@@ -282,7 +242,6 @@ export class FileExplorerComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stopLassoing();
-    this.stopBottomPaneResize();
     // Re-enable text selection when component is destroyed
     this.renderer.removeStyle(document.body, 'user-select');
     // Clear any pending timers
@@ -294,8 +253,8 @@ export class FileExplorerComponent implements OnDestroy {
     this.statusChanged.emit({
       selectedItemsCount: this.selectedItems().size,
       totalItemsCount: this.state().items.length,
-      isSearch: this.viewMode() === 'search',
-      searchResultsCount: this.currentSearchResults().length,
+      isSearch: false, // Search view is no longer part of this component
+      searchResultsCount: 0,
       filteredItemsCount: hasFilter ? this.filteredItems().length : null,
     });
   }
@@ -352,22 +311,6 @@ export class FileExplorerComponent implements OnDestroy {
                 return newCache;
             });
         }
-    }
-  }
-
-  updateForSearchResults(search: { id: number; results: SearchResultNode[] } | null): void {
-    if (search && search.id === this.id()) {
-      // Keep main view in explorer mode.
-      this.viewMode.set('explorer');
-      this.currentSearchResults.set([]);
-      
-      // Pass the results to the bottom pane.
-      this.fileSearchResults.set(search.results);
-    } else {
-      // This case handles clearing the search, e.g., when switching panes.
-      this.viewMode.set('explorer');
-      this.currentSearchResults.set([]);
-      this.fileSearchResults.set(null);
     }
   }
 
@@ -1123,43 +1066,6 @@ export class FileExplorerComponent implements OnDestroy {
       this.unlistenMouseUp = null;
     }
     this.renderer.removeStyle(document.body, 'user-select');
-  }
-
-  // --- Bottom Pane Resizing ---
-  startBottomPaneResize(event: MouseEvent): void {
-    this.isResizingBottomPane.set(true);
-    const startY = event.clientY;
-    const startHeight = this.bottomPaneHeight();
-
-    event.preventDefault();
-
-    this.unlistenBottomPaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
-      const dy = startY - e.clientY;
-      let newHeight = startHeight + dy;
-
-      if (newHeight < 100) newHeight = 100;
-      if (newHeight > window.innerHeight - 200) newHeight = window.innerHeight - 200;
-
-      this.bottomPaneHeight.set(newHeight);
-    });
-
-    this.unlistenBottomPaneMouseUp = this.renderer.listen('document', 'mouseup', () => {
-      this.stopBottomPaneResize();
-    });
-  }
-
-  // FIX: Added missing stopBottomPaneResize method to fix error on destroy.
-  private stopBottomPaneResize(): void {
-    if (!this.isResizingBottomPane()) return;
-    this.isResizingBottomPane.set(false);
-    if (this.unlistenBottomPaneMouseMove) {
-      this.unlistenBottomPaneMouseMove();
-      this.unlistenBottomPaneMouseMove = null;
-    }
-    if (this.unlistenBottomPaneMouseUp) {
-      this.unlistenBottomPaneMouseUp();
-      this.unlistenBottomPaneMouseUp = null;
-    }
   }
 
   // --- Drag & Drop Handlers for Main Area and List View ---

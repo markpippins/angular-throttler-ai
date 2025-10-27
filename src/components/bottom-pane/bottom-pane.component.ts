@@ -66,6 +66,7 @@ export class BottomPaneComponent {
       if (request) {
         let tabIndex = 0;
         switch (request.tab) {
+          case 'file': tabIndex = 0; break;
           case 'web': tabIndex = 1; break;
           case 'image': tabIndex = 2; break;
           case 'gemini': tabIndex = 3; break;

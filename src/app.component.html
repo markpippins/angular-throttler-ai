@@ -25,8 +25,8 @@
         [currentSort]="activeSortCriteria()"
         [folderTree]="folderTree()"
         [currentPath]="activePanePath()"
-        [isSearchView]="activePaneStatus().isSearch"
-        [isBottomPaneVisible]="activeIsBottomPaneVisible()"
+        [isSearchView]="isSearchView()"
+        [isBottomPaneVisible]="isBottomPaneVisible()"
         [displayMode]="activeDisplayMode()"
         [filterQuery]="activeFilterQuery()"
         [isSplitViewActive]="isSplitView()"
@@ -53,83 +53,100 @@
         (themeMenuClick)="openThemeMenu($event)">
       </app-toolbar>
 
-      <div class="flex-1 flex flex-row overflow-hidden">
-        <div #paneContainer class="flex-1 flex bg-[rgb(var(--color-background))] overflow-hidden">
-          <div 
-            class="h-full"
-            [class.flex-1]="!isSplitView()"
-            [class.flex-shrink-0]="isSplitView()"
-            [style.width.%]="isSplitView() ? pane1Width() : undefined">
-            <app-file-explorer 
-              [id]="1"
-              [path]="pane1Path()"
-              [isActive]="activePaneId() === 1"
-              [isSplitView]="isSplitView()"
-              [fileSystemProvider]="pane1Provider()"
-              [imageService]="pane1ImageService()"
-              [folderTree]="folderTree()"
-              [searchResults]="searchResultForPane()"
-              [externalSearchRequest]="externalSearchRequest()"
-              [refresh]="refreshPanes()"
-              [toolbarAction]="toolbarAction()"
-              [sortCriteria]="pane1SortCriteria()"
-              [displayMode]="pane1DisplayMode()"
-              [filterQuery]="pane1FilterQuery()"
-              [isBottomPaneVisible]="pane1IsBottomPaneVisible()"
-              (activated)="setActivePane($event)"
-              (pathChanged)="onPane1PathChanged($event)"
-              (quickSearch)="executeQuickSearch(1, $event)"
-              (itemSelected)="onItemSelectedInPane($event)"
-              (directoryChanged)="loadFolderTree()"
-              (statusChanged)="onPane1StatusChanged($event)"
-              (sortChange)="onSortChange($event)"
-              (saveBookmark)="onSaveBookmark($event)"
-              (bookmarkDropped)="onBookmarkDroppedOnPane($event)">
-            </app-file-explorer>
-          </div>
-
-          @if (isSplitView()) {
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-row overflow-hidden">
+          <div #paneContainer class="flex-1 flex bg-[rgb(var(--color-background))] overflow-hidden">
             <div 
-              (mousedown)="startPaneResize($event)" 
-              class="w-1.5 h-full flex-shrink-0 cursor-col-resize group flex items-center justify-center">
-              <div class="w-0.5 h-full bg-[rgb(var(--color-border-base))] group-hover:bg-[rgb(var(--color-accent-ring))] transition-colors duration-200"></div>
-            </div>
-            <div class="flex-1 h-full">
+              class="h-full"
+              [class.flex-1]="!isSplitView()"
+              [class.flex-shrink-0]="isSplitView()"
+              [style.width.%]="isSplitView() ? pane1Width() : undefined">
               <app-file-explorer 
-                [id]="2"
-                [path]="pane2Path()"
-                [isActive]="activePaneId() === 2"
+                [id]="1"
+                [path]="pane1Path()"
+                [isActive]="activePaneId() === 1"
                 [isSplitView]="isSplitView()"
-                [fileSystemProvider]="pane2Provider()"
-                [imageService]="pane2ImageService()"
+                [fileSystemProvider]="pane1Provider()"
+                [imageService]="pane1ImageService()"
                 [folderTree]="folderTree()"
-                [searchResults]="searchResultForPane()"
-                [externalSearchRequest]="externalSearchRequest()"
                 [refresh]="refreshPanes()"
                 [toolbarAction]="toolbarAction()"
-                [sortCriteria]="pane2SortCriteria()"
-                [displayMode]="pane2DisplayMode()"
-                [filterQuery]="pane2FilterQuery()"
-                [isBottomPaneVisible]="pane2IsBottomPaneVisible()"
+                [sortCriteria]="pane1SortCriteria()"
+                [displayMode]="pane1DisplayMode()"
+                [filterQuery]="pane1FilterQuery()"
                 (activated)="setActivePane($event)"
-                (pathChanged)="onPane2PathChanged($event)"
-                (quickSearch)="executeQuickSearch(2, $event)"
+                (pathChanged)="onPane1PathChanged($event)"
+                (quickSearch)="executeQuickSearch(1, $event)"
                 (itemSelected)="onItemSelectedInPane($event)"
                 (directoryChanged)="loadFolderTree()"
-                (statusChanged)="onPane2StatusChanged($event)"
+                (statusChanged)="onPane1StatusChanged($event)"
                 (sortChange)="onSortChange($event)"
                 (saveBookmark)="onSaveBookmark($event)"
                 (bookmarkDropped)="onBookmarkDroppedOnPane($event)">
               </app-file-explorer>
             </div>
+
+            @if (isSplitView()) {
+              <div 
+                (mousedown)="startPaneResize($event)" 
+                class="w-1.5 h-full flex-shrink-0 cursor-col-resize group flex items-center justify-center">
+                <div class="w-0.5 h-full bg-[rgb(var(--color-border-base))] group-hover:bg-[rgb(var(--color-accent-ring))] transition-colors duration-200"></div>
+              </div>
+              <div class="flex-1 h-full">
+                <app-file-explorer 
+                  [id]="2"
+                  [path]="pane2Path()"
+                  [isActive]="activePaneId() === 2"
+                  [isSplitView]="isSplitView()"
+                  [fileSystemProvider]="pane2Provider()"
+                  [imageService]="pane2ImageService()"
+                  [folderTree]="folderTree()"
+                  [refresh]="refreshPanes()"
+                  [toolbarAction]="toolbarAction()"
+                  [sortCriteria]="pane2SortCriteria()"
+                  [displayMode]="pane2DisplayMode()"
+                  [filterQuery]="pane2FilterQuery()"
+                  (activated)="setActivePane($event)"
+                  (pathChanged)="onPane2PathChanged($event)"
+                  (quickSearch)="executeQuickSearch(2, $event)"
+                  (itemSelected)="onItemSelectedInPane($event)"
+                  (directoryChanged)="loadFolderTree()"
+                  (statusChanged)="onPane2StatusChanged($event)"
+                  (sortChange)="onSortChange($event)"
+                  (saveBookmark)="onSaveBookmark($event)"
+                  (bookmarkDropped)="onBookmarkDroppedOnPane($event)">
+                </app-file-explorer>
+              </div>
+            }
+          </div>
+          
+          @if (isDetailPaneOpen()) {
+            <app-detail-pane
+              [path]="activePanePath()"
+              (close)="toggleDetailPane()">
+            </app-detail-pane>
           }
         </div>
         
-        @if (isDetailPaneOpen()) {
-          <app-detail-pane
-            [path]="activePanePath()"
-            (close)="toggleDetailPane()">
-          </app-detail-pane>
+        @if (isBottomPaneVisible()) {
+          <div 
+            class="h-1.5 flex-shrink-0 bg-[rgb(var(--color-surface-muted))] hover:bg-[rgb(var(--color-accent-solid-bg))] cursor-row-resize transition-colors duration-150"
+            (mousedown)="startBottomPaneResize($event)">
+          </div>
+          <div class="flex-shrink-0 overflow-hidden" [style.height.px]="bottomPaneHeight()">
+            <app-bottom-pane
+                [webSearchQuery]="webSearchQuery()"
+                [imageSearchQuery]="imageSearchQuery()"
+                [geminiSearchQuery]="geminiSearchQuery()"
+                [youtubeSearchQuery]="youtubeSearchQuery()"
+                [academicSearchQuery]="academicSearchQuery()"
+                [fileSearchResults]="fileSearchResults()"
+                [imageService]="activeImageService()"
+                [activeProvider]="activeProvider()"
+                [initialTabRequest]="initialTabRequest()"
+                (saveBookmark)="onSaveBookmark($event)">
+            </app-bottom-pane>
+          </div>
         }
       </div>
     </div>
@@ -138,8 +155,8 @@
   <!-- New Footer/Status Bar -->
   <div class="p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface))]">
     @if (activePaneStatus(); as status) {
-      @if (status.isSearch) {
-        <span>{{ status.searchResultsCount }} item(s) found</span>
+      @if (isSearchView()) {
+        <span>{{ fileSearchResults()?.length ?? 0 }} item(s) found</span>
       } @else {
         @if (status.selectedItemsCount > 0) {
           <span class="mr-4">{{ status.selectedItemsCount }} item(s) selected</span>
