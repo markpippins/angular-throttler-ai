@@ -8,7 +8,6 @@ import { FolderComponent } from '../folder/folder.component.js';
 import { ClipboardService } from '../../services/clipboard.service.js';
 import { PropertiesDialogComponent } from '../properties-dialog/properties-dialog.component.js';
 import { DestinationNodeComponent } from '../destination-node/destination-node.component.js';
-import { BottomPaneComponent } from '../bottom-pane/bottom-pane.component.js';
 import { InputDialogComponent } from '../input-dialog/input-dialog.component.js';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component.js';
 import { AutoFocusSelectDirective } from '../../directives/auto-focus-select.directive.js';
@@ -32,7 +31,7 @@ interface Thumbnail {
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, DatePipe, FolderComponent, PropertiesDialogComponent, DestinationNodeComponent, BottomPaneComponent, InputDialogComponent, ConfirmDialogComponent, AutoFocusSelectDirective],
+  imports: [CommonModule, DatePipe, FolderComponent, PropertiesDialogComponent, DestinationNodeComponent, InputDialogComponent, ConfirmDialogComponent, AutoFocusSelectDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent implements OnDestroy {

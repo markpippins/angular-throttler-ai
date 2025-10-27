@@ -122,7 +122,7 @@ export class AppComponent implements OnInit, OnDestroy {
   youtubeSearchQuery = signal<string | null>(null);
   academicSearchQuery = signal<string | null>(null);
   fileSearchResults = signal<SearchResultNode[] | null>(null);
-  initialTabRequest = signal<{ tab: string | undefined; timestamp: number } | undefined>();
+  initialTabRequest = signal<{ tab: string | undefined; timestamp: number } | undefined>(undefined);
   isSearchView = computed(() => this.fileSearchResults() !== null);
 
   // --- Status Bar State ---
