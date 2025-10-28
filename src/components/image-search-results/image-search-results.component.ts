@@ -1,5 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal, input, effect, output } from '@angular/core';
-import { UnsplashService } from '../../services/unsplash.service.js';
+import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { ImageSearchResult } from '../../models/image-search-result.model.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
 
@@ -13,44 +12,9 @@ import { NewBookmark } from '../../models/bookmark.model.js';
   }
 })
 export class ImageSearchResultsComponent {
-  private unsplashService = inject(UnsplashService);
-
-  initialQuery = input<string | null>(null);
+  isLoading = input.required<boolean>();
+  results = input.required<ImageSearchResult[] | null>();
   save = output<NewBookmark>();
-
-  query = signal('');
-  isLoading = signal(false);
-  results = signal<ImageSearchResult[] | null>(null);
-
-  constructor() {
-    effect(() => {
-      const newQuery = this.initialQuery();
-      if (newQuery) {
-        this.query.set(newQuery);
-        this.performSearch();
-      }
-    });
-  }
-
-  onQueryChange(event: Event) {
-    this.query.set((event.target as HTMLInputElement).value);
-  }
-
-  async performSearch() {
-    if (!this.query().trim()) return;
-
-    this.isLoading.set(true);
-    this.results.set(null);
-    try {
-      const searchResults = await this.unsplashService.search(this.query());
-      this.results.set(searchResults);
-    } catch (e) {
-      console.error('Image search failed', e);
-      this.results.set([]);
-    } finally {
-      this.isLoading.set(false);
-    }
-  }
 
   onSave(result: ImageSearchResult): void {
     this.save.emit({

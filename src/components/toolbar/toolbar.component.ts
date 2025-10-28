@@ -22,7 +22,6 @@ export class ToolbarComponent {
   private elementRef = inject(ElementRef);
   isNewDropdownOpen = signal(false);
   isSortDropdownOpen = signal(false);
-  isSearchOptionsDropdownOpen = signal(false);
   isCopyToOpen = signal(false);
   isMoveToOpen = signal(false);
   isHamburgerMenuOpen = signal(false);
@@ -38,8 +37,6 @@ export class ToolbarComponent {
   currentSort = input<SortCriteria>({ key: 'name', direction: 'asc' });
   folderTree = input<FileSystemNode | null>(null);
   currentPath = input<string[]>([]);
-  isSearchView = input(false);
-  isBottomPaneVisible = input(false);
   displayMode = input<'grid' | 'list'>('grid');
   filterQuery = input('');
   isSplitViewActive = input(false);
@@ -59,8 +56,6 @@ export class ToolbarComponent {
   deleteClick = output<void>();
   sortChange = output<SortCriteria>();
   searchClick = output<void>();
-  closeSearchClick = output<void>();
-  toggleBottomPane = output<void>();
   displayModeChange = output<'grid' | 'list'>();
   filterChange = output<string>();
   splitViewClick = output<void>();
@@ -77,11 +72,6 @@ export class ToolbarComponent {
   toggleSortDropdown(event: MouseEvent): void {
     event.stopPropagation();
     this.isSortDropdownOpen.update(v => !v);
-  }
-  
-  toggleSearchOptionsDropdown(event: MouseEvent): void {
-    event.stopPropagation();
-    this.isSearchOptionsDropdownOpen.update(v => !v);
   }
   
   toggleCopyToDropdown(event: MouseEvent): void {
@@ -120,7 +110,6 @@ export class ToolbarComponent {
     if (!this.elementRef.nativeElement.contains(event.target)) {
       if (this.isNewDropdownOpen()) this.isNewDropdownOpen.set(false);
       if (this.isSortDropdownOpen()) this.isSortDropdownOpen.set(false);
-      if (this.isSearchOptionsDropdownOpen()) this.isSearchOptionsDropdownOpen.set(false);
       if (this.isCopyToOpen()) this.isCopyToOpen.set(false);
       if (this.isMoveToOpen()) this.isMoveToOpen.set(false);
       if (this.isHamburgerMenuOpen()) this.isHamburgerMenuOpen.set(false);

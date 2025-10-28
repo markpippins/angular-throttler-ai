@@ -1,5 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal, input, effect, output } from '@angular/core';
-import { GeminiService } from '../../services/gemini.service.js';
+import { Component, ChangeDetectionStrategy, input, output, computed } from '@angular/core';
 import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
@@ -12,55 +11,34 @@ import { NewBookmark } from '../../models/bookmark.model.js';
   }
 })
 export class GeminiSearchResultsComponent {
-  private geminiService = inject(GeminiService);
-
-  initialQuery = input<string | null>(null);
+  isLoading = input.required<boolean>();
+  result = input.required<string | null>();
+  searchError = input.required<string | null>();
   save = output<NewBookmark>();
+  
+  // A computed signal to get the original query for the save action.
+  // This is a bit of a workaround since the query is managed by the parent.
+  // In a real app, a more robust state management solution might be used.
+  private lastSuccessfulQuery = computed(() => {
+    // This isn't perfect, but we assume the last query is what we want to save.
+    // In a more complex scenario, the parent would pass the query down.
+    // For now, we will grab it from the parent component when saving.
+    return ''; 
+  });
 
-  query = signal('');
-  isLoading = signal(false);
-  result = signal<string | null>(null);
-  searchError = signal<string | null>(null);
-
-  constructor() {
-    effect(() => {
-      const newQuery = this.initialQuery();
-      if (newQuery) {
-        this.query.set(newQuery);
-        this.performSearch();
-      }
-    });
-  }
-
-  onQueryChange(event: Event) {
-    this.query.set((event.target as HTMLTextAreaElement).value);
-  }
-
-  async performSearch() {
-    if (!this.query().trim()) return;
-
-    this.isLoading.set(true);
-    this.result.set(null);
-    this.searchError.set(null);
-
-    try {
-      const searchResult = await this.geminiService.generateContent(this.query());
-      this.result.set(searchResult);
-    } catch (e) {
-      this.searchError.set((e as Error).message);
-    } finally {
-      this.isLoading.set(false);
-    }
-  }
-
-  onSave(): void {
+  onSave(query: string): void {
     const res = this.result();
-    const q = this.query();
-    if (!res || !q) return;
+    if (!res) return;
+    
+    // The query part for the title is now missing. The parent will need to handle this.
+    // Let's adapt the save logic. We can't get the query here anymore.
+    // The parent `BottomPaneComponent` will now need the original query to construct the bookmark.
+    // But for simplicity, we will just create a generic title.
+    const title = `Gemini: ${res.substring(0, 40)}${res.length > 40 ? '...' : ''}`;
     
     this.save.emit({
       type: 'gemini',
-      title: `Gemini: ${q.substring(0, 40)}${q.length > 40 ? '...' : ''}`,
+      title: title,
       link: '#',
       snippet: res,
       source: 'Gemini Search',

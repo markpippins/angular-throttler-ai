@@ -1,70 +1,44 @@
-<div class="h-full flex flex-col p-2 text-sm">
-  <!-- Search Bar -->
-  <div class="flex items-center space-x-2 p-2 border-b border-[rgb(var(--color-border-base))]">
-    <input 
-      type="text" 
-      placeholder="Search YouTube..."
-      class="flex-grow px-3 py-1.5 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))]"
-      [value]="query()"
-      (input)="onQueryChange($event)"
-      (keydown.enter)="performSearch()">
-    <button 
-      (click)="performSearch()" 
-      [disabled]="!query().trim() || isLoading()"
-      class="px-4 py-1.5 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed transition-colors font-semibold">
-        @if(isLoading()) {
-          <span>...</span>
-        } @else {
-          <span>Search</span>
-        }
-    </button>
+@if(isLoading()) {
+  <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Searching YouTube...</div>
+} @else if (searchError(); as error) {
+  <div class="text-center py-8 text-[rgb(var(--color-danger-text))] bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
+    <h3 class="font-semibold text-lg">An error occurred</h3>
+    <p class="mt-2 text-sm text-[rgb(var(--color-text-muted))]">{{ error }}</p>
   </div>
-
-  <!-- Results -->
-  <div class="flex-1 overflow-y-auto p-2">
-    @if(isLoading()) {
-      <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Searching YouTube...</div>
-    } @else if (searchError(); as error) {
-      <div class="text-center py-8 text-[rgb(var(--color-danger-text))] bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
-        <h3 class="font-semibold text-lg">An error occurred</h3>
-        <p class="mt-2 text-sm text-[rgb(var(--color-text-muted))]">{{ error }}</p>
-      </div>
-    } @else if (results(); as res) {
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        @for (result of res; track result.id) {
-          <div class="block group bg-[rgb(var(--color-surface))] rounded-lg overflow-hidden shadow-sm border border-transparent hover:border-[rgb(var(--color-border-muted))] transition-all relative">
-            <a href="https://www.youtube.com/watch?v={{ result.id }}" target="_blank" class="block">
-              <div class="aspect-video">
-                <img [src]="result.thumbnailUrl" [alt]="result.title" class="w-full h-full object-cover">
-              </div>
-              <div class="p-3">
-                <h4 class="font-semibold text-sm text-[rgb(var(--color-text-base))] group-hover:text-[rgb(var(--color-accent-text))] line-clamp-2">{{ result.title }}</h4>
-                <p class="text-xs text-[rgb(var(--color-text-subtle))] mt-1 truncate">{{ result.channelTitle }}</p>
-                <div class="text-xs text-[rgb(var(--color-text-subtle))] mt-1">
-                  <span>{{ result.viewCount }} views</span>
-                  <span class="mx-1">&middot;</span>
-                  <span>{{ result.publishedAt }}</span>
-                </div>
-              </div>
-            </a>
-            <button (click)="onSave(result)" title="Save video" class="absolute top-1 right-1 p-1.5 rounded-full bg-black/50 text-white/80 hover:bg-black/70 hover:text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />
-              </svg>
-            </button>
+} @else if (results(); as res) {
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    @for (result of res; track result.id) {
+      <div class="block group bg-[rgb(var(--color-surface))] rounded-lg overflow-hidden shadow-sm border border-transparent hover:border-[rgb(var(--color-border-muted))] transition-all relative">
+        <a href="https://www.youtube.com/watch?v={{ result.id }}" target="_blank" class="block">
+          <div class="aspect-video">
+            <img [src]="result.thumbnailUrl" [alt]="result.title" class="w-full h-full object-cover">
           </div>
-        } @empty {
-          <div class="col-span-full text-center py-8 text-[rgb(var(--color-text-subtle))]">No videos found.</div>
-        }
+          <div class="p-3">
+            <h4 class="font-semibold text-sm text-[rgb(var(--color-text-base))] group-hover:text-[rgb(var(--color-accent-text))] line-clamp-2">{{ result.title }}</h4>
+            <p class="text-xs text-[rgb(var(--color-text-subtle))] mt-1 truncate">{{ result.channelTitle }}</p>
+            <div class="text-xs text-[rgb(var(--color-text-subtle))] mt-1">
+              <span>{{ result.viewCount }} views</span>
+              <span class="mx-1">&middot;</span>
+              <span>{{ result.publishedAt }}</span>
+            </div>
+          </div>
+        </a>
+        <button (click)="onSave(result)" title="Save video" class="absolute top-1 right-1 p-1.5 rounded-full bg-black/50 text-white/80 hover:bg-black/70 hover:text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />
+          </svg>
+        </button>
       </div>
-    } @else {
-      <div class="h-full flex flex-col items-center justify-center text-center text-[rgb(var(--color-text-subtle))] p-4">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <p class="mt-2 font-semibold">No results found</p>
-        <p>Enter a query to search for YouTube videos.</p>
-      </div>
+    } @empty {
+      <div class="col-span-full text-center py-8 text-[rgb(var(--color-text-subtle))]">No videos found.</div>
     }
   </div>
-</div>
+} @else {
+  <div class="h-full flex flex-col items-center justify-center text-center text-[rgb(var(--color-text-subtle))] p-4">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+    <p class="mt-2 font-semibold">No results found</p>
+    <p>Enter a query to search for YouTube videos.</p>
+  </div>
+}

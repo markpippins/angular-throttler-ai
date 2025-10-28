@@ -195,12 +195,16 @@ export class FileExplorerComponent implements OnDestroy {
       this.path(); // dependency
       this.fileSystemProvider(); // dependency
 
+      // Clear thumbnail cache on navigation to prevent memory leaks from old,
+      // no-longer-visible thumbnails.
+      this.thumbnailCache.set(new Map());
+
       this._loadContents().finally(() => {
         // After loading is complete (success or fail), schedule a status update in the next microtask.
         // This avoids the NG0103 error.
         Promise.resolve().then(() => this.updateStatus());
       });
-    });
+    }, { allowSignalWrites: true });
     
     effect(() => {
       const action = this.toolbarAction();

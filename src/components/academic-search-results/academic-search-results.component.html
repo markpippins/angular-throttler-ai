@@ -1,65 +1,39 @@
-<div class="h-full flex flex-col p-2 text-sm">
-  <!-- Search Bar -->
-  <div class="flex items-center space-x-2 p-2 border-b border-[rgb(var(--color-border-base))]">
-    <input 
-      type="text" 
-      placeholder="Search for papers, articles..."
-      class="flex-grow px-3 py-1.5 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))]"
-      [value]="query()"
-      (input)="onQueryChange($event)"
-      (keydown.enter)="performSearch()">
-    <button 
-      (click)="performSearch()" 
-      [disabled]="!query().trim() || isLoading()"
-      class="px-4 py-1.5 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed transition-colors font-semibold">
-        @if(isLoading()) {
-          <span>...</span>
-        } @else {
-          <span>Search</span>
-        }
-    </button>
+@if(isLoading()) {
+  <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Searching academic sources...</div>
+} @else if (searchError(); as error) {
+  <div class="text-center py-8 text-[rgb(var(--color-danger-text))] bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
+    <h3 class="font-semibold text-lg">An error occurred</h3>
+    <p class="mt-2 text-sm text-[rgb(var(--color-text-muted))]">{{ error }}</p>
   </div>
-
-  <!-- Results -->
-  <div class="flex-1 overflow-y-auto p-2">
-    @if(isLoading()) {
-      <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">Searching academic sources...</div>
-    } @else if (searchError(); as error) {
-      <div class="text-center py-8 text-[rgb(var(--color-danger-text))] bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
-        <h3 class="font-semibold text-lg">An error occurred</h3>
-        <p class="mt-2 text-sm text-[rgb(var(--color-text-muted))]">{{ error }}</p>
-      </div>
-    } @else if (results(); as res) {
-      <div class="space-y-4">
-        @for (result of res; track result.link) {
-          <div class="group relative pr-8">
-            <a [href]="result.link" target="_blank" class="text-blue-500 dark:text-blue-400 group-hover:underline text-base font-semibold">{{ result.title }}</a>
-            <div class="text-xs">
-                <span class="text-green-700 dark:text-green-500">{{ result.authors.join(', ') }}</span>
-                <span class="text-[rgb(var(--color-text-subtle))]"> - {{ result.publication }}, {{ result.year }}</span>
-            </div>
-            <p class="text-[rgb(var(--color-text-muted))] mt-1">{{ result.snippet }}</p>
-            @if (result.pdfLink) {
-                <a [href]="result.pdfLink" target="_blank" class="text-xs text-red-600 dark:text-red-500 hover:underline">[PDF]</a>
-            }
-            <button (click)="onSave(result); $event.preventDefault(); $event.stopPropagation()" title="Save article" class="absolute top-0 right-0 p-1 rounded-full text-[rgb(var(--color-text-subtle))] hover:bg-[rgb(var(--color-surface-hover))] hover:text-[rgb(var(--color-accent-text))] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />
-              </svg>
-            </button>
-          </div>
-        } @empty {
-          <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">No articles found.</div>
+} @else if (results(); as res) {
+  <div class="space-y-4">
+    @for (result of res; track result.link) {
+      <div class="group relative pr-8">
+        <a [href]="result.link" target="_blank" class="text-blue-500 dark:text-blue-400 group-hover:underline text-base font-semibold">{{ result.title }}</a>
+        <div class="text-xs">
+            <span class="text-green-700 dark:text-green-500">{{ result.authors.join(', ') }}</span>
+            <span class="text-[rgb(var(--color-text-subtle))]"> - {{ result.publication }}, {{ result.year }}</span>
+        </div>
+        <p class="text-[rgb(var(--color-text-muted))] mt-1">{{ result.snippet }}</p>
+        @if (result.pdfLink) {
+            <a [href]="result.pdfLink" target="_blank" class="text-xs text-red-600 dark:text-red-500 hover:underline">[PDF]</a>
         }
+        <button (click)="onSave(result); $event.preventDefault(); $event.stopPropagation()" title="Save article" class="absolute top-0 right-0 p-1 rounded-full text-[rgb(var(--color-text-subtle))] hover:bg-[rgb(var(--color-surface-hover))] hover:text-[rgb(var(--color-accent-text))] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />
+          </svg>
+        </button>
       </div>
-    } @else {
-      <div class="h-full flex flex-col items-center justify-center text-center text-[rgb(var(--color-text-subtle))] p-4">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <p class="mt-2 font-semibold">No results found</p>
-        <p>Enter a query to search for scholarly articles.</p>
-      </div>
+    } @empty {
+      <div class="text-center py-8 text-[rgb(var(--color-text-subtle))]">No articles found.</div>
     }
   </div>
-</div>
+} @else {
+  <div class="h-full flex flex-col items-center justify-center text-center text-[rgb(var(--color-text-subtle))] p-4">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+    <p class="mt-2 font-semibold">No results found</p>
+    <p>Enter a query to search for scholarly articles.</p>
+  </div>
+}

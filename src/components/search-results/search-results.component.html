@@ -18,7 +18,7 @@
                 <img [src]="iconUrl" [alt]="item.type" class="h-5 w-5 object-contain">
               }
             </td>
-            <td class="px-4 py-1.5 whitespace-nowrap font-medium">{{ item.name }}</td>
+            <td class="px-4 py-1.5 whitespace-nowrap font-medium">{{ getDisplayName(item) }}</td>
             <td class="px-4 py-1.5 whitespace-nowrap text-[rgb(var(--color-text-subtle))]">{{ item.path.join('/') || '/' }}</td>
             <td class="px-4 py-1.5 whitespace-nowrap text-[rgb(var(--color-text-subtle))]">{{ item.modified }}</td>
           </tr>

@@ -114,7 +114,7 @@ export class AppComponent implements OnInit, OnDestroy {
   
   // --- Search & Bottom Pane State ---
   isSearchDialogOpen = signal(false);
-  isBottomPaneVisible = signal(false);
+  isBottomPaneVisible = signal(true);
   private searchInitiatorPaneId = signal<number | null>(null);
   
   webSearchQuery = signal<string | null>(null);
@@ -463,6 +463,12 @@ export class AppComponent implements OnInit, OnDestroy {
       }
       return paths;
     });
+
+    // When the user navigates in a pane, clear any active file search results.
+    // This provides a natural way to exit the "search view".
+    if (this.isSearchView()) {
+      this.fileSearchResults.set(null);
+    }
   }
   
   onSidebarNavigation(path: string[]): void {
@@ -502,8 +508,6 @@ export class AppComponent implements OnInit, OnDestroy {
       this.closeSearchDialog();
       return;
     }
-
-    this.isBottomPaneVisible.set(true);
 
     // Handle file search
     if (engines.files) {
@@ -558,10 +562,6 @@ export class AppComponent implements OnInit, OnDestroy {
       console.error('File search failed', e);
       alert(`File search failed: ${(e as Error).message}`);
     }
-  }
-
-  onSearchCompleted(): void {
-    this.fileSearchResults.set(null);
   }
   
   async onLoadChildren(path: string[]): Promise<void> {
@@ -735,10 +735,6 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
   
-  onToggleBottomPane() {
-    this.isBottomPaneVisible.update(v => !v);
-  }
-
   // --- Bookmark Handlers ---
   onSaveBookmark(bookmark: NewBookmark): void {
     const path = this.activePanePath();

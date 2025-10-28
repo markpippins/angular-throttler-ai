@@ -37,19 +37,163 @@
       </div>
     </app-tab>
     <app-tab title="Web">
-      <app-web-search-results [initialQuery]="webSearchQuery()" (save)="saveBookmark.emit($event)"></app-web-search-results>
+      <div class="h-full flex flex-col p-2 text-sm">
+        <div class="flex items-center space-x-2 p-2 border-b border-[rgb(var(--color-border-base))]">
+          <input 
+            type="text" 
+            placeholder="Search the web..."
+            class="flex-grow px-3 py-1.5 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))]"
+            [value]="webQuery()"
+            (input)="onWebQueryChange($event)"
+            (keydown.enter)="performWebSearch()">
+          <button 
+            (click)="performWebSearch()" 
+            [disabled]="!webQuery().trim() || webIsLoading()"
+            class="px-4 py-1.5 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed transition-colors font-semibold">
+              @if(webIsLoading()) {
+                <span>...</span>
+              } @else {
+                <span>Search</span>
+              }
+          </button>
+        </div>
+        <div class="flex-1 overflow-y-auto pt-2">
+          <app-web-search-results 
+            [isLoading]="webIsLoading()"
+            [results]="webResults()"
+            [searchError]="webSearchError()"
+            (save)="saveBookmark.emit($event)">
+          </app-web-search-results>
+        </div>
+      </div>
     </app-tab>
     <app-tab title="Image">
-      <app-image-search-results [initialQuery]="imageSearchQuery()" (save)="saveBookmark.emit($event)"></app-image-search-results>
+      <div class="h-full flex flex-col p-2 text-sm">
+        <div class="flex items-center space-x-2 p-2 border-b border-[rgb(var(--color-border-base))]">
+          <input 
+            type="text" 
+            placeholder="Search for images..."
+            class="flex-grow px-3 py-1.5 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))]"
+            [value]="imageQuery()"
+            (input)="onImageQueryChange($event)"
+            (keydown.enter)="performImageSearch()">
+          <button 
+            (click)="performImageSearch()" 
+            [disabled]="!imageQuery().trim() || imageIsLoading()"
+            class="px-4 py-1.5 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed transition-colors font-semibold">
+              @if(imageIsLoading()) {
+                <span>...</span>
+              } @else {
+                <span>Search</span>
+              }
+          </button>
+        </div>
+        <div class="flex-1 overflow-y-auto pt-2">
+          <app-image-search-results 
+            [isLoading]="imageIsLoading()"
+            [results]="imageResults()"
+            (save)="saveBookmark.emit($event)">
+          </app-image-search-results>
+        </div>
+      </div>
     </app-tab>
     <app-tab title="Gemini">
-      <app-gemini-search-results [initialQuery]="geminiSearchQuery()" (save)="saveBookmark.emit($event)"></app-gemini-search-results>
+      <div class="h-full flex flex-col p-2 text-sm">
+        <div class="flex flex-col space-y-2 p-2 border-b border-[rgb(var(--color-border-base))]">
+          <textarea 
+            rows="3"
+            placeholder="Ask Gemini anything..."
+            class="flex-grow w-full px-3 py-1.5 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))]"
+            [value]="geminiQuery()"
+            (input)="onGeminiQueryChange($event)"></textarea>
+          <button 
+            (click)="performGeminiSearch()" 
+            [disabled]="!geminiQuery().trim() || geminiIsLoading()"
+            class="w-full px-4 py-1.5 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed transition-colors font-semibold">
+              @if(geminiIsLoading()) {
+                <div class="flex items-center justify-center">
+                  <svg class="animate-spin -ml-1 mr-3 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Generating...</span>
+                </div>
+              } @else {
+                <span>Generate</span>
+              }
+          </button>
+        </div>
+        <div class="flex-1 overflow-y-auto pt-2">
+          <app-gemini-search-results 
+            [isLoading]="geminiIsLoading()"
+            [result]="geminiResult()"
+            [searchError]="geminiSearchError()"
+            (save)="saveBookmark.emit($event)">
+          </app-gemini-search-results>
+        </div>
+      </div>
     </app-tab>
     <app-tab title="YouTube">
-      <app-youtube-search-results [initialQuery]="youtubeSearchQuery()" (save)="saveBookmark.emit($event)"></app-youtube-search-results>
+      <div class="h-full flex flex-col p-2 text-sm">
+        <div class="flex items-center space-x-2 p-2 border-b border-[rgb(var(--color-border-base))]">
+          <input 
+            type="text" 
+            placeholder="Search YouTube..."
+            class="flex-grow px-3 py-1.5 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))]"
+            [value]="youtubeQuery()"
+            (input)="onYoutubeQueryChange($event)"
+            (keydown.enter)="performYoutubeSearch()">
+          <button 
+            (click)="performYoutubeSearch()" 
+            [disabled]="!youtubeQuery().trim() || youtubeIsLoading()"
+            class="px-4 py-1.5 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed transition-colors font-semibold">
+              @if(youtubeIsLoading()) {
+                <span>...</span>
+              } @else {
+                <span>Search</span>
+              }
+          </button>
+        </div>
+        <div class="flex-1 overflow-y-auto pt-2">
+          <app-youtube-search-results 
+            [isLoading]="youtubeIsLoading()"
+            [results]="youtubeResults()"
+            [searchError]="youtubeSearchError()"
+            (save)="saveBookmark.emit($event)">
+          </app-youtube-search-results>
+        </div>
+      </div>
     </app-tab>
     <app-tab title="Academic">
-      <app-academic-search-results [initialQuery]="academicSearchQuery()" (save)="saveBookmark.emit($event)"></app-academic-search-results>
+      <div class="h-full flex flex-col p-2 text-sm">
+        <div class="flex items-center space-x-2 p-2 border-b border-[rgb(var(--color-border-base))]">
+          <input 
+            type="text" 
+            placeholder="Search for papers, articles..."
+            class="flex-grow px-3 py-1.5 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))]"
+            [value]="academicQuery()"
+            (input)="onAcademicQueryChange($event)"
+            (keydown.enter)="performAcademicSearch()">
+          <button 
+            (click)="performAcademicSearch()" 
+            [disabled]="!academicQuery().trim() || academicIsLoading()"
+            class="px-4 py-1.5 bg-[rgb(var(--color-accent-solid-bg))] text-[rgb(var(--color-text-inverted))] rounded-md hover:bg-[rgb(var(--color-accent-solid-bg-hover))] disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed transition-colors font-semibold">
+              @if(academicIsLoading()) {
+                <span>...</span>
+              } @else {
+                <span>Search</span>
+              }
+          </button>
+        </div>
+        <div class="flex-1 overflow-y-auto pt-2">
+          <app-academic-search-results
+            [isLoading]="academicIsLoading()"
+            [results]="academicResults()"
+            [searchError]="academicSearchError()"
+            (save)="saveBookmark.emit($event)">
+          </app-academic-search-results>
+        </div>
+      </div>
     </app-tab>
   </app-tab-control>
 </div>

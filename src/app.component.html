@@ -25,8 +25,6 @@
         [currentSort]="activeSortCriteria()"
         [folderTree]="folderTree()"
         [currentPath]="activePanePath()"
-        [isSearchView]="isSearchView()"
-        [isBottomPaneVisible]="isBottomPaneVisible()"
         [displayMode]="activeDisplayMode()"
         [filterQuery]="activeFilterQuery()"
         [isSplitViewActive]="isSplitView()"
@@ -44,8 +42,6 @@
         (deleteClick)="onToolbarAction('delete')"
         (sortChange)="onSortChange($event)"
         (searchClick)="openSearchDialog()"
-        (closeSearchClick)="onSearchCompleted()"
-        (toggleBottomPane)="onToggleBottomPane()"
         (displayModeChange)="onDisplayModeChange($event)"
         (filterChange)="onFilterChange($event)"
         (splitViewClick)="toggleSplitView()"
@@ -119,37 +115,35 @@
               </div>
             }
           </div>
-          
-          @if (isDetailPaneOpen()) {
-            <app-detail-pane
-              [path]="activePanePath()"
-              (close)="toggleDetailPane()">
-            </app-detail-pane>
-          }
         </div>
         
-        @if (isBottomPaneVisible()) {
-          <div 
-            class="h-1.5 flex-shrink-0 bg-[rgb(var(--color-surface-muted))] hover:bg-[rgb(var(--color-accent-solid-bg))] cursor-row-resize transition-colors duration-150"
-            (mousedown)="startBottomPaneResize($event)">
-          </div>
-          <div class="flex-shrink-0 overflow-hidden" [style.height.px]="bottomPaneHeight()">
-            <app-bottom-pane
-                [webSearchQuery]="webSearchQuery()"
-                [imageSearchQuery]="imageSearchQuery()"
-                [geminiSearchQuery]="geminiSearchQuery()"
-                [youtubeSearchQuery]="youtubeSearchQuery()"
-                [academicSearchQuery]="academicSearchQuery()"
-                [fileSearchResults]="fileSearchResults()"
-                [imageService]="activeImageService()"
-                [activeProvider]="activeProvider()"
-                [initialTabRequest]="initialTabRequest()"
-                (saveBookmark)="onSaveBookmark($event)">
-            </app-bottom-pane>
-          </div>
-        }
+        <div 
+          class="h-1.5 flex-shrink-0 bg-[rgb(var(--color-surface-muted))] hover:bg-[rgb(var(--color-accent-solid-bg))] cursor-row-resize transition-colors duration-150"
+          (mousedown)="startBottomPaneResize($event)">
+        </div>
+        <div class="flex-shrink-0 overflow-hidden" [style.height.px]="bottomPaneHeight()">
+          <app-bottom-pane
+              [webSearchQuery]="webSearchQuery()"
+              [imageSearchQuery]="imageSearchQuery()"
+              [geminiSearchQuery]="geminiSearchQuery()"
+              [youtubeSearchQuery]="youtubeSearchQuery()"
+              [academicSearchQuery]="academicSearchQuery()"
+              [fileSearchResults]="fileSearchResults()"
+              [imageService]="activeImageService()"
+              [activeProvider]="activeProvider()"
+              [initialTabRequest]="initialTabRequest()"
+              (saveBookmark)="onSaveBookmark($event)">
+          </app-bottom-pane>
+        </div>
       </div>
     </div>
+
+    @if (isDetailPaneOpen()) {
+      <app-detail-pane
+        [path]="activePanePath()"
+        (close)="toggleDetailPane()">
+      </app-detail-pane>
+    }
   </main>
 
   <!-- New Footer/Status Bar -->
