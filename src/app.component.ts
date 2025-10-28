@@ -1,3 +1,4 @@
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent, SearchResultNode } from './components/file-explorer/file-explorer.component.js';
@@ -6,7 +7,7 @@ import { FileSystemNode } from './models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './services/file-system-provider.js';
 import { ServerProfilesDialogComponent } from './components/server-profiles-dialog/server-profiles-dialog.component.js';
 import { ServerProfileService } from './services/server-profile.service.js';
-import { SearchDialogComponent, SearchEngines } from './components/search-dialog/search-dialog.component.js';
+import { SearchToolbarComponent } from './components/search-toolbar/search-toolbar.component.js';
 import { DetailPaneComponent } from './components/detail-pane/detail-pane.component.js';
 import { InMemoryFileSystemService } from './services/in-memory-file-system.service.js';
 import { ServerProfile } from './models/server-profile.model.js';
@@ -22,7 +23,6 @@ import { ToolbarComponent, SortCriteria } from './components/toolbar/toolbar.com
 import { ClipboardService } from './services/clipboard.service.js';
 import { BookmarkService } from './services/bookmark.service.js';
 import { NewBookmark } from './models/bookmark.model.js';
-import { BottomPaneComponent } from './components/bottom-pane/bottom-pane.component.js';
 
 interface PanePath {
   id: number;
@@ -60,7 +60,7 @@ const readOnlyProviderOps = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, SearchDialogComponent, DetailPaneComponent, ToolbarComponent, BottomPaneComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, SearchToolbarComponent],
   host: {
     '(document:click)': 'onDocumentClick($event)',
   }
@@ -112,18 +112,9 @@ export class AppComponent implements OnInit, OnDestroy {
     return new ImageService(profile, this.imageClientService, this.preferencesService);
   });
   
-  // --- Search & Bottom Pane State ---
-  isSearchDialogOpen = signal(false);
-  isBottomPaneVisible = signal(true);
-  private searchInitiatorPaneId = signal<number | null>(null);
-  
-  webSearchQuery = signal<string | null>(null);
-  imageSearchQuery = signal<string | null>(null);
-  geminiSearchQuery = signal<string | null>(null);
-  youtubeSearchQuery = signal<string | null>(null);
-  academicSearchQuery = signal<string | null>(null);
+  // --- Search State ---
   fileSearchResults = signal<SearchResultNode[] | null>(null);
-  initialTabRequest = signal<{ tab: string | undefined; timestamp: number } | undefined>(undefined);
+  fileSearchQuery = signal<string>('');
   isSearchView = computed(() => this.fileSearchResults() !== null);
 
   // --- Status Bar State ---
@@ -163,12 +154,6 @@ export class AppComponent implements OnInit, OnDestroy {
   isResizingPanes = signal(false);
   private unlistenPaneMouseMove: (() => void) | null = null;
   private unlistenPaneMouseUp: (() => void) | null = null;
-
-  // --- Bottom Pane Resizing State ---
-  bottomPaneHeight = signal(320);
-  isResizingBottomPane = signal(false);
-  private unlistenBottomPaneMouseMove: (() => void) | null = null;
-  private unlistenBottomPaneMouseUp: (() => void) | null = null;
   
   @ViewChild('paneContainer') paneContainerEl!: ElementRef<HTMLDivElement>;
 
@@ -194,13 +179,6 @@ export class AppComponent implements OnInit, OnDestroy {
   pane2Provider = computed(() => this.getProviderForPath(this.pane2Path()));
   pane1ImageService = computed(() => this.getImageServiceForPath(this.pane1Path()));
   pane2ImageService = computed(() => this.getImageServiceForPath(this.pane2Path()));
-  
-  // FIX: Add a computed signal to get the image service for the active pane.
-  // This is needed to pass the correct service to the detail pane, which was
-  // previously trying to inject a non-injectable service.
-  activeImageService = computed(() => {
-    return this.activePaneId() === 1 ? this.pane1ImageService() : this.pane2ImageService();
-  });
   
   activeProvider = computed(() => {
     const path = this.activePanePath();
@@ -276,7 +254,6 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.document.body.className = '';
     this.stopPaneResize();
-    this.stopBottomPaneResize();
   }
 
   loadTheme(): void {
@@ -468,6 +445,7 @@ export class AppComponent implements OnInit, OnDestroy {
     // This provides a natural way to exit the "search view".
     if (this.isSearchView()) {
       this.fileSearchResults.set(null);
+      this.fileSearchQuery.set('');
     }
   }
   
@@ -484,70 +462,20 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   // --- Search Handling ---
-  openSearchDialog(): void {
-    this.searchInitiatorPaneId.set(this.activePaneId());
-    this.isSearchDialogOpen.set(true);
-  }
-
-  closeSearchDialog(): void {
-    this.isSearchDialogOpen.set(false);
-    this.searchInitiatorPaneId.set(null);
-  }
-
-  executeQuickSearch(paneId: number, query: string): void {
-    this.searchInitiatorPaneId.set(paneId);
-    this.executeSearch({ 
-        query, 
-        engines: { files: true, web: false, image: false, gemini: false, youtube: false, academic: false }
-    });
-  }
-
-  async executeSearch({ query, engines }: { query: string; engines: SearchEngines }): Promise<void> {
-    const paneId = this.searchInitiatorPaneId();
-    if (!query || !paneId) {
-      this.closeSearchDialog();
+  async executeSearch(query: string): Promise<void> {
+    if (!query) {
+      this.fileSearchResults.set(null);
+      this.fileSearchQuery.set('');
       return;
     }
-
-    // Handle file search
-    if (engines.files) {
-      this.initialTabRequest.set({ tab: 'file', timestamp: Date.now() });
-      await this.executeFileSearch(query, paneId);
-    }
     
-    // Handle external searches
-    if (engines.web) this.webSearchQuery.set(query);
-    if (engines.image) this.imageSearchQuery.set(query);
-    if (engines.gemini) this.geminiSearchQuery.set(query);
-    if (engines.youtube) this.youtubeSearchQuery.set(query);
-    if (engines.academic) this.academicSearchQuery.set(query);
-    
-    const externalEngines: Partial<SearchEngines> = { ...engines };
-    delete (externalEngines as any).files;
-    const hasExternalSearch = Object.values(externalEngines).some(v => v);
-
-    if (hasExternalSearch) {
-        let targetTab: string | undefined = undefined;
-        // Set tab based on a priority order if multiple are selected
-        if (engines.web) targetTab = 'web';
-        else if (engines.image) targetTab = 'image';
-        else if (engines.gemini) targetTab = 'gemini';
-        else if (engines.youtube) targetTab = 'youtube';
-        else if (engines.academic) targetTab = 'academic';
-        
-        // Don't overwrite the 'file' tab request if it was set
-        if (targetTab && !engines.files) {
-          this.initialTabRequest.set({ tab: targetTab, timestamp: Date.now() });
-        }
-    }
-
-    this.closeSearchDialog();
+    this.fileSearchQuery.set(query);
+    await this.executeFileSearch(query);
   }
   
-  private async executeFileSearch(query: string, paneId: number): Promise<void> {
-    const path = paneId === 1 ? this.pane1Path() : this.pane2Path();
-    const provider = this.getProviderForPath(path);
-    const rootPathSegment = path.length > 0 ? path[0] : LOCAL_ROOT_NAME;
+  private async executeFileSearch(query: string): Promise<void> {
+    const provider = this.activeProvider();
+    const rootPathSegment = this.activePanePath()[0] ?? LOCAL_ROOT_NAME;
 
     try {
       const results = await provider.search(query);
@@ -561,6 +489,7 @@ export class AppComponent implements OnInit, OnDestroy {
     } catch (e) {
       console.error('File search failed', e);
       alert(`File search failed: ${(e as Error).message}`);
+      this.fileSearchResults.set([]); // Set to empty on error
     }
   }
   
@@ -666,42 +595,6 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.unlistenPaneMouseUp) {
         this.unlistenPaneMouseUp();
         this.unlistenPaneMouseUp = null;
-    }
-  }
-
-  // --- Bottom Pane Resizing Logic ---
-  startBottomPaneResize(event: MouseEvent): void {
-    this.isResizingBottomPane.set(true);
-    const startY = event.clientY;
-    const startHeight = this.bottomPaneHeight();
-
-    event.preventDefault();
-
-    this.unlistenBottomPaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
-      const dy = startY - e.clientY;
-      let newHeight = startHeight + dy;
-
-      if (newHeight < 100) newHeight = 100;
-      if (newHeight > window.innerHeight - 200) newHeight = window.innerHeight - 200;
-
-      this.bottomPaneHeight.set(newHeight);
-    });
-
-    this.unlistenBottomPaneMouseUp = this.renderer.listen('document', 'mouseup', () => {
-      this.stopBottomPaneResize();
-    });
-  }
-
-  private stopBottomPaneResize(): void {
-    if (!this.isResizingBottomPane()) return;
-    this.isResizingBottomPane.set(false);
-    if (this.unlistenBottomPaneMouseMove) {
-      this.unlistenBottomPaneMouseMove();
-      this.unlistenBottomPaneMouseMove = null;
-    }
-    if (this.unlistenBottomPaneMouseUp) {
-      this.unlistenBottomPaneMouseUp();
-      this.unlistenBottomPaneMouseUp = null;
     }
   }
 

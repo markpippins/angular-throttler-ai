@@ -1,3 +1,4 @@
+
 import { Component, ChangeDetectionStrategy, output, signal, ElementRef, inject, viewChild, input } from '@angular/core';
 import { DestinationNodeComponent } from '../destination-node/destination-node.component.js';
 import { FileSystemNode } from '../../models/file-system.model.js';
@@ -55,7 +56,6 @@ export class ToolbarComponent {
   shareClick = output<void>();
   deleteClick = output<void>();
   sortChange = output<SortCriteria>();
-  searchClick = output<void>();
   displayModeChange = output<'grid' | 'list'>();
   filterChange = output<string>();
   splitViewClick = output<void>();

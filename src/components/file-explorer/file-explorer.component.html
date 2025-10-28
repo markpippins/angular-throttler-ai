@@ -14,14 +14,18 @@
       </svg>
     </button>
     <div class="flex-grow flex items-center bg-[rgb(var(--color-background))] rounded-md border border-[rgb(var(--color-border-muted))] px-2 py-1 text-sm">
-      <button (click)="navigateToPath(-1)" class="text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer">{{ rootName() }}</button>
-      @if (displayPath().length > 0) {
-        <span class="mx-1 text-[rgb(var(--color-text-subtle))]">\</span>
-      }
-      @for (segment of displayPath(); track segment; let i = $index) {
-        <button (click)="navigateToPath(i)" class="text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer">{{ segment }}</button>
-        @if (!$last) {
+      @if (isSearchView()) {
+        <span class="text-[rgb(var(--color-text-base))]">Search Results for '{{ searchQuery() }}'</span>
+      } @else {
+        <button (click)="navigateToPath(-1)" class="text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer">{{ rootName() }}</button>
+        @if (displayPath().length > 0) {
           <span class="mx-1 text-[rgb(var(--color-text-subtle))]">\</span>
+        }
+        @for (segment of displayPath(); track segment; let i = $index) {
+          <button (click)="navigateToPath(i)" class="text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer">{{ segment }}</button>
+          @if (!$last) {
+            <span class="mx-1 text-[rgb(var(--color-text-subtle))]">\</span>
+          }
         }
       }
     </div>
@@ -31,21 +35,6 @@
         <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm10.899 12.101A7.002 7.002 0 012.399 8.567a1 1 0 011.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101z" clip-rule="evenodd" />
       </svg>
     </button>
-    <!-- Quick Search Input -->
-    <div class="relative">
-      <input 
-          type="search" 
-          placeholder="Quick search..."
-          class="w-48 pl-8 pr-2 py-1 text-sm rounded-md border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-background))] focus:ring-1 focus:ring-[rgb(var(--color-accent-ring))] focus:outline-none"
-          [value]="quickSearchQuery()"
-          (input)="onQuickSearchInput($event)"
-          (keydown.enter)="onQuickSearchSubmit()">
-      <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-text-subtle))]" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-          </svg>
-      </div>
-    </div>
   </div>
 
   <!-- Main Area Wrapper -->
@@ -105,7 +94,7 @@
                   } @else {
                     <div #selectableItem
                       data-is-selectable-item
-                      draggable="true"
+                      [draggable]="!isSearchView()"
                       [attr.data-item-name]="item.name"
                       (click)="onItemClick($event, item)" 
                       (dragstart)="onItemDragStart($event, item)"
@@ -152,6 +141,8 @@
                   <div class="col-span-full text-center py-12 text-[rgb(var(--color-text-subtle))]">
                       @if (filterQuery()) {
                         <p>No items match your filter.</p>
+                      } @else if (isSearchView()) {
+                        <p>No items found for your search.</p>
                       } @else {
                         <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -188,6 +179,9 @@
                       }
                     </div>
                   </th>
+                  @if (isSearchView()) {
+                    <th class="p-2 font-semibold">Path</th>
+                  }
                   <th (click)="onColumnHeaderClick('modified')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
                     <div class="flex items-center">
                       <span>Date Modified</span>
@@ -207,7 +201,7 @@
                 @for (item of filteredItems(); track item.name) {
                   <tr (click)="onItemClick($event, item)" 
                       (contextmenu)="onContextMenu($event, item)"
-                      draggable="true"
+                      [draggable]="!isSearchView()"
                       (dragstart)="onItemDragStart($event, item)"
                       (dragover)="onListItemDragOver($event, item)"
                       (dragleave)="onListItemDragLeave($event)"
@@ -253,14 +247,20 @@
                         {{ getDisplayName(item) }}
                       }
                     </td>
+                    @if(isSearchView()) {
+                      @let result = $any(item);
+                      <td class="px-2 py-1.5 text-[rgb(var(--color-text-subtle))] whitespace-nowrap truncate">{{ result.path.join('/') || '/' }}</td>
+                    }
                     <td class="px-2 py-1.5 text-[rgb(var(--color-text-muted))] whitespace-nowrap">{{ item.modified | date:'mediumDate' }}</td>
                     <td class="px-2 py-1.5 text-[rgb(var(--color-text-muted))] whitespace-nowrap">{{ item.type === 'folder' ? 'File folder' : 'File' }}</td>
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="4" class="text-center py-12 text-[rgb(var(--color-text-subtle))]">
+                    <td [attr.colspan]="isSearchView() ? 5 : 4" class="text-center py-12 text-[rgb(var(--color-text-subtle))]">
                       @if (filterQuery()) {
                         <p>No items match your filter.</p>
+                      } @else if (isSearchView()) {
+                        <p>No items found for your search.</p>
                       } @else {
                         <p>This folder is empty.</p>
                       }

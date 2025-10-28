@@ -41,7 +41,6 @@
         (shareClick)="onToolbarAction('share')"
         (deleteClick)="onToolbarAction('delete')"
         (sortChange)="onSortChange($event)"
-        (searchClick)="openSearchDialog()"
         (displayModeChange)="onDisplayModeChange($event)"
         (filterChange)="onFilterChange($event)"
         (splitViewClick)="toggleSplitView()"
@@ -49,102 +48,85 @@
         (themeMenuClick)="openThemeMenu($event)">
       </app-toolbar>
 
-      <div class="flex-1 flex flex-col overflow-hidden">
-        <div class="flex-1 flex flex-row overflow-hidden">
-          <div #paneContainer class="flex-1 flex bg-[rgb(var(--color-background))] overflow-hidden">
+      <div class="flex-1 flex flex-row overflow-hidden">
+        <div #paneContainer class="flex-1 flex bg-[rgb(var(--color-background))] overflow-hidden">
+          <div 
+            class="h-full"
+            [class.flex-1]="!isSplitView()"
+            [class.flex-shrink-0]="isSplitView()"
+            [style.width.%]="isSplitView() ? pane1Width() : undefined">
+            <app-file-explorer 
+              [id]="1"
+              [path]="pane1Path()"
+              [isActive]="activePaneId() === 1"
+              [isSplitView]="isSplitView()"
+              [fileSystemProvider]="pane1Provider()"
+              [imageService]="pane1ImageService()"
+              [folderTree]="folderTree()"
+              [refresh]="refreshPanes()"
+              [toolbarAction]="toolbarAction()"
+              [sortCriteria]="pane1SortCriteria()"
+              [displayMode]="pane1DisplayMode()"
+              [filterQuery]="pane1FilterQuery()"
+              [searchResults]="fileSearchResults()"
+              [searchQuery]="fileSearchQuery()"
+              (activated)="setActivePane($event)"
+              (pathChanged)="onPane1PathChanged($event)"
+              (itemSelected)="onItemSelectedInPane($event)"
+              (directoryChanged)="loadFolderTree()"
+              (statusChanged)="onPane1StatusChanged($event)"
+              (sortChange)="onSortChange($event)"
+              (saveBookmark)="onSaveBookmark($event)"
+              (bookmarkDropped)="onBookmarkDroppedOnPane($event)">
+            </app-file-explorer>
+          </div>
+
+          @if (isSplitView()) {
             <div 
-              class="h-full"
-              [class.flex-1]="!isSplitView()"
-              [class.flex-shrink-0]="isSplitView()"
-              [style.width.%]="isSplitView() ? pane1Width() : undefined">
+              (mousedown)="startPaneResize($event)" 
+              class="w-1.5 h-full flex-shrink-0 cursor-col-resize group flex items-center justify-center">
+              <div class="w-0.5 h-full bg-[rgb(var(--color-border-base))] group-hover:bg-[rgb(var(--color-accent-ring))] transition-colors duration-200"></div>
+            </div>
+            <div class="flex-1 h-full">
               <app-file-explorer 
-                [id]="1"
-                [path]="pane1Path()"
-                [isActive]="activePaneId() === 1"
+                [id]="2"
+                [path]="pane2Path()"
+                [isActive]="activePaneId() === 2"
                 [isSplitView]="isSplitView()"
-                [fileSystemProvider]="pane1Provider()"
-                [imageService]="pane1ImageService()"
+                [fileSystemProvider]="pane2Provider()"
+                [imageService]="pane2ImageService()"
                 [folderTree]="folderTree()"
                 [refresh]="refreshPanes()"
                 [toolbarAction]="toolbarAction()"
-                [sortCriteria]="pane1SortCriteria()"
-                [displayMode]="pane1DisplayMode()"
-                [filterQuery]="pane1FilterQuery()"
+                [sortCriteria]="pane2SortCriteria()"
+                [displayMode]="pane2DisplayMode()"
+                [filterQuery]="pane2FilterQuery()"
+                [searchResults]="fileSearchResults()"
+                [searchQuery]="fileSearchQuery()"
                 (activated)="setActivePane($event)"
-                (pathChanged)="onPane1PathChanged($event)"
-                (quickSearch)="executeQuickSearch(1, $event)"
+                (pathChanged)="onPane2PathChanged($event)"
                 (itemSelected)="onItemSelectedInPane($event)"
                 (directoryChanged)="loadFolderTree()"
-                (statusChanged)="onPane1StatusChanged($event)"
+                (statusChanged)="onPane2StatusChanged($event)"
                 (sortChange)="onSortChange($event)"
                 (saveBookmark)="onSaveBookmark($event)"
                 (bookmarkDropped)="onBookmarkDroppedOnPane($event)">
               </app-file-explorer>
             </div>
-
-            @if (isSplitView()) {
-              <div 
-                (mousedown)="startPaneResize($event)" 
-                class="w-1.5 h-full flex-shrink-0 cursor-col-resize group flex items-center justify-center">
-                <div class="w-0.5 h-full bg-[rgb(var(--color-border-base))] group-hover:bg-[rgb(var(--color-accent-ring))] transition-colors duration-200"></div>
-              </div>
-              <div class="flex-1 h-full">
-                <app-file-explorer 
-                  [id]="2"
-                  [path]="pane2Path()"
-                  [isActive]="activePaneId() === 2"
-                  [isSplitView]="isSplitView()"
-                  [fileSystemProvider]="pane2Provider()"
-                  [imageService]="pane2ImageService()"
-                  [folderTree]="folderTree()"
-                  [refresh]="refreshPanes()"
-                  [toolbarAction]="toolbarAction()"
-                  [sortCriteria]="pane2SortCriteria()"
-                  [displayMode]="pane2DisplayMode()"
-                  [filterQuery]="pane2FilterQuery()"
-                  (activated)="setActivePane($event)"
-                  (pathChanged)="onPane2PathChanged($event)"
-                  (quickSearch)="executeQuickSearch(2, $event)"
-                  (itemSelected)="onItemSelectedInPane($event)"
-                  (directoryChanged)="loadFolderTree()"
-                  (statusChanged)="onPane2StatusChanged($event)"
-                  (sortChange)="onSortChange($event)"
-                  (saveBookmark)="onSaveBookmark($event)"
-                  (bookmarkDropped)="onBookmarkDroppedOnPane($event)">
-                </app-file-explorer>
-              </div>
-            }
-          </div>
+          }
         </div>
         
-        <div 
-          class="h-1.5 flex-shrink-0 bg-[rgb(var(--color-surface-muted))] hover:bg-[rgb(var(--color-accent-solid-bg))] cursor-row-resize transition-colors duration-150"
-          (mousedown)="startBottomPaneResize($event)">
-        </div>
-        <div class="flex-shrink-0 overflow-hidden" [style.height.px]="bottomPaneHeight()">
-          <app-bottom-pane
-              [webSearchQuery]="webSearchQuery()"
-              [imageSearchQuery]="imageSearchQuery()"
-              [geminiSearchQuery]="geminiSearchQuery()"
-              [youtubeSearchQuery]="youtubeSearchQuery()"
-              [academicSearchQuery]="academicSearchQuery()"
-              [fileSearchResults]="fileSearchResults()"
-              [imageService]="activeImageService()"
-              [activeProvider]="activeProvider()"
-              [initialTabRequest]="initialTabRequest()"
-              (saveBookmark)="onSaveBookmark($event)">
-          </app-bottom-pane>
-        </div>
+        @if (isDetailPaneOpen()) {
+          <app-detail-pane
+            [path]="activePanePath()"
+            (close)="toggleDetailPane()">
+          </app-detail-pane>
+        }
       </div>
     </div>
-
-    @if (isDetailPaneOpen()) {
-      <app-detail-pane
-        [path]="activePanePath()"
-        (close)="toggleDetailPane()">
-      </app-detail-pane>
-    }
   </main>
+
+  <app-search-toolbar (search)="executeSearch($event)"></app-search-toolbar>
 
   <!-- New Footer/Status Bar -->
   <div class="p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface))]">
@@ -194,12 +176,5 @@
       (loginAndMount)="onLoginAndMount($event)"
       (unmountProfile)="onUnmountProfile($event)">
     </app-server-profiles-dialog>
-  }
-
-  @if(isSearchDialogOpen()) {
-    <app-search-dialog
-      (close)="closeSearchDialog()"
-      (search)="executeSearch($event)">
-    </app-search-dialog>
   }
 </div>

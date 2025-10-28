@@ -1,3 +1,4 @@
+
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FileSystemNode, SearchResultNode } from '../../models/file-system.model.js';
@@ -52,10 +53,11 @@ export class FileExplorerComponent implements OnDestroy {
   sortCriteria = input<SortCriteria>({ key: 'name', direction: 'asc' });
   displayMode = input<'grid' | 'list'>('grid');
   filterQuery = input('');
+  searchResults = input<SearchResultNode[] | null>(null);
+  searchQuery = input('');
 
   activated = output<number>();
   pathChanged = output<string[]>();
-  quickSearch = output<string>();
   itemSelected = output<FileSystemNode | null>();
   directoryChanged = output<void>();
   statusChanged = output<{
@@ -76,8 +78,6 @@ export class FileExplorerComponent implements OnDestroy {
   failedImageItems = signal<Set<string>>(new Set());
   isDragOverMainArea = signal(false);
   
-  quickSearchQuery = signal('');
-
   // Destination Submenu State
   destinationSubMenu = signal<{ operation: 'copy' | 'move', x: number, y: number } | null>(null);
   private destinationSubMenuTimer: any;
@@ -134,7 +134,8 @@ export class FileExplorerComponent implements OnDestroy {
 
   // Computed properties for UI binding
   isHighlighted = computed(() => this.isActive() && this.isSplitView());
-  canGoUp = computed(() => this.path().length > 0);
+  isSearchView = computed(() => this.searchResults() !== null);
+  canGoUp = computed(() => this.path().length > 0 && !this.isSearchView());
   isAtHomeRoot = computed(() => this.path().length === 0);
   
   // The path passed to the provider, which excludes the root segment (server name)
@@ -191,20 +192,27 @@ export class FileExplorerComponent implements OnDestroy {
     console.log('FileExplorerComponent constructor: Initializing component.');
     effect(() => {
       // This effect runs when path, provider, or refresh changes.
-      this.refresh(); // dependency
-      this.path(); // dependency
-      this.fileSystemProvider(); // dependency
+      // It also runs when a search is initiated.
+      const searchResults = this.searchResults();
+      
+      this.selectedItems.set(new Set());
+      this.itemSelected.emit(null);
+      
+      if (searchResults !== null) {
+        this.state.set({ status: 'success', items: searchResults });
+      } else {
+        this.refresh(); // dependency
+        this.path(); // dependency
+        this.fileSystemProvider(); // dependency
+        this._loadContents();
+      }
+    });
 
-      // Clear thumbnail cache on navigation to prevent memory leaks from old,
-      // no-longer-visible thumbnails.
-      this.thumbnailCache.set(new Map());
-
-      this._loadContents().finally(() => {
+    effect(() => {
         // After loading is complete (success or fail), schedule a status update in the next microtask.
         // This avoids the NG0103 error.
         Promise.resolve().then(() => this.updateStatus());
-      });
-    }, { allowSignalWrites: true });
+    });
     
     effect(() => {
       const action = this.toolbarAction();
@@ -225,11 +233,6 @@ export class FileExplorerComponent implements OnDestroy {
           this.rootName.set('Error');
         });
     }, { allowSignalWrites: true });
-
-    effect(() => {
-      // Defer the status update to the next microtask to avoid NG0103.
-      Promise.resolve().then(() => this.updateStatus());
-    });
     
     // This effect handles loading thumbnails whenever the list of visible items changes.
     effect(() => {
@@ -252,13 +255,14 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   private updateStatus(): void {
+    const isSearch = this.isSearchView();
     const hasFilter = this.filterQuery().trim().length > 0;
     this.statusChanged.emit({
       selectedItemsCount: this.selectedItems().size,
       totalItemsCount: this.state().items.length,
-      isSearch: false, // Search view is no longer part of this component
-      searchResultsCount: 0,
-      filteredItemsCount: hasFilter ? this.filteredItems().length : null,
+      isSearch: isSearch,
+      searchResultsCount: isSearch ? this.state().items.length : 0,
+      filteredItemsCount: !isSearch && hasFilter ? this.filteredItems().length : null,
     });
   }
   
@@ -275,7 +279,6 @@ export class FileExplorerComponent implements OnDestroy {
 
   async loadContents(): Promise<void> {
     await this._loadContents();
-    this.updateStatus();
   }
 
   async loadThumbnailsForVisibleItems(): Promise<void> {
@@ -325,6 +328,7 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   navigateToPath(displayIndex: number): void {
+    if (this.isSearchView()) return;
     // We navigate within the full path. The displayIndex is relative to the displayPath.
     // displayIndex: -1 for the root, 0 for the first segment, etc.
     // The new path length will be displayIndex + 2 (e.g., -1 -> 1, 0 -> 2)
@@ -333,6 +337,14 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   async openItem(item: FileSystemNode): Promise<void> {
+    if (this.isSearchView() && item.type === 'folder') {
+      // In search view, clicking a folder navigates to its real location
+      const searchItem = item as SearchResultNode;
+      // The search result path includes the root, so it's a full path.
+      this.pathChanged.emit([...searchItem.path, searchItem.name]);
+      return;
+    }
+  
     if (item.type === 'folder') {
       this.pathChanged.emit([...this.path(), item.name]);
       return;
@@ -348,7 +360,9 @@ export class FileExplorerComponent implements OnDestroy {
 
     this.isPreviewLoading.set(true);
     try {
-      const content = await this.fileSystemProvider().getFileContent(this.providerPath(), item.name);
+      // When opening a file from search results, use its own path.
+      const itemPath = this.isSearchView() ? (item as SearchResultNode).path : this.providerPath();
+      const content = await this.fileSystemProvider().getFileContent(itemPath, item.name);
       // Update the item in the previewItem signal with the fetched content
       this.previewItem.update(currentItem => currentItem ? { ...currentItem, content } : null);
     } catch (e) {
@@ -422,7 +436,7 @@ export class FileExplorerComponent implements OnDestroy {
     
     this.clickTimer = setTimeout(() => {
         this.clickTimer = null;
-        if (isRenameCandidate) {
+        if (isRenameCandidate && !this.isSearchView()) { // Don't allow rename from search view
             // A single click on an already selected item -> rename
             this.onRename();
         } else {
@@ -485,7 +499,6 @@ export class FileExplorerComponent implements OnDestroy {
     } else {
       this.itemSelected.emit(null);
     }
-    this.updateStatus();
   }
 
   private getSelectedNodes(): FileSystemNode[] {
@@ -503,8 +516,8 @@ export class FileExplorerComponent implements OnDestroy {
 
   // --- Context Menu ---
   onContextMenu(event: MouseEvent, item: FileSystemNode | null = null): void {
-    // Don't show context menu if an item is being renamed
-    if (this.editingItemName()) {
+    // Don't show context menu if in search view or editing
+    if (this.isSearchView() || this.editingItemName()) {
         return;
     }
     event.preventDefault();
@@ -554,6 +567,7 @@ export class FileExplorerComponent implements OnDestroy {
   }
   
   private handleToolbarAction(action: { name: string; payload?: any }): void {
+    if (this.isSearchView()) return; // Disable toolbar actions in search view
     switch (action.name) {
       case 'newFolder': this.createFolder(); break;
       case 'newFile': this.createFile(); break;
@@ -855,15 +869,6 @@ export class FileExplorerComponent implements OnDestroy {
     this.failedImageItems.update(set => new Set(set).add(name));
   }
   
-  onQuickSearchInput(event: Event): void {
-    const query = (event.target as HTMLInputElement).value;
-    this.quickSearchQuery.set(query);
-  }
-
-  onQuickSearchSubmit(): void {
-    this.quickSearch.emit(this.quickSearchQuery());
-  }
-  
   // --- Input Dialog Handlers ---
   async onInputDialogSubmit(name: string): Promise<void> {
     const callback = this.inputDialogCallback();
@@ -892,6 +897,10 @@ export class FileExplorerComponent implements OnDestroy {
 
   // --- Drag & Drop ---
   onItemDragStart(event: DragEvent, item: FileSystemNode): void {
+    if (this.isSearchView()) {
+      event.preventDefault();
+      return;
+    }
     if (!this.selectedItems().has(item.name)) {
       this.handleSingleSelection(item.name);
       this.updateSingleSelectedItem();
@@ -1052,7 +1061,6 @@ export class FileExplorerComponent implements OnDestroy {
     });
 
     this.selectedItems.set(newSelection);
-    this.updateSingleSelectedItem();
   }
 
   // FIX: Added missing stopLassoing method to fix error on destroy.
@@ -1074,6 +1082,7 @@ export class FileExplorerComponent implements OnDestroy {
   // --- Drag & Drop Handlers for Main Area and List View ---
 
   onMainAreaDragOver(event: DragEvent): void {
+    if (this.isSearchView()) return;
     // Only allow drop if files are being dragged from the OS.
     if (event.dataTransfer?.types.includes('Files')) {
       event.preventDefault();
@@ -1092,6 +1101,7 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   onListItemDragOver(event: DragEvent, item: FileSystemNode): void {
+    if (this.isSearchView()) return;
     const payload = this.dragDropService.getPayload();
     if (!payload || item.type !== 'folder') return;
 
