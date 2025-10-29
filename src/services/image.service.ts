@@ -27,9 +27,10 @@ export class ImageService {
     // Convert to lowercase to match the filenames (e.g., 'documents.png') in the assets folder.
     const iconName = iconBaseName.toLowerCase();
 
-    // Construct the path to the potential icon. The browser will attempt to load this.
+    // Construct the absolute path to the potential PNG icon. Using an absolute path
+    // can help avoid potential pathing issues. The browser will attempt to load this.
     // If it fails (404), the (error) handler on the <img> tag will prevent a broken image icon
-    // from showing, and the default yellow folder icon (which is the background) will be visible.
-    return `assets/images/ui/neon/${iconName}.png`;
+    // from showing, and the default yellow folder icon will be visible.
+    return `/assets/images/ui/neon/${iconName}.png`;
   }
 }
