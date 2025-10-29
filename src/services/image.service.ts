@@ -5,8 +5,6 @@ import { ServerProfile } from '../models/server-profile.model.js';
 import { PreferencesService } from './preferences.service.js';
 
 export class ImageService {
-  // The constructor signature is maintained for compatibility with existing service instantiations in AppComponent,
-  // though its parameters are no longer used by the simplified getIconUrl method.
   constructor(
     profile: ServerProfile,
     imageClientService: ImageClientService,
@@ -17,6 +15,24 @@ export class ImageService {
     if (item.type !== 'folder') {
       return null; // This rule is only for folders.
     }
+    
+    // A predefined list of special folders that are expected to have custom icons.
+    // This prevents the application from making a network request for an icon for every single folder,
+    // which would result in many unnecessary 404 errors for user-created folders.
+    const specialIconFolders = [
+        'documents', 
+        'pictures', 
+        'work', 
+        'dev', 
+        'projects', 
+        'users', 
+        'devops', 
+        'resources', 
+        'desktop', 
+        'home', 
+        'throttler', 
+        'atomix'
+    ];
 
     // Determine the base name for the icon lookup by stripping the '.magnet' suffix if it exists.
     let iconBaseName = item.name;
@@ -24,13 +40,17 @@ export class ImageService {
       iconBaseName = item.name.slice(0, -7);
     }
 
-    // Convert to lowercase to match the filenames (e.g., 'documents.png') in the assets folder.
+    // Convert to lowercase to match the filenames (e.g., 'documents.png').
     const iconName = iconBaseName.toLowerCase();
 
-    // Construct the absolute path to the potential PNG icon. Using an absolute path
-    // can help avoid potential pathing issues. The browser will attempt to load this.
-    // If it fails (404), the (error) handler on the <img> tag will prevent a broken image icon
-    // from showing, and the default yellow folder icon will be visible.
-    return `/assets/images/ui/neon/${iconName}.png`;
+    // Only proceed if the folder is in our list of special folders.
+    if (specialIconFolders.includes(iconName)) {
+      // Per user instruction, the PNG files are located in 'src/assets/images/ui/neon'.
+      // The build process makes this path available at the root '/assets/images/ui/neon'.
+      return `/assets/images/ui/neon/${iconName}.png`;
+    }
+
+    // For any other folder, return null. The UI will use the default folder icon.
+    return null;
   }
 }
