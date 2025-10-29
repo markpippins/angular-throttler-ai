@@ -13,7 +13,7 @@
       (serversMenuClick)="openServerProfilesDialog()">
     </app-sidebar>
 
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
       <app-toolbar
         [canCut]="canCutCopyShareDelete()"
         [canCopy]="canCutCopyShareDelete()"
@@ -68,8 +68,6 @@
               [sortCriteria]="pane1SortCriteria()"
               [displayMode]="pane1DisplayMode()"
               [filterQuery]="pane1FilterQuery()"
-              [searchResults]="fileSearchResults()"
-              [searchQuery]="fileSearchQuery()"
               (activated)="setActivePane($event)"
               (pathChanged)="onPane1PathChanged($event)"
               (itemSelected)="onItemSelectedInPane($event)"
@@ -101,8 +99,6 @@
                 [sortCriteria]="pane2SortCriteria()"
                 [displayMode]="pane2DisplayMode()"
                 [filterQuery]="pane2FilterQuery()"
-                [searchResults]="fileSearchResults()"
-                [searchQuery]="fileSearchQuery()"
                 (activated)="setActivePane($event)"
                 (pathChanged)="onPane2PathChanged($event)"
                 (itemSelected)="onItemSelectedInPane($event)"
@@ -126,22 +122,16 @@
     </div>
   </main>
 
-  <app-search-toolbar (search)="executeSearch($event)"></app-search-toolbar>
-
-  <!-- New Footer/Status Bar -->
+  <!-- Footer/Status Bar -->
   <div class="p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface))]">
     @if (activePaneStatus(); as status) {
-      @if (isSearchView()) {
-        <span>{{ fileSearchResults()?.length ?? 0 }} item(s) found</span>
+      @if (status.selectedItemsCount > 0) {
+        <span class="mr-4">{{ status.selectedItemsCount }} item(s) selected</span>
+      }
+      @if (status.filteredItemsCount !== null) {
+        <span>{{ status.filteredItemsCount }} of {{ status.totalItemsCount }} items</span>
       } @else {
-        @if (status.selectedItemsCount > 0) {
-          <span class="mr-4">{{ status.selectedItemsCount }} item(s) selected</span>
-        }
-        @if (status.filteredItemsCount !== null) {
-          <span>{{ status.filteredItemsCount }} of {{ status.totalItemsCount }} items</span>
-        } @else {
-          <span>{{ status.totalItemsCount }} items</span>
-        }
+        <span>{{ status.totalItemsCount }} items</span>
       }
     } @else {
       <span>&nbsp;</span>

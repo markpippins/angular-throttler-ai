@@ -1,13 +1,12 @@
 
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
-import { FileExplorerComponent, SearchResultNode } from './components/file-explorer/file-explorer.component.js';
+import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
 import { SidebarComponent } from './components/sidebar/sidebar.component.js';
 import { FileSystemNode } from './models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './services/file-system-provider.js';
 import { ServerProfilesDialogComponent } from './components/server-profiles-dialog/server-profiles-dialog.component.js';
 import { ServerProfileService } from './services/server-profile.service.js';
-import { SearchToolbarComponent } from './components/search-toolbar/search-toolbar.component.js';
 import { DetailPaneComponent } from './components/detail-pane/detail-pane.component.js';
 import { InMemoryFileSystemService } from './services/in-memory-file-system.service.js';
 import { ServerProfile } from './models/server-profile.model.js';
@@ -31,8 +30,6 @@ interface PanePath {
 interface PaneStatus {
   selectedItemsCount: number;
   totalItemsCount: number;
-  isSearch: boolean;
-  searchResultsCount: number;
   filteredItemsCount: number | null;
 }
 type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
@@ -50,7 +47,6 @@ const readOnlyProviderOps = {
   uploadFile: () => Promise.reject(new Error('Operation not supported.')),
   move: () => Promise.reject(new Error('Operation not supported.')),
   copy: () => Promise.reject(new Error('Operation not supported.')),
-  search: () => Promise.resolve([] as SearchResultNode[]),
   // FIX: Added missing `getFileContent` to satisfy the FileSystemProvider interface.
   // The home provider is a virtual directory and has no files to get content from.
   getFileContent: () => Promise.reject(new Error('Operation not supported.')),
@@ -60,7 +56,7 @@ const readOnlyProviderOps = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, SearchToolbarComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent],
   host: {
     '(document:click)': 'onDocumentClick($event)',
   }
@@ -75,7 +71,6 @@ export class AppComponent implements OnInit, OnDestroy {
   private clipboardService = inject(ClipboardService);
   private bookmarkService = inject(BookmarkService);
   private injector = inject(Injector);
-  // FIX: Explicitly type 'document' as 'Document' to resolve errors where 'body' was considered a property of an 'unknown' type.
   private document: Document = inject(DOCUMENT);
   private renderer = inject(Renderer2);
   private elementRef = inject(ElementRef);
@@ -102,24 +97,15 @@ export class AppComponent implements OnInit, OnDestroy {
   private remoteProviders = signal<Map<string, RemoteFileSystemService>>(new Map());
   private remoteImageServices = signal<Map<string, ImageService>>(new Map());
 
-  // FIX: Converted defaultImageService to a computed signal to prevent a startup crash.
-  // This avoids a race condition by ensuring the ImageService is created only after
-  // the active profile has been loaded from storage.
   defaultImageService = computed(() => {
     const activeProfile = this.profileService.activeProfile();
-    // If there's no active profile, create a temporary, non-functional one to prevent errors.
     const profile = activeProfile ?? { id: 'temp', name: 'Temp', brokerUrl: '', imageUrl: '' };
     return new ImageService(profile, this.imageClientService, this.preferencesService);
   });
   
-  // --- Search State ---
-  fileSearchResults = signal<SearchResultNode[] | null>(null);
-  fileSearchQuery = signal<string>('');
-  isSearchView = computed(() => this.fileSearchResults() !== null);
-
   // --- Status Bar State ---
-  private pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, isSearch: false, searchResultsCount: 0, filteredItemsCount: null });
-  private pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, isSearch: false, searchResultsCount: 0, filteredItemsCount: null });
+  private pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
+  private pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
   
   activePaneStatus = computed<PaneStatus>(() => {
     const activeId = this.activePaneId();
@@ -138,14 +124,12 @@ export class AppComponent implements OnInit, OnDestroy {
     { id: 'theme-dark', name: 'Dark' },
   ];
 
-  // The sidebar's currentPath is always bound to the path of the active pane
   activePanePath = computed(() => {
     const activeId = this.activePaneId();
     const activePane = this.panePaths().find(p => p.id === activeId);
     return activePane ? activePane.path : [];
   });
   
-  // Computed paths for each pane to pass as inputs
   pane1Path = computed(() => this.panePaths().find(p => p.id === 1)?.path ?? []);
   pane2Path = computed(() => this.panePaths().find(p => p.id === 2)?.path ?? []);
 
@@ -187,7 +171,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   activeProviderPath = computed(() => {
     const path = this.activePanePath();
-    // The path for the provider needs to be relative (without the root server name)
     return path.length > 0 ? path.slice(1) : [];
   });
 
@@ -208,21 +191,14 @@ export class AppComponent implements OnInit, OnDestroy {
 
   canCutCopyShareDelete = computed(() => this.activePaneStatus().selectedItemsCount > 0);
   canRename = computed(() => this.activePaneStatus().selectedItemsCount === 1);
-  canPaste = computed(() => {
-    const clip = this.clipboardService.clipboard();
-    if (!clip) return false;
-    // For simplicity, let's assume paste is possible if something is on the clipboard.
-    // The file explorer component's internal logic will handle provider compatibility.
-    return true;
-  });
+  canPaste = computed(() => !!this.clipboardService.clipboard());
 
   constructor() {
-    console.log('AppComponent constructor: Initializing application.');
     this.loadTheme();
 
     this.homeProvider = {
       getContents: async (path: string[]) => {
-        if (path.length > 0) return []; // Home has no subdirectories
+        if (path.length > 0) return [];
         const localRoot = await this.localFs.getFolderTree();
         const remoteRoots = await Promise.all(
           Array.from(this.remoteProviders().values()).map((p: FileSystemProvider) => p.getFolderTree())
@@ -290,7 +266,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async loadFolderTree(): Promise<void> {
-    this.folderTree.set(null); // Clear old tree immediately
+    this.folderTree.set(null);
     
     try {
       const homeRoot = await this.homeProvider.getFolderTree();
@@ -300,17 +276,13 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
   
-  // --- Profile Mounting ---
   private async autoMountProfiles(): Promise<void> {
     const profilesToMount = this.profileService.profiles().filter(p => p.autoConnect);
-    if (profilesToMount.length === 0) {
-      return;
-    }
+    if (profilesToMount.length === 0) return;
 
     this.connectionStatus.set('connecting');
     const mountPromises = profilesToMount.map(p => this.mountProfile(p));
     const results = await Promise.allSettled(mountPromises);
-
     const hasSuccessfulMount = results.some(r => r.status === 'fulfilled');
 
     if (hasSuccessfulMount) {
@@ -327,8 +299,6 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       const provider = new RemoteFileSystemService(profile, this.fsService, user);
       const imageService = new ImageService(profile, this.imageClientService, this.preferencesService);
-
-      // Test connection by fetching the root. If this fails, it throws.
       await provider.getFolderTree();
 
       this.remoteProviders.update(map => new Map(map).set(profile.name, provider));
@@ -337,7 +307,6 @@ export class AppComponent implements OnInit, OnDestroy {
       this.profileService.setActiveProfile(profile.id);
     } catch (e) {
       console.error(`Failed to mount profile "${profile.name}":`, e);
-      // Re-throw so the caller can handle the failure.
       throw e;
     }
   }
@@ -386,7 +355,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.loadFolderTree();
   }
   
-  // --- UI & Pane Management ---
   toggleSplitView(): void {
     this.isSplitView.update(isSplit => {
       if (isSplit) {
@@ -440,13 +408,6 @@ export class AppComponent implements OnInit, OnDestroy {
       }
       return paths;
     });
-
-    // When the user navigates in a pane, clear any active file search results.
-    // This provides a natural way to exit the "search view".
-    if (this.isSearchView()) {
-      this.fileSearchResults.set(null);
-      this.fileSearchQuery.set('');
-    }
   }
   
   onSidebarNavigation(path: string[]): void {
@@ -460,65 +421,21 @@ export class AppComponent implements OnInit, OnDestroy {
   closeServerProfilesDialog(): void {
     this.isServerProfilesDialogOpen.set(false);
   }
-
-  // --- Search Handling ---
-  async executeSearch(query: string): Promise<void> {
-    if (!query) {
-      this.fileSearchResults.set(null);
-      this.fileSearchQuery.set('');
-      return;
-    }
-    
-    this.fileSearchQuery.set(query);
-    await this.executeFileSearch(query);
-  }
-  
-  private async executeFileSearch(query: string): Promise<void> {
-    const provider = this.activeProvider();
-    const rootPathSegment = this.activePanePath()[0] ?? LOCAL_ROOT_NAME;
-
-    try {
-      const results = await provider.search(query);
-      
-      const processedResults = results.map(r => ({
-        ...r,
-        path: [rootPathSegment, ...r.path]
-      }));
-
-      this.fileSearchResults.set(processedResults);
-    } catch (e) {
-      console.error('File search failed', e);
-      alert(`File search failed: ${(e as Error).message}`);
-      this.fileSearchResults.set([]); // Set to empty on error
-    }
-  }
   
   async onLoadChildren(path: string[]): Promise<void> {
     const provider = this.getProviderForPath(path);
-    // The path from the tree includes the root name (e.g., server name),
-    // which the provider doesn't need in its own path context.
     const providerPath = path.slice(1);
 
     try {
       const children = await provider.getContents(providerPath);
-
       this.folderTree.update(root => {
         if (!root) return null;
         
-        // Use a recursive function to find and update the node in a deep copy
         const findAndUpdate = (node: FileSystemNode, currentPath: string[]): FileSystemNode => {
           const newChildren = node.children?.map(child => {
             const childPath = [...currentPath, child.name];
             if (childPath.join('/') === path.join('/')) {
-              return {
-                ...child,
-                childrenLoaded: true,
-                children: children.map(grandchild =>
-                  grandchild.type === 'folder'
-                    ? { ...grandchild, children: [], childrenLoaded: false }
-                    : grandchild
-                ),
-              };
+              return { ...child, childrenLoaded: true, children: children.map(grandchild => grandchild.type === 'folder' ? { ...grandchild, children: [], childrenLoaded: false } : grandchild) };
             }
             if (path.join('/').startsWith(childPath.join('/'))) {
               return findAndUpdate(child, childPath);
@@ -541,7 +458,6 @@ export class AppComponent implements OnInit, OnDestroy {
     const { sourceProvider, sourcePath, items } = payload.payload;
     const itemRefs = items.map(i => ({ name: i.name, type: i.type }));
     
-    // Providers need relative paths (without the root server/local name)
     const sourceProviderPath = sourcePath.length > 0 ? sourcePath.slice(1) : [];
     const destProviderPath = destPath.length > 0 ? destPath.slice(1) : [];
 
@@ -550,13 +466,11 @@ export class AppComponent implements OnInit, OnDestroy {
     } catch (e) {
       alert(`Move failed: ${(e as Error).message}`);
     } finally {
-      // Refresh the sidebar tree and the main panes to reflect the changes.
       await this.loadFolderTree();
       this.refreshPanes.update(v => v + 1);
     }
   }
 
-  // --- Pane Resizing Logic ---
   startPaneResize(event: MouseEvent): void {
     if (!this.isSplitView()) return;
     
@@ -564,8 +478,8 @@ export class AppComponent implements OnInit, OnDestroy {
     const container = this.paneContainerEl.nativeElement;
     const containerRect = container.getBoundingClientRect();
 
-    event.preventDefault(); // Prevent text selection
-    this.renderer.setStyle(this.document.body, 'user-select', 'none'); // Disable text selection globally
+    event.preventDefault();
+    this.renderer.setStyle(this.document.body, 'user-select', 'none');
 
     this.unlistenPaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
         const mouseX = e.clientX - containerRect.left;
@@ -587,7 +501,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private stopPaneResize(): void {
     if (!this.isResizingPanes()) return;
     this.isResizingPanes.set(false);
-    this.renderer.removeStyle(this.document.body, 'user-select'); // Re-enable text selection
+    this.renderer.removeStyle(this.document.body, 'user-select');
     if (this.unlistenPaneMouseMove) {
         this.unlistenPaneMouseMove();
         this.unlistenPaneMouseMove = null;
@@ -597,8 +511,6 @@ export class AppComponent implements OnInit, OnDestroy {
         this.unlistenPaneMouseUp = null;
     }
   }
-
-  // --- Global Toolbar Event Handlers ---
   
   onToolbarAction(name: string, payload?: any) {
     this.toolbarAction.set({ name, payload, id: Date.now() });
@@ -628,7 +540,6 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
   
-  // --- Bookmark Handlers ---
   onSaveBookmark(bookmark: NewBookmark): void {
     const path = this.activePanePath();
     this.bookmarkService.addBookmark(path, bookmark);

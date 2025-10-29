@@ -26,7 +26,6 @@ The `FileExplorerComponent` is the most complex and central UI component in the 
 -   `isActive: boolean`: Indicates if this pane is the currently active one. Active panes are highlighted and are the target for sidebar navigation.
 -   `isSplitView: boolean`: Affects styling and layout.
 -   `fileSystemProvider: FileSystemProvider`: **This is the most important input.** It's the abstraction the component uses for all file system operations. It makes the component entirely independent of the data source (local vs. remote).
--   `searchResults`: Used to push the component into "search results" view mode.
 
 ### Outputs (`output()`)
 

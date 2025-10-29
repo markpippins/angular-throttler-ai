@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { FileSystemProvider, ItemReference } from './file-system-provider.js';
-import { FileSystemNode, SearchResultNode } from '../models/file-system.model.js';
+import { FileSystemNode } from '../models/file-system.model.js';
 import { FsService } from './fs.service.js';
 import { ServerProfile } from '../models/server-profile.model.js';
 import { User } from '../models/user.model.js';
@@ -122,10 +122,5 @@ export class RemoteFileSystemService implements FileSystemProvider {
     });
     
     await Promise.all(copyPromises);
-  }
-
-  async search(query: string): Promise<SearchResultNode[]> {
-    console.warn(`Search not implemented in live mode for query: ${query}`);
-    return Promise.resolve([]);
   }
 }

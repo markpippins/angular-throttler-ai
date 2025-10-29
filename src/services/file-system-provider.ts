@@ -1,4 +1,4 @@
-import { FileSystemNode, FileType, SearchResultNode } from '../models/file-system.model';
+import { FileSystemNode, FileType } from '../models/file-system.model';
 
 export interface ItemReference {
   name: string;
@@ -17,5 +17,4 @@ export abstract class FileSystemProvider {
   abstract uploadFile(path: string[], file: File): Promise<void>;
   abstract move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void>;
   abstract copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void>;
-  abstract search(query: string): Promise<SearchResultNode[]>;
 }

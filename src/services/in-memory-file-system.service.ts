@@ -1,5 +1,5 @@
 import { Injectable, signal, effect } from '@angular/core';
-import { FileSystemNode, SearchResultNode } from '../models/file-system.model.js';
+import { FileSystemNode } from '../models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './file-system-provider.js';
 
 const IN_MEMORY_FS_STORAGE_KEY = 'file-explorer-in-memory-fs';
@@ -193,27 +193,6 @@ export class InMemoryFileSystemService implements FileSystemProvider {
       return fileNode.content ?? '';
     }
     throw new Error('File not found in Local file system.');
-  }
-
-  async search(query: string): Promise<SearchResultNode[]> {
-    const results: SearchResultNode[] = [];
-    const lowerCaseQuery = query.toLowerCase();
-
-    function find(node: FileSystemNode, path: string[]) {
-      if (node.children) {
-        for (const child of node.children) {
-          if (child.name.toLowerCase().includes(lowerCaseQuery)) {
-            results.push({ ...cloneNode(child), path: path });
-          }
-          if (child.type === 'folder') {
-            find(child, [...path, child.name]);
-          }
-        }
-      }
-    }
-
-    find(this.rootNode(), []);
-    return results;
   }
 
   async createDirectory(path: string[], name: string): Promise<void> {

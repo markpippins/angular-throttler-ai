@@ -9,6 +9,9 @@ export interface FileSystemNode {
   childrenLoaded?: boolean;
 }
 
+// FIX: Add missing SearchResultNode interface.
+// This type is used for search results, extending a standard node
+// with the path to its parent directory.
 export interface SearchResultNode extends FileSystemNode {
   path: string[];
 }

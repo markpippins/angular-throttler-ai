@@ -39,4 +39,3 @@ The `AppComponent` is the top-level component that acts as the central controlle
     -   `onUnmountProfile()`: Destroys a `RemoteFileSystemService` instance and clears the associated user session.
     -   `toggleSplitView()`: Manages the split-view layout.
     -   `onPane1PathChanged()` / `onPane2PathChanged()`: Keeps the parent component's record of each pane's path in sync.
-    -   `executeSearch()`: Receives a search query from the toolbar, triggers a file search on the active provider, and passes the results to the file explorer panes.
