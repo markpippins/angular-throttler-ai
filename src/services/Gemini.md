@@ -10,9 +10,9 @@ This directory is the logical core of the application, containing all the inject
 -   **API:** It declares abstract methods for all file system operations (`getContents`, `rename`, `copy`, `move`, etc.).
 -   **Benefit:** By having components depend on this abstraction rather than a concrete implementation, the application can seamlessly switch between different file systems without changing any of the UI component code.
 
-### `in-memory-file-system.service.ts`
+### `in-memory-file-system.service.ts` (exports `SessionService`)
 
--   **Purpose:** An implementation of `FileSystemProvider` that creates a complete, writable virtual file system that persists in the browser's `localStorage`.
+-   **Purpose:** An implementation of `FileSystemProvider` that creates a complete, writable virtual file system that persists in the browser's `localStorage`. It is named `SessionService` to reflect its role in managing session-specific, non-persistent data.
 -   **Role:** This service provides the default "Session" drive in the application. It manages a hierarchical tree of files and folders in an Angular Signal. All file operations (create, rename, delete, move, copy) are handled through robust, immutable update patterns, ensuring that the UI reacts reliably to every change. The entire file system state is serialized to JSON and saved to `localStorage`, so any changes made by the user are preserved between sessions.
 
 ### `remote-file-system.service.ts`

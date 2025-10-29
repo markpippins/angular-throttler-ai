@@ -2,7 +2,7 @@ import { Injectable, signal, effect } from '@angular/core';
 import { FileSystemNode } from '../models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './file-system-provider.js';
 
-const IN_MEMORY_FS_STORAGE_KEY = 'file-explorer-in-memory-fs';
+const SESSION_FS_STORAGE_KEY = 'file-explorer-session-fs';
 
 /**
  * A safe, recursive function to deep-clone a FileSystemNode. This avoids potential
@@ -28,7 +28,7 @@ function cloneNode(node: FileSystemNode): FileSystemNode {
 @Injectable({
   providedIn: 'root',
 })
-export class InMemoryFileSystemService implements FileSystemProvider {
+export class SessionService implements FileSystemProvider {
   private rootNode = signal<FileSystemNode>({
     name: 'Session',
     type: 'folder',
@@ -135,7 +135,7 @@ export class InMemoryFileSystemService implements FileSystemProvider {
 
   private loadTreeFromStorage(): void {
     try {
-      const storedTree = localStorage.getItem(IN_MEMORY_FS_STORAGE_KEY);
+      const storedTree = localStorage.getItem(SESSION_FS_STORAGE_KEY);
       if (storedTree) {
         const parsedTree: FileSystemNode = JSON.parse(storedTree);
         // Basic validation
@@ -148,15 +148,15 @@ export class InMemoryFileSystemService implements FileSystemProvider {
       this.saveTreeToStorage();
 
     } catch (e) {
-      console.error('Failed to load local file system from storage.', e);
+      console.error('Failed to load session file system from storage.', e);
     }
   }
 
   private saveTreeToStorage(): void {
     try {
-      localStorage.setItem(IN_MEMORY_FS_STORAGE_KEY, JSON.stringify(this.rootNode()));
+      localStorage.setItem(SESSION_FS_STORAGE_KEY, JSON.stringify(this.rootNode()));
     } catch (e) {
-      console.error('Failed to save local file system to storage.', e);
+      console.error('Failed to save session file system to storage.', e);
     }
   }
 
@@ -192,7 +192,7 @@ export class InMemoryFileSystemService implements FileSystemProvider {
     if (fileNode) {
       return fileNode.content ?? '';
     }
-    throw new Error('File not found in Local file system.');
+    throw new Error('File not found in Session file system.');
   }
 
   async createDirectory(path: string[], name: string): Promise<void> {

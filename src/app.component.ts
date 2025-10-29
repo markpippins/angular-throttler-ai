@@ -1,4 +1,5 @@
 
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -8,7 +9,7 @@ import { FileSystemProvider, ItemReference } from './services/file-system-provid
 import { ServerProfilesDialogComponent } from './components/server-profiles-dialog/server-profiles-dialog.component.js';
 import { ServerProfileService } from './services/server-profile.service.js';
 import { DetailPaneComponent } from './components/detail-pane/detail-pane.component.js';
-import { InMemoryFileSystemService } from './services/in-memory-file-system.service.js';
+import { SessionService } from './services/in-memory-file-system.service.js';
 import { ServerProfile } from './models/server-profile.model.js';
 import { RemoteFileSystemService } from './services/remote-file-system.service.js';
 import { FsService } from './services/fs.service.js';
@@ -62,7 +63,7 @@ const readOnlyProviderOps = {
   }
 })
 export class AppComponent implements OnInit, OnDestroy {
-  private localFs = inject(InMemoryFileSystemService);
+  private sessionFs = inject(SessionService);
   private profileService = inject(ServerProfileService);
   private fsService = inject(FsService);
   private imageClientService = inject(ImageClientService);
@@ -145,7 +146,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private getProviderForPath(path: string[]): FileSystemProvider {
     if (path.length === 0) return this.homeProvider;
     const root = path[0];
-    if (root === LOCAL_ROOT_NAME) return this.localFs;
+    if (root === LOCAL_ROOT_NAME) return this.sessionFs;
     const remoteProvider = this.remoteProviders().get(root);
     if (remoteProvider) return remoteProvider;
     throw new Error(`No provider found for path: ${path.join('/')}`);
@@ -199,14 +200,14 @@ export class AppComponent implements OnInit, OnDestroy {
     this.homeProvider = {
       getContents: async (path: string[]) => {
         if (path.length > 0) return [];
-        const localRoot = await this.localFs.getFolderTree();
+        const localRoot = await this.sessionFs.getFolderTree();
         const remoteRoots = await Promise.all(
           Array.from(this.remoteProviders().values()).map((p: FileSystemProvider) => p.getFolderTree())
         );
         return [localRoot, ...remoteRoots];
       },
       getFolderTree: async () => {
-        const localRoot = await this.localFs.getFolderTree();
+        const localRoot = await this.sessionFs.getFolderTree();
         const remoteRoots = await Promise.all(
           Array.from(this.remoteProviders().values()).map((p: FileSystemProvider) => p.getFolderTree())
         );
