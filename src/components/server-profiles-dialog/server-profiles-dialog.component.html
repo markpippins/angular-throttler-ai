@@ -95,6 +95,15 @@
                 <button (click)="cancelEdit()" class="px-4 py-2 bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-base))] rounded-md hover:bg-[rgb(var(--color-border-base))] transition-colors font-semibold text-sm">
                   Cancel
                 </button>
+
+                @if (form.id && selectedProfile(); as profile) {
+                  @if (!mountedProfileIds().includes(profile.id)) {
+                    <button (click)="openLoginDialog(profile)" class="px-4 py-2 border border-blue-500 text-blue-600 dark:text-blue-400 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors font-semibold text-sm">
+                      Connect...
+                    </button>
+                  }
+                }
+
                 @if (form.id) {
                     <div class="flex-grow"></div>
                     <button (click)="deleteProfile(form.id!)" class="p-2 text-[rgb(var(--color-text-subtle))] hover:bg-[rgb(var(--color-danger-bg-hover))] hover:text-[rgb(var(--color-danger-text))] rounded-md transition-colors" title="Delete Profile" [disabled]="profileService.profiles().length <= 1">
@@ -103,11 +112,11 @@
                         </svg>
                     </button>
                 }
-              </div>
+            </div>
 
             @if (form.id && selectedProfile(); as profile) {
+              @if (mountedProfileIds().includes(profile.id) && mountedProfileUsers().get(profile.id); as user) {
                 <div class="mt-6 pt-6 border-t border-[rgb(var(--color-border-base))] space-y-4">
-                @if (mountedProfileIds().includes(profile.id) && mountedProfileUsers().get(profile.id); as user) {
                     <h5 class="text-lg font-bold text-[rgb(var(--color-text-base))]">Connection Status</h5>
                     <div class="p-3 bg-[rgb(var(--color-surface))] rounded-md border border-[rgb(var(--color-border-base))]">
                         <p class="text-sm">Logged in as: <span class="font-semibold">{{ user.name }} ({{ user.username }})</span></p>
@@ -115,16 +124,8 @@
                     <button (click)="handleUnmount(profile)" class="px-4 py-2 border border-orange-500 text-orange-600 dark:text-orange-400 rounded-md hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors font-semibold text-sm">
                         Unmount
                     </button>
-                } @else {
-                    <h5 class="text-lg font-bold text-[rgb(var(--color-text-base))]">Connect to Server</h5>
-                    <p class="text-sm text-[rgb(var(--color-text-subtle))]">Mount this server profile to access its files.</p>
-                    <div class="pt-2">
-                        <button (click)="openLoginDialog(profile)" class="w-full sm:w-auto px-4 py-2 border border-blue-500 text-blue-600 dark:text-blue-400 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors font-semibold text-sm">
-                          Connect...
-                        </button>
-                    </div>
-                }
                 </div>
+              }
             }
           </div>
         } @else {
