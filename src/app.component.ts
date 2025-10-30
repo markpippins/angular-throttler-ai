@@ -143,7 +143,7 @@ export class AppComponent implements OnInit, OnDestroy {
   @ViewChild('paneContainer') paneContainerEl!: ElementRef<HTMLDivElement>;
 
   // --- Computed Per-Pane Services ---
-  private getProviderForPath(path: string[]): FileSystemProvider {
+  public getProviderForPath(path: string[]): FileSystemProvider {
     if (path.length === 0) return this.homeProvider;
     const root = path[0];
     if (root === LOCAL_ROOT_NAME) return this.sessionFs;
@@ -151,6 +151,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (remoteProvider) return remoteProvider;
     throw new Error(`No provider found for path: ${path.join('/')}`);
   }
+  public getProvider: (path: string[]) => FileSystemProvider;
   
   private getImageServiceForPath(path: string[]): ImageService {
     if (path.length === 0) return this.defaultImageService();
@@ -196,6 +197,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor() {
     this.loadTheme();
+    this.getProvider = this.getProviderForPath.bind(this);
 
     this.homeProvider = {
       getContents: async (path: string[]) => {
@@ -554,5 +556,47 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onBookmarkDroppedOnSidebar(event: { bookmark: NewBookmark, destPath: string[] }): void {
     this.bookmarkService.addBookmark(event.destPath, event.bookmark);
+  }
+  
+  // --- Sidebar Context Menu Actions ---
+  private async performTreeAction(path: string[], action: (provider: FileSystemProvider, providerPath: string[]) => Promise<any>) {
+    try {
+      const provider = this.getProviderForPath(path);
+      const providerPath = path.slice(1);
+      await action(provider, providerPath);
+    } catch(e) {
+      alert(`Operation failed: ${(e as Error).message}`);
+    } finally {
+      await this.loadFolderTree();
+      this.refreshPanes.update(v => v + 1);
+    }
+  }
+
+  async onSidebarRenameItem({ path, newName }: { path: string[]; newName: string }): Promise<void> {
+    const oldName = path[path.length - 1];
+    const parentPath = path.slice(0, -1);
+    await this.performTreeAction(parentPath, (provider, providerPath) => 
+      provider.rename(providerPath, oldName, newName)
+    );
+  }
+
+  async onSidebarDeleteItem(path: string[]): Promise<void> {
+    const name = path[path.length - 1];
+    const parentPath = path.slice(0, -1);
+    await this.performTreeAction(parentPath, (provider, providerPath) => 
+      provider.removeDirectory(providerPath, name) // Tree only has directories
+    );
+  }
+
+  async onSidebarNewFolder({ path, name }: { path: string[]; name: string }): Promise<void> {
+    await this.performTreeAction(path, (provider, providerPath) => 
+      provider.createDirectory(providerPath, name)
+    );
+  }
+
+  async onSidebarNewFile({ path, name }: { path: string[]; name: string }): Promise<void> {
+     await this.performTreeAction(path, (provider, providerPath) => 
+      provider.createFile(providerPath, name)
+    );
   }
 }

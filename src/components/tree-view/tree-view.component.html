@@ -6,10 +6,12 @@
       [currentPath]="currentPath()"
       [expansionCommand]="expansionCommand()"
       [imageService]="imageService()"
+      [getProvider]="getProvider()"
       (pathChange)="onPathChange($event)"
       (loadChildren)="onLoadChildren($event)"
       (itemsDropped)="onItemsDropped($event)"
-      (bookmarkDropped)="onBookmarkDropped($event)">
+      (bookmarkDropped)="onBookmarkDropped($event)"
+      (contextMenuRequest)="onContextMenuRequest($event)">
     </app-tree-node>
   }
 </div>

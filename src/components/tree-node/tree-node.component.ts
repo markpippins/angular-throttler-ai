@@ -4,6 +4,10 @@ import { FileSystemNode } from '../../models/file-system.model.js';
 import { ImageService } from '../../services/image.service.js';
 import { DragDropService, DragDropPayload } from '../../services/drag-drop.service.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
+import { FileSystemProvider } from '../../services/file-system-provider.js';
+// FIX: Removed self-import of TreeNodeComponent. For a recursive standalone component,
+// the component class can be used in the `imports` array without importing it from its own file.
+// This was causing a name collision error during compilation.
 
 @Component({
   selector: 'app-tree-node',
@@ -20,11 +24,13 @@ export class TreeNodeComponent implements OnInit {
   level = input(0);
   expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
   imageService = input<ImageService | null>(null);
+  getProvider = input<(path: string[]) => FileSystemProvider>();
 
   pathChange = output<string[]>();
   loadChildren = output<string[]>();
   itemsDropped = output<{ destPath: string[]; payload: DragDropPayload }>();
   bookmarkDropped = output<{ bookmark: NewBookmark, destPath: string[] }>();
+  contextMenuRequest = output<{ event: MouseEvent; path: string[]; node: FileSystemNode }>();
 
   isExpanded = signal(false);
   imageHasError = signal(false);
@@ -57,7 +63,13 @@ export class TreeNodeComponent implements OnInit {
 
   folderChildren = computed(() => {
     const children = this.node().children;
-    return children ? children.filter(c => c.type === 'folder') : [];
+    if (!children) {
+      return [];
+    }
+    // Only show folders in the tree view, and sort them by name
+    return children
+      .filter(c => c.type === 'folder')
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   });
 
   constructor() {
@@ -112,90 +124,52 @@ export class TreeNodeComponent implements OnInit {
     }
   }
 
-  // This method has a side-effect (emit) but is only called by a user action. SAFE.
   toggleExpand(event: MouseEvent): void {
     event.stopPropagation();
-    const willBeExpanded = !this.isExpanded();
-    
-    if (willBeExpanded && !this.node().childrenLoaded) {
+    if (!this.isExpandable()) return;
+
+    const expanding = !this.isExpanded();
+    this.isExpanded.set(expanding);
+
+    if (expanding && !this.node().childrenLoaded) {
       this.loadChildren.emit(this.path());
     }
-    
-    this.isExpanded.set(willBeExpanded);
   }
 
   selectNode(): void {
-    if (this.isSelected()) {
-      // If already selected, a click should toggle expansion and load children if needed.
-      const willBeExpanded = !this.isExpanded();
-      if (willBeExpanded && !this.node().childrenLoaded) {
-          this.loadChildren.emit(this.path());
-      }
-      this.isExpanded.set(willBeExpanded);
-    } else {
-      // If not selected, just navigate. The auto-expand effect will handle opening the node.
-      this.pathChange.emit(this.path());
-    }
+    this.pathChange.emit(this.path());
   }
 
-  onChildPathChange(path: string[]): void {
-    this.pathChange.emit(path);
-  }
-
-  onLoadChildren(path: string[]): void {
-    this.loadChildren.emit(path);
-  }
-
-  onImageLoad(): void {
-    this.imageIsLoaded.set(true);
-  }
-  
-  onImageError(): void {
-    this.imageHasError.set(true);
+  onContextMenu(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.contextMenuRequest.emit({ event, path: this.path(), node: this.node() });
   }
 
   getChildPath(childNode: FileSystemNode): string[] {
     return [...this.path(), childNode.name];
   }
 
-  // --- Drag and Drop Handlers ---
-  private isDropValid(payload: DragDropPayload): boolean {
-    if (this.node().type !== 'folder') {
-      return false; // Can only drop on folders.
-    }
-
-    if (payload.type === 'bookmark') {
-      return true; // Always allow dropping bookmarks.
-    }
-    
-    // Filesystem drop logic
-    const { sourcePath, items } = payload.payload;
-    const destPath = this.path();
-
-    // Prevent dropping into the same folder.
-    if (destPath.join('/') === sourcePath.join('/')) {
-      return false;
-    }
-
-    // Prevent dropping a folder into itself or one of its descendants.
-    const isDroppingOnSelfOrChild = items.some(item => 
-      item.type === 'folder' && destPath.join('/').startsWith([...sourcePath, item.name].join('/'))
-    );
-    if (isDroppingOnSelfOrChild) {
-      return false;
-    }
-    
-    return true;
+  onImageLoad(): void {
+    this.imageIsLoaded.set(true);
   }
-  
+
+  onImageError(): void {
+    this.imageHasError.set(true);
+  }
+
   onDragOver(event: DragEvent): void {
     const payload = this.dragDropService.getPayload();
-    if (!payload || !this.isDropValid(payload)) {
-      return; // Not a valid drop target, do nothing.
-    }
+    if (!payload) return;
     
-    event.preventDefault(); // This is crucial to allow a drop.
-    event.stopPropagation();
+    if (payload.type === 'filesystem') {
+        const { sourcePath, items } = payload.payload;
+        if (items.some(item => this.path().join('/').startsWith([...sourcePath, item.name].join('/')))) {
+            return;
+        }
+    }
+
+    event.preventDefault();
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = payload.type === 'filesystem' ? 'move' : 'copy';
     }
@@ -203,7 +177,7 @@ export class TreeNodeComponent implements OnInit {
   }
 
   onDragLeave(event: DragEvent): void {
-    event.stopPropagation();
+    event.preventDefault();
     this.isDragOver.set(false);
   }
 
@@ -213,14 +187,54 @@ export class TreeNodeComponent implements OnInit {
     this.isDragOver.set(false);
     
     const payload = this.dragDropService.getPayload();
-    if (!payload || !this.isDropValid(payload)) {
-      return;
-    }
+    if (!payload) return;
 
+    const destPath = this.path();
+    
     if (payload.type === 'filesystem') {
-        this.itemsDropped.emit({ destPath: this.path(), payload });
+        this.itemsDropped.emit({ destPath, payload });
     } else if (payload.type === 'bookmark') {
-        this.bookmarkDropped.emit({ bookmark: payload.payload.data, destPath: this.path() });
+        this.bookmarkDropped.emit({ bookmark: payload.payload.data, destPath });
     }
+  }
+
+  onDragStart(event: DragEvent): void {
+    const provider = this.getProvider()?.(this.path());
+    if (!provider) {
+      console.error('Drag operation failed: Could not find a file system provider for the source item.');
+      return;
+    };
+
+    const payload: DragDropPayload = {
+        type: 'filesystem',
+        payload: { sourceProvider: provider, sourcePath: this.path().slice(0, -1), items: [this.node()] }
+    };
+    this.dragDropService.startDrag(payload);
+
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('application/json', JSON.stringify({ type: 'filesystem' }));
+    }
+  }
+
+  // --- Child Event Bubbling ---
+  onChildPathChange(path: string[]): void {
+    this.pathChange.emit(path);
+  }
+
+  onLoadChildren(path: string[]): void {
+    this.loadChildren.emit(path);
+  }
+
+  onChildItemsDropped(event: { destPath: string[]; payload: DragDropPayload }): void {
+    this.itemsDropped.emit(event);
+  }
+
+  onChildBookmarkDropped(event: { bookmark: NewBookmark, destPath: string[] }): void {
+    this.bookmarkDropped.emit(event);
+  }
+
+  onChildContextMenuRequest(event: { event: MouseEvent; path: string[]; node: FileSystemNode; }): void {
+    this.contextMenuRequest.emit(event);
   }
 }

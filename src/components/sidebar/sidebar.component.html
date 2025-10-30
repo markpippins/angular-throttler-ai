@@ -2,7 +2,8 @@
   class="relative h-full flex flex-col bg-[rgb(var(--color-surface-sidebar))] border-r border-[rgb(var(--color-border-base))] ease-in-out"
   [class.transition-all]="!isResizing()"
   [class.duration-300]="!isResizing()"
-  [style.width.px]="isCollapsed() ? 64 : width()">
+  [style.width.px]="isCollapsed() ? 64 : width()"
+  (click)="contextMenu.set(null)">
 
   @if (!isCollapsed()) {
     <!-- EXPANDED VIEW -->
@@ -54,10 +55,12 @@
                   [currentPath]="currentPath()"
                   [expansionCommand]="treeExpansionCommand()"
                   [imageService]="imageService()"
+                  [getProvider]="getProvider()"
                   (pathChange)="onTreeViewPathChange($event)"
                   (loadChildren)="onLoadChildren($event)"
                   (itemsDropped)="onItemsDropped($event)"
-                  (bookmarkDropped)="onBookmarkDropped($event)">
+                  (bookmarkDropped)="onBookmarkDropped($event)"
+                  (contextMenuRequest)="onTreeContextMenu($event)">
                 </app-tree-view>
               } @else {
                 <div class="p-4 text-center text-[rgb(var(--color-text-subtle))] text-sm">Loading tree...</div>
@@ -80,5 +83,52 @@
   } @else {
     <!-- COLLAPSED VIEW -->
     <app-vertical-toolbar (expandClick)="toggleCollapse()"></app-vertical-toolbar>
+  }
+
+  <!-- Tree View Context Menu -->
+  @if (contextMenu(); as cm) {
+    <div class="fixed bg-[rgb(var(--color-surface-dialog))] border border-[rgb(var(--color-border-base))] rounded-md shadow-lg py-1 text-sm text-[rgb(var(--color-text-muted))] z-50"
+         [style.left.px]="cm.x"
+         [style.top.px]="cm.y"
+         (click)="$event.stopPropagation()">
+      <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" 
+          [class.text-[rgb(var(--color-text-disabled))]]="!isNewAllowedInContextMenu()"
+          [class.cursor-not-allowed]="!isNewAllowedInContextMenu()"
+          (click)="isNewAllowedInContextMenu() && handleNewFolder()">New folder</div>
+      <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer"
+          [class.text-[rgb(var(--color-text-disabled))]]="!isNewAllowedInContextMenu()"
+          [class.cursor-not-allowed]="!isNewAllowedInContextMenu()"
+          (click)="isNewAllowedInContextMenu() && handleNewFile()">New file</div>
+      <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+      <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer"
+          [class.text-[rgb(var(--color-text-disabled))]]="!isNewAllowedInContextMenu()"
+          [class.cursor-not-allowed]="!isNewAllowedInContextMenu()"
+          (click)="isNewAllowedInContextMenu() && handleRename()">Rename</div>
+      <div class="px-4 py-2 hover:bg-[rgb(var(--color-danger-bg-hover))] cursor-pointer text-[rgb(var(--color-danger-text))] hover:text-[rgb(var(--color-danger-text-hover))]"
+          [class.text-[rgb(var(--color-text-disabled))]]="!isNewAllowedInContextMenu()"
+          [class.cursor-not-allowed]="!isNewAllowedInContextMenu()"
+          (click)="isNewAllowedInContextMenu() && handleDelete()">Delete</div>
+    </div>
+  }
+
+  <!-- Dialogs for Sidebar Actions -->
+  @if (isInputDialogOpen() && inputDialogConfig(); as config) {
+    <app-input-dialog
+      [title]="config.title"
+      [message]="config.message"
+      [initialValue]="config.initialValue"
+      (submitValue)="onInputDialogSubmit($event)"
+      (close)="isInputDialogOpen.set(false)">
+    </app-input-dialog>
+  }
+
+  @if (isConfirmDialogOpen() && confirmDialogConfig(); as config) {
+    <app-confirm-dialog
+      [title]="config.title"
+      [message]="config.message"
+      [confirmButtonText]="config.confirmText"
+      (confirm)="onConfirmDialogConfirm()"
+      (close)="isConfirmDialogOpen.set(false)">
+    </app-confirm-dialog>
   }
 </aside>

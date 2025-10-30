@@ -5,6 +5,7 @@ import { TreeNodeComponent } from '../tree-node/tree-node.component.js';
 import { ImageService } from '../../services/image.service.js';
 import { DragDropPayload } from '../../services/drag-drop.service.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
+import { FileSystemProvider } from '../../services/file-system-provider.js';
 
 @Component({
   selector: 'app-tree-view',
@@ -17,11 +18,13 @@ export class TreeViewComponent {
   currentPath = input.required<string[]>();
   expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
   imageService = input<ImageService | null>(null);
-  
+  getProvider = input<(path: string[]) => FileSystemProvider>();
+
   pathChange = output<string[]>();
   loadChildren = output<string[]>();
   itemsDropped = output<{ destPath: string[]; payload: DragDropPayload }>();
   bookmarkDropped = output<{ bookmark: NewBookmark, destPath: string[] }>();
+  contextMenuRequest = output<{ event: MouseEvent; path: string[]; node: FileSystemNode; }>();
 
   onPathChange(path: string[]): void {
     this.pathChange.emit(path);
@@ -37,5 +40,9 @@ export class TreeViewComponent {
 
   onBookmarkDropped(event: { bookmark: NewBookmark, destPath: string[] }): void {
     this.bookmarkDropped.emit(event);
+  }
+
+  onContextMenuRequest(event: { event: MouseEvent; path: string[]; node: FileSystemNode; }): void {
+    this.contextMenuRequest.emit(event);
   }
 }
