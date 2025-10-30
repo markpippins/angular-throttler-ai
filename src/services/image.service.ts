@@ -24,7 +24,8 @@ export class ImageService {
       folderName = folderName.slice(0, -7);
     }
     
-    const lowerCaseFolderName = folderName.toLowerCase();
+    const folderNameWithDashes = folderName.replace(/ /g, '-');
+    const lowerCaseFolderName = folderNameWithDashes.toLowerCase();
     
     return `${this.profile.imageUrl}/${encodeURIComponent(lowerCaseFolderName)}`;
   }
