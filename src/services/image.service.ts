@@ -24,6 +24,9 @@ export class ImageService {
       folderName = folderName.slice(0, -7);
     }
     
+    // Remove any "." characters from the folder name.
+    folderName = folderName.replace(/\./g, '');
+    
     const folderNameWithDashes = folderName.replace(/ /g, '-');
     const lowerCaseFolderName = folderNameWithDashes.toLowerCase();
     

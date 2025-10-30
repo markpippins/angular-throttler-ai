@@ -148,6 +148,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   // --- Bottom Pane State ---
   bottomPaneHeight = signal(40); // Initial height as percentage
   isResizingBottomPane = signal(false);
+  isBottomPaneCollapsed = signal(false);
   private unlistenBottomPaneMouseMove: (() => void) | null = null;
   private unlistenBottomPaneMouseUp: (() => void) | null = null;
   
@@ -1058,5 +1059,9 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
           this.unlistenBottomPaneMouseUp();
           this.unlistenBottomPaneMouseUp = null;
       }
+  }
+
+  toggleBottomPane(): void {
+    this.isBottomPaneCollapsed.update(v => !v);
   }
 }

@@ -232,13 +232,19 @@
       }
     </div>
 
-    <!-- Resizer -->
-    <div (mousedown)="startBottomPaneResize($event)" class="h-1.5 w-full flex-shrink-0 cursor-row-resize group flex items-center justify-center bg-[rgb(var(--color-surface-muted))] border-y border-[rgb(var(--color-border-base))]">
-      <div class="h-0.5 w-full bg-[rgb(var(--color-border-muted))] group-hover:bg-[rgb(var(--color-accent-ring))] transition-colors duration-200"></div>
-    </div>
+    @if (!isBottomPaneCollapsed()) {
+      <!-- Resizer -->
+      <div (mousedown)="startBottomPaneResize($event)" class="h-1.5 w-full flex-shrink-0 cursor-row-resize group flex items-center justify-center bg-[rgb(var(--color-surface-muted))] border-y border-[rgb(var(--color-border-base))]">
+        <div class="h-0.5 w-full bg-[rgb(var(--color-border-muted))] group-hover:bg-[rgb(var(--color-accent-ring))] transition-colors duration-200"></div>
+      </div>
+    }
   
     <!-- Bottom Pane: Idea Stream -->
-    <div class="overflow-hidden flex flex-col flex-shrink-0 bg-[rgb(var(--color-surface-muted))]" [style.height.%]="bottomPaneHeight()">
+    <div 
+      class="overflow-hidden flex flex-col flex-shrink-0 bg-[rgb(var(--color-surface-muted))]"
+      [style.height.%]="isBottomPaneCollapsed() ? undefined : bottomPaneHeight()"
+      [class.border-t]="isBottomPaneCollapsed()"
+      [class.border-[rgb(var(--color-border-base))]]="isBottomPaneCollapsed()">
       <!-- Bottom Pane Toolbar -->
       <div class="flex-shrink-0 flex items-center p-2 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface))] text-sm">
           <div class="relative opacity-60">
@@ -248,63 +254,78 @@
               </div>
           </div>
           <div class="flex-grow"></div>
+          @if(isBottomPaneCollapsed()) {
+            <button (click)="toggleBottomPane()" title="Expand Stream" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[rgb(var(--color-text-muted))]" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+          } @else {
+            <button (click)="toggleBottomPane()" title="Collapse Stream" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[rgb(var(--color-text-muted))]" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+          }
       </div>
 
-      @if (streamResults().length > 0) {
-        <div class="flex-grow p-4 overflow-y-auto">
-          @if(displayMode() === 'grid') {
-            <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-4">
-              @for (item of streamResults(); track $index) {
-                @switch (item.type) {
-                  @case ('web') {
-                    <app-web-result-card [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-web-result-card>
-                  }
-                  @case ('image') {
-                    <app-image-result-card [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-image-result-card>
-                  }
-                  @case ('youtube') {
-                    <app-youtube-result-card [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-youtube-result-card>
-                  }
-                  @case ('academic') {
-                    <app-academic-result-card [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-academic-result-card>
-                  }
-                  @case ('gemini') {
-                    <app-gemini-result-card [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-gemini-result-card>
-                  }
-                }
-              }
-            </div>
-          } @else {
-            <div class="space-y-1">
-              @for (item of streamResults(); track $index) {
-                @switch (item.type) {
-                  @case ('web') {
-                    <app-web-result-list-item [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-web-result-list-item>
-                  }
-                  @case ('image') {
-                    <app-image-result-list-item [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-image-result-list-item>
-                  }
-                  @case ('youtube') {
-                    <app-youtube-result-list-item [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-youtube-result-list-item>
-                  }
-                  @case ('academic') {
-                    <app-academic-result-list-item [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-academic-result-list-item>
-                  }
-                  @case ('gemini') {
-                    <app-gemini-result-list-item [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-gemini-result-list-item>
+      @if (!isBottomPaneCollapsed()) {
+        @if (streamResults().length > 0) {
+          <div class="flex-grow p-4 overflow-y-auto">
+            @if(displayMode() === 'grid') {
+              <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-4">
+                @for (item of streamResults(); track $index) {
+                  @switch (item.type) {
+                    @case ('web') {
+                      <app-web-result-card [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-web-result-card>
+                    }
+                    @case ('image') {
+                      <app-image-result-card [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-image-result-card>
+                    }
+                    @case ('youtube') {
+                      <app-youtube-result-card [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-youtube-result-card>
+                    }
+                    @case ('academic') {
+                      <app-academic-result-card [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-academic-result-card>
+                    }
+                    @case ('gemini') {
+                      <app-gemini-result-card [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-gemini-result-card>
+                    }
                   }
                 }
-              }
-            </div>
-          }
-        </div>
-      } @else {
-        <div class="h-full flex items-center justify-center">
-          <svg class="animate-spin h-8 w-8 text-[rgb(var(--color-accent-text))]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        </div>
+              </div>
+            } @else {
+              <div class="space-y-1">
+                @for (item of streamResults(); track $index) {
+                  @switch (item.type) {
+                    @case ('web') {
+                      <app-web-result-list-item [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-web-result-list-item>
+                    }
+                    @case ('image') {
+                      <app-image-result-list-item [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-image-result-list-item>
+                    }
+                    @case ('youtube') {
+                      <app-youtube-result-list-item [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-youtube-result-list-item>
+                    }
+                    @case ('academic') {
+                      <app-academic-result-list-item [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-academic-result-list-item>
+                    }
+                    @case ('gemini') {
+                      <app-gemini-result-list-item [result]="item" (saveBookmark)="saveBookmark.emit($event)"></app-gemini-result-list-item>
+                    }
+                  }
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="h-full flex items-center justify-center">
+            <svg class="animate-spin h-8 w-8 text-[rgb(var(--color-accent-text))]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+        }
       }
     </div>
   </div>
