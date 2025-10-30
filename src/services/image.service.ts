@@ -1,5 +1,3 @@
-
-
 import { FileSystemNode } from '../models/file-system.model.js';
 import { ImageClientService } from './image-client.service.js';
 import { ServerProfile } from '../models/server-profile.model.js';
@@ -7,13 +5,26 @@ import { PreferencesService } from './preferences.service.js';
 
 export class ImageService {
   constructor(
-    profile: ServerProfile,
-    imageClientService: ImageClientService,
-    preferencesService: PreferencesService
+    private profile: ServerProfile,
+    private imageClientService: ImageClientService,
+    private preferencesService: PreferencesService
   ) {}
 
   getIconUrl(item: FileSystemNode): string | null {
-    // Custom icon logic has been removed as per user request.
-    return null;
+    if (item.type !== 'folder') {
+      return null;
+    }
+
+
+    if (!this.profile.imageUrl) {
+      return null;
+    }
+
+    let folderName = item.name;
+    if (folderName.endsWith('.magnet')) {
+      folderName = folderName.slice(0, -7);
+    }
+    
+    return `${this.profile.imageUrl}/${encodeURIComponent(folderName)}`;
   }
 }
