@@ -15,11 +15,11 @@
       <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
     </svg>
 
-    <!-- Custom icon loads on top -->
+    <!-- Custom icon loads on top, centered and smaller -->
     @if(iconUrl() && !hasFailedToLoadImage()) {
       <img [src]="iconUrl()!" 
           [alt]="item().type" 
-          class="absolute inset-0 h-16 w-16 object-contain pointer-events-none transition-opacity duration-300"
+          class="absolute inset-0 m-auto h-11 w-11 object-contain pointer-events-none transition-opacity duration-300 rounded-md shadow"
           [class.opacity-0]="!imageIsLoaded()"
           (load)="onImageLoad()"
           (error)="onImageError()" />

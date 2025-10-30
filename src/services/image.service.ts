@@ -15,7 +15,6 @@ export class ImageService {
       return null;
     }
 
-
     if (!this.profile.imageUrl) {
       return null;
     }
