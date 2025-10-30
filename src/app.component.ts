@@ -130,6 +130,17 @@ export class AppComponent implements OnInit, OnDestroy {
     const activePane = this.panePaths().find(p => p.id === activeId);
     return activePane ? activePane.path : [];
   });
+
+  // --- Address Bar State ---
+  activeRootName = signal('...');
+  activeDisplayPath = computed(() => {
+    const p = this.activePanePath();
+    const providerPath = p.length > 0 ? p.slice(1) : [];
+    return providerPath.map(segment => 
+      segment.endsWith('.magnet') ? segment.slice(0, -7) : segment
+    );
+  });
+  canGoUpActivePane = computed(() => this.activePanePath().length > 0);
   
   pane1Path = computed(() => this.panePaths().find(p => p.id === 1)?.path ?? []);
   pane2Path = computed(() => this.panePaths().find(p => p.id === 2)?.path ?? []);
@@ -218,6 +229,18 @@ export class AppComponent implements OnInit, OnDestroy {
       ...readOnlyProviderOps
     };
     
+    effect(() => {
+      const provider = this.activeProvider();
+      if (provider) {
+        provider.getFolderTree()
+          .then(root => this.activeRootName.set(root.name))
+          .catch(err => {
+            console.error('Failed to get root name for active pane', err);
+            this.activeRootName.set('Error');
+          });
+      }
+    }, { allowSignalWrites: true });
+
     effect(() => {
       const theme = this.currentTheme();
       localStorage.setItem(THEME_STORAGE_KEY, theme);
@@ -411,6 +434,24 @@ export class AppComponent implements OnInit, OnDestroy {
       }
       return paths;
     });
+  }
+  
+  goUpActivePane(): void {
+    if (this.canGoUpActivePane()) {
+      const newPath = this.activePanePath().slice(0, -1);
+      this.updatePanePath(this.activePaneId(), newPath);
+    }
+  }
+
+  navigatePathActivePane(displayIndex: number): void {
+    // For root, index is -1. `slice(0, 1)` gives the first segment.
+    // For first segment, index is 0. `slice(0, 2)` gives first two segments.
+    const newPath = this.activePanePath().slice(0, displayIndex + 2);
+    this.updatePanePath(this.activePaneId(), newPath);
+  }
+
+  triggerRefresh(): void {
+    this.refreshPanes.update(v => v + 1);
   }
   
   onSidebarNavigation(path: string[]): void {

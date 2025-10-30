@@ -1,4 +1,5 @@
 
+
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
@@ -98,7 +99,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   saveBookmark = output<NewBookmark>();
   bookmarkDropped = output<{ bookmark: NewBookmark, dropOn: FileSystemNode }>();
 
-  rootName = signal('...');
   state = signal<FileSystemState>({ status: 'loading', items: [] });
   contextMenu = signal<{ x: number; y: number; item: FileSystemNode | null } | null>(null);
   previewItem = signal<FileSystemNode | null>(null);
@@ -158,20 +158,12 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   @ViewChildren('selectableItem', { read: ElementRef }) selectableItemElements!: QueryList<ElementRef>;
 
   isHighlighted = computed(() => this.isActive() && this.isSplitView());
-  canGoUp = computed(() => this.path().length > 0);
-  isAtHomeRoot = computed(() => this.path().length === 0);
   
   private providerPath = computed(() => {
     const p = this.path();
     return p.length > 0 ? p.slice(1) : [];
   });
   
-  displayPath = computed(() => {
-    return this.providerPath().map(segment => 
-      segment.endsWith('.magnet') ? segment.slice(0, -7) : segment
-    );
-  });
-
   sortedItems = computed(() => {
     const items = [...this.state().items];
     const { key, direction } = this.sortCriteria();
@@ -231,16 +223,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
         this.handleToolbarAction(action);
       }
     });
-
-    effect(() => {
-      const provider = this.fileSystemProvider();
-      provider.getFolderTree()
-        .then(root => this.rootName.set(root.name))
-        .catch(err => {
-          console.error('Failed to get root name', err);
-          this.rootName.set('Error');
-        });
-    }, { allowSignalWrites: true });
     
     effect(() => {
       if (this.displayMode() === 'grid') {
@@ -353,17 +335,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
             });
         }
     }
-  }
-
-  goUp(): void {
-    if (this.canGoUp()) {
-      this.pathChanged.emit(this.path().slice(0, -1));
-    }
-  }
-
-  navigateToPath(displayIndex: number): void {
-    const newPath = this.path().slice(0, displayIndex + 2);
-    this.pathChanged.emit(newPath);
   }
 
   async openItem(item: FileSystemNode): Promise<void> {

@@ -19,6 +19,33 @@
     </app-sidebar>
 
     <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+      <!-- Address Bar -->
+      <div class="h-12 px-4 border-b border-[rgb(var(--color-border-base))] flex items-center space-x-2 flex-shrink-0 bg-[rgb(var(--color-surface-muted))]">
+        <button (click)="goUpActivePane()" [disabled]="!canGoUpActivePane()" title="Up" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover-subtle))] disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[rgb(var(--color-text-muted))]" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <div class="flex-grow flex items-center bg-[rgb(var(--color-background))] rounded-md border border-[rgb(var(--color-border-muted))] px-2 py-1 text-sm">
+          <button (click)="navigatePathActivePane(-1)" class="text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer">{{ activeRootName() }}</button>
+          @if (activeDisplayPath().length > 0) {
+            <span class="mx-1 text-[rgb(var(--color-text-subtle))]">\</span>
+          }
+          @for (segment of activeDisplayPath(); track segment; let i = $index) {
+            <button (click)="navigatePathActivePane(i)" class="text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer">{{ segment }}</button>
+            @if (!$last) {
+              <span class="mx-1 text-[rgb(var(--color-text-subtle))]">\</span>
+            }
+          }
+        </div>
+        <!-- Refresh Button -->
+        <button (click)="triggerRefresh()" title="Refresh" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover-subtle))]">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[rgb(var(--color-text-muted))]" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm10.899 12.101A7.002 7.002 0 012.399 8.567a1 1 0 011.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+
       <app-toolbar
         [canCut]="canCutCopyShareDelete()"
         [canCopy]="canCutCopyShareDelete()"
