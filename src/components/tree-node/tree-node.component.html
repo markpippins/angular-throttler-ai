@@ -19,11 +19,10 @@
   </button>
   
   <div class="relative h-5 w-5 mr-2 flex-shrink-0 flex items-center justify-center">
-    @if (imageService(); as service) {
-      @let iconUrl = service.getIconUrl(node());
-      @if (iconUrl && !imageHasError()) {
+    @if (imageService()) {
+      @if (iconUrl() && !imageHasError()) {
         <!-- Custom Image: Replaces default icons -->
-        <img [src]="iconUrl" alt="icon" 
+        <img [src]="iconUrl()" alt="icon" 
             class="h-5 w-5 object-contain transition-opacity duration-300"
             [class.opacity-0]="!imageIsLoaded()"
             (load)="onImageLoad()"

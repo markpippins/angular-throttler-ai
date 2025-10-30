@@ -31,6 +31,12 @@ export class TreeNodeComponent implements OnInit {
   imageIsLoaded = signal(false);
   isDragOver = signal(false);
   
+  iconUrl = computed(() => {
+    const service = this.imageService();
+    if (!service) return null;
+    return service.getIconUrl(this.node());
+  });
+
   isSelected = computed(() => {
     const p1 = this.path().join('/');
     const p2 = this.currentPath().join('/');
@@ -79,8 +85,8 @@ export class TreeNodeComponent implements OnInit {
     });
 
     effect(() => {
-      // Reset image loading state whenever the node changes.
-      this.node();
+      // When the iconUrl changes, we need to reset the loading indicators.
+      this.iconUrl(); // Establish dependency on the computed signal
       this.imageIsLoaded.set(false);
       this.imageHasError.set(false);
     });
