@@ -18,30 +18,48 @@
     </svg>
   </button>
   
-  <div class="relative h-5 w-5 mr-2 flex-shrink-0">
-    <!-- Base icon: changes based on expansion state -->
-    @if (isExpanded()) {
-      <!-- Open Folder Icon -->
-      <svg xmlns="http://www.w3.org/2000/svg" class="absolute inset-0 h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-      </svg>
-    } @else {
-      <!-- Closed Folder Icon -->
-      <svg xmlns="http://www.w3.org/2000/svg" class="absolute inset-0 h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-      </svg>
-    }
-
-    <!-- Custom icon loads on top of either base icon -->
+  <div class="relative h-5 w-5 mr-2 flex-shrink-0 flex items-center justify-center">
     @if (imageService(); as service) {
       @let iconUrl = service.getIconUrl(node());
       @if (iconUrl && !imageHasError()) {
+        <!-- Custom Image: Replaces default icons -->
         <img [src]="iconUrl" alt="icon" 
-            class="absolute inset-0 h-5 w-5 object-contain transition-opacity duration-300"
+            class="h-5 w-5 object-contain transition-opacity duration-300"
             [class.opacity-0]="!imageIsLoaded()"
             (load)="onImageLoad()"
             (error)="onImageError()" />
+        <!-- Loading spinner for the custom image -->
+        @if (!imageIsLoaded()) {
+          <svg class="animate-spin h-4 w-4 text-[rgb(var(--color-text-subtle))] absolute" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        }
+      } @else {
+        <!-- Default Folder Icons -->
+        @if (isExpanded()) {
+          <!-- Open Folder Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+          </svg>
+        } @else {
+          <!-- Closed Folder Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+          </svg>
+        }
       }
+    } @else {
+      <!-- Fallback if no image service is provided -->
+       @if (isExpanded()) {
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+          </svg>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+          </svg>
+        }
     }
   </div>
   
