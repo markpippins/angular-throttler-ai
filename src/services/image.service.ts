@@ -25,6 +25,8 @@ export class ImageService {
       folderName = folderName.slice(0, -7);
     }
     
-    return `${this.profile.imageUrl}/${encodeURIComponent(folderName)}`;
+    const lowerCaseFolderName = folderName.toLowerCase();
+    
+    return `${this.profile.imageUrl}/${encodeURIComponent(lowerCaseFolderName)}`;
   }
 }
