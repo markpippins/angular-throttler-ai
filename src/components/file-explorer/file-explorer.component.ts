@@ -1231,6 +1231,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   }
 
   private streamItemToNewBookmark(item: StreamItem): NewBookmark {
+    
     const link = this.getStreamItemLink(item);
     
     let title: string;
