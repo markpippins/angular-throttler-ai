@@ -7,10 +7,12 @@
       </svg>
     </div>
   </div>
+  
   <div class="flex-grow min-w-0 mx-3">
     <a [href]="'https://www.youtube.com/watch?v=' + result().videoId" target="_blank" class="font-semibold text-sm truncate text-[rgb(var(--color-text-base))] hover:underline hover:text-[rgb(var(--color-accent-text))]">{{ result().title }}</a>
     <p class="text-xs text-[rgb(var(--color-text-muted))] truncate">{{ result().channelTitle }}</p>
   </div>
+
   <button 
     (click)="onToggleBookmark()" 
     [title]="isBookmarked() ? 'Remove bookmark' : 'Save to current folder'" 
