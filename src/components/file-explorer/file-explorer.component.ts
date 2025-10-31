@@ -62,6 +62,8 @@ interface StreamSortCriteria {
   direction: 'asc' | 'desc';
 }
 
+const SPECIAL_FOLDERS = new Set(["libraries", "build", "dev", "source", "repo", "devops"]);
+
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
@@ -195,6 +197,21 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     const directionMultiplier = direction === 'asc' ? 1 : -1;
 
     items.sort((a, b) => {
+      const aIsSpecial = a.type === 'folder' && SPECIAL_FOLDERS.has(a.name.toLowerCase());
+      const bIsSpecial = b.type === 'folder' && SPECIAL_FOLDERS.has(b.name.toLowerCase());
+
+      if (aIsSpecial && !bIsSpecial) {
+        return -1;
+      }
+      if (!aIsSpecial && bIsSpecial) {
+        return 1;
+      }
+      if (aIsSpecial && bIsSpecial) {
+        // Always sort special folders alphabetically by name, ignoring case.
+        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      }
+
+      // --- Default sorting logic for non-special items ---
       if (a.type === 'folder' && b.type !== 'folder') return -1;
       if (a.type !== 'folder' && b.type === 'folder') return 1;
 
