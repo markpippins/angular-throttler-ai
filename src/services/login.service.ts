@@ -1,19 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { BrokerService } from './broker.service.js';
 import { User } from '../models/user.model.js';
+import { ServerProfile } from '../models/server-profile.model.js';
 
 const SERVICE_NAME = 'loginService';
 
 interface LoginResponse {
-    token: string;
-    user: {
-        id: string;
-        username: string;
-        name: string;
-        avatar: string;
-        bio: string;
-        displayName?: string;
-    }
+  token: string;
+  message?: string;
+  ok: boolean;
+  errors?: { message: string }[];
 }
 
 @Injectable({
@@ -22,25 +18,25 @@ interface LoginResponse {
 export class LoginService {
   private brokerService = inject(BrokerService);
 
-  async login(brokerUrl: string, username: string, password: string): Promise<User> {
-    const response = await this.brokerService.submitRequest<LoginResponse>(brokerUrl, SERVICE_NAME, 'login', {
+  async login(profile: ServerProfile, username: string, password: string): Promise<User> {
+    const response = await this.brokerService.submitRequest<LoginResponse>(profile.brokerUrl, SERVICE_NAME, 'login', {
         alias: username,
         identifier: password
     });
     
-    if (!response || !response.user) {
-        throw new Error('Login response is missing user data.');
+    if (!response || !response.ok) {
+        const errorMessage = response?.errors?.map(e => e.message).join(', ') || response?.message || 'Login failed due to an unknown error.';
+        throw new Error(errorMessage);
     }
     
-    const userDto = response.user;
-    
-    // Map from the DTO to the frontend User model.
+    // Since the user object is no longer returned, we construct a partial user object
+    // for display purposes. The username is the key piece of information we have.
     return {
-        id: userDto.id,
-        username: userDto.username,
-        name: (userDto as any).displayName || userDto.name || '',
-        avatar: userDto.avatar || '',
-        bio: userDto.bio || ''
+      id: username,
+      profileId: profile.id,
+      alias: username,
+      email: `${username}@mock.com`, // No email info from this response
+      avatarUrl: '' // No avatar info from this response
     };
   }
 }

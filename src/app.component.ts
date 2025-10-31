@@ -342,7 +342,7 @@ export class AppComponent implements OnInit, OnDestroy {
   async onLoginAndMount({ profile, username, password }: { profile: ServerProfile, username: string, password: string }): Promise<void> {
     this.connectionStatus.set('connecting');
     try {
-      const user = await this.loginService.login(profile.brokerUrl, username, password);
+      const user = await this.loginService.login(profile, username, password);
       await this.mountProfile(profile, user);
       this.mountedProfileUsers.update(map => new Map(map).set(profile.id, user));
       this.connectionStatus.set('connected');

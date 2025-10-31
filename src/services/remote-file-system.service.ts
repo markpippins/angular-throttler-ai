@@ -17,7 +17,7 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   private get alias(): string {
-    return this.user?.username ?? this.profile.name;
+    return this.user?.alias ?? this.profile.name;
   }
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {

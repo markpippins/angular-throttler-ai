@@ -168,7 +168,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   activeStreamFilters = signal<Set<StreamItemType>>(new Set(['web', 'image', 'youtube', 'academic', 'gemini']));
   isStreamSortDropdownOpen = signal(false);
   isStreamFilterDropdownOpen = signal(false);
-  streamDisplayMode = signal<'grid' | 'list'>('grid');
 
   streamFilterTypes: { type: StreamItemType, label: string, color: string }[] = [
     { type: 'web', label: 'Web', color: 'bg-blue-500' },
@@ -1187,10 +1186,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   // --- Stream Toolbar Methods ---
   onStreamSearchChange(event: Event): void {
     this.streamSearchQuery.set((event.target as HTMLInputElement).value);
-  }
-
-  onStreamDisplayModeChange(mode: 'grid' | 'list'): void {
-    this.streamDisplayMode.set(mode);
   }
 
   onStreamSortChange(key: StreamSortKey): void {
