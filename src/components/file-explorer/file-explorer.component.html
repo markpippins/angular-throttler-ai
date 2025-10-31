@@ -245,17 +245,30 @@
       [class.border-t]="isBottomPaneCollapsed()"
       [class.border-[rgb(var(--color-border-base))]]="isBottomPaneCollapsed()">
       <!-- Bottom Pane Toolbar -->
-      <div class="flex-shrink-0 flex items-center p-2 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface))] text-sm">
-        <div class="flex items-center gap-2 ml-auto">
-          <!-- Search Input -->
-          <div class="relative">
-              <input type="search" placeholder="Search stream..." 
-                [value]="streamSearchQuery()"
-                (input)="onStreamSearchChange($event)"
-                class="w-48 pl-8 pr-2 py-1 rounded-md border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface))] focus:ring-1 focus:ring-[rgb(var(--color-accent-ring))] focus:outline-none">
-              <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-text-subtle))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              </div>
+      <div class="flex-shrink-0 flex items-center justify-between p-2 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface))] text-sm">
+        <div class="flex items-center gap-2">
+          <!-- View Toggles -->
+          <div class="flex items-center rounded-md bg-[rgb(var(--color-surface))] p-0.5 border border-[rgb(var(--color-border-muted))]">
+            <button (click)="streamDisplayMode.set('grid')" title="Grid View" 
+                    class="p-1.5 rounded-sm transition-colors"
+                    [class.bg-[rgb(var(--color-accent-solid-bg))]]="streamDisplayMode() === 'grid'"
+                    [class.text-white]="streamDisplayMode() === 'grid'"
+                    [class.text-[rgb(var(--color-text-muted))]]="streamDisplayMode() !== 'grid'"
+                    [class.hover:bg-[rgb(var(--color-surface-hover))]]="streamDisplayMode() !== 'grid'">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM11 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z" />
+              </svg>
+            </button>
+            <button (click)="streamDisplayMode.set('list')" title="List View"
+                    class="p-1.5 rounded-sm transition-colors"
+                    [class.bg-[rgb(var(--color-accent-solid-bg))]]="streamDisplayMode() === 'list'"
+                    [class.text-white]="streamDisplayMode() === 'list'"
+                    [class.text-[rgb(var(--color-text-muted))]]="streamDisplayMode() !== 'list'"
+                    [class.hover:bg-[rgb(var(--color-surface-hover))]]="streamDisplayMode() !== 'list'">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+              </svg>
+            </button>
           </div>
 
           <!-- Filter Dropdown -->
@@ -266,7 +279,7 @@
               </svg>
             </button>
              @if(isStreamFilterDropdownOpen()) {
-              <div class="absolute right-0 bottom-full z-10 mb-2 w-48 origin-bottom-right rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu">
+              <div class="absolute left-0 bottom-full z-10 mb-2 w-48 origin-bottom-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu">
                 <div class="py-1" role="none">
                   <div (click)="toggleAllStreamFilters()" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center px-4 py-2 text-sm cursor-pointer font-semibold" role="menuitem">
                      <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-3" [checked]="activeStreamFilters().size === streamFilterTypes.length" [indeterminate]="activeStreamFilters().size > 0 && activeStreamFilters().size < streamFilterTypes.length">
@@ -293,7 +306,7 @@
               </svg>
             </button>
             @if(isStreamSortDropdownOpen()) {
-              <div class="absolute right-0 bottom-full z-10 mb-2 w-48 origin-bottom-right rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu">
+              <div class="absolute left-0 bottom-full z-10 mb-2 w-48 origin-bottom-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu">
                 <div class="py-1" role="none">
                   @let current = streamSortCriteria();
                   <div (click)="onStreamSortChange('relevance')" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center px-4 py-2 text-sm cursor-pointer" role="menuitem">
@@ -317,6 +330,18 @@
               </div>
             }
           </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Search Input -->
+          <div class="relative">
+              <input type="search" placeholder="Search stream..." 
+                [value]="streamSearchQuery()"
+                (input)="onStreamSearchChange($event)"
+                class="w-48 pl-8 pr-2 py-1 rounded-md border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface))] focus:ring-1 focus:ring-[rgb(var(--color-accent-ring))] focus:outline-none">
+              <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-text-subtle))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </div>
+          </div>
 
           @if(isBottomPaneCollapsed()) {
             <button (click)="toggleBottomPane()" title="Expand Stream" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))]">
@@ -338,7 +363,7 @@
         @if (processedStreamResults(); as results) {
           <div class="flex-grow p-4 overflow-y-auto">
             <!-- Grid View -->
-            <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-4" [class.hidden]="displayMode() !== 'grid'">
+            <div class="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-4" [class.hidden]="streamDisplayMode() !== 'grid'">
               @for (item of results; track $index) {
                 @switch (item.type) {
                   @case ('web') {
@@ -376,7 +401,7 @@
             </div>
             
             <!-- List View -->
-            <div class="space-y-1" [class.hidden]="displayMode() !== 'list'">
+            <div class="space-y-1" [class.hidden]="streamDisplayMode() !== 'list'">
               @for (item of results; track $index) {
                 @switch (item.type) {
                   @case ('web') {

@@ -1,4 +1,5 @@
 
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -687,6 +688,15 @@ export class AppComponent implements OnInit, OnDestroy {
   }
   
   onKeyDown(event: KeyboardEvent): void {
+    // Handle high-priority Escape key presses for modals first.
+    if (event.key === 'Escape') {
+      if (this.isServerProfilesDialogOpen()) {
+        event.preventDefault(); // prevent any other default browser behavior
+        this.closeServerProfilesDialog();
+        return; // Action handled, stop further processing
+      }
+    }
+
     const target = event.target as HTMLElement;
     const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
     const isRenameInput = target.classList.contains('rename-input');

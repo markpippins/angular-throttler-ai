@@ -168,6 +168,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   activeStreamFilters = signal<Set<StreamItemType>>(new Set(['web', 'image', 'youtube', 'academic', 'gemini']));
   isStreamSortDropdownOpen = signal(false);
   isStreamFilterDropdownOpen = signal(false);
+  streamDisplayMode = signal<'grid' | 'list'>('grid');
 
   streamFilterTypes: { type: StreamItemType, label: string, color: string }[] = [
     { type: 'web', label: 'Web', color: 'bg-blue-500' },
@@ -304,6 +305,11 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
 
   constructor() {
     effect(() => {
+      // Sync the stream's display mode with the main display mode from the toolbar.
+      this.streamDisplayMode.set(this.displayMode());
+    }, { allowSignalWrites: true });
+
+    effect(() => {
       this.refresh();
       this.path();
       this.fileSystemProvider();
@@ -337,7 +343,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
         this.handleToolbarAction(action);
       }
     });
-    
+
     effect(() => {
       if (this.displayMode() === 'grid') {
         this.loadThumbnailsForVisibleItems();
