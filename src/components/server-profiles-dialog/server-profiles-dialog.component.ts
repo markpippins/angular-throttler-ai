@@ -4,6 +4,7 @@ import { ServerProfileService } from '../../services/server-profile.service.js';
 import { ServerProfile } from '../../models/server-profile.model.js';
 import { User } from '../../models/user.model.js';
 import { LoginDialogComponent } from '../login-dialog/login-dialog.component.js';
+import { ToastService } from '../../services/toast.service.js';
 
 type FormState = {
   id: string | null;
@@ -22,6 +23,7 @@ type FormState = {
 })
 export class ServerProfilesDialogComponent {
   profileService = inject(ServerProfileService);
+  toastService = inject(ToastService);
   
   mountedProfileIds = input<string[]>([]);
   mountedProfileUsers = input<Map<string, User>>(new Map());
@@ -75,12 +77,14 @@ export class ServerProfilesDialogComponent {
 
     if (state.id) { // Editing existing
       this.profileService.updateProfile(state as ServerProfile);
+      this.toastService.show(`Profile "${state.name}" updated.`);
     } else { // Adding new
       const { id, ...newProfileData } = state;
       this.profileService.addProfile(newProfileData);
+      this.toastService.show(`Profile "${state.name}" created.`);
+      this.formState.set(null);
+      this.selectedProfileId.set(null);
     }
-    this.formState.set(null);
-    this.selectedProfileId.set(null);
   }
   
   deleteProfile(id: string): void {
