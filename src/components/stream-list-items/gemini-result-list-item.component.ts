@@ -1,6 +1,5 @@
 import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NewBookmark } from '../../models/bookmark.model.js';
 
 interface GeminiResult {
   query: string;
@@ -16,16 +15,10 @@ interface GeminiResult {
 })
 export class GeminiResultListItemComponent {
   result = input.required<GeminiResult>();
-  saveBookmark = output<NewBookmark>();
+  isBookmarked = input(false);
+  bookmarkToggled = output<GeminiResult>();
 
-  onSave(): void {
-    const result = this.result();
-    this.saveBookmark.emit({
-      type: 'gemini',
-      title: `Gemini response for: ${result.query}`,
-      link: '#',
-      snippet: result.text,
-      source: 'Gemini Search',
-    });
+  onToggleBookmark(): void {
+    this.bookmarkToggled.emit(this.result());
   }
 }

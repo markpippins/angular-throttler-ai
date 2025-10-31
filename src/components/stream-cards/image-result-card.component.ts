@@ -1,7 +1,6 @@
 import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ImageSearchResult } from '../../models/image-search-result.model.js';
-import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-image-result-card',
@@ -12,17 +11,10 @@ import { NewBookmark } from '../../models/bookmark.model.js';
 })
 export class ImageResultCardComponent {
   result = input.required<ImageSearchResult>();
-  saveBookmark = output<NewBookmark>();
+  isBookmarked = input(false);
+  bookmarkToggled = output<ImageSearchResult>();
 
-  onSave(): void {
-    const result = this.result();
-    this.saveBookmark.emit({
-      type: 'image',
-      title: result.description,
-      link: result.url,
-      snippet: `Photo by ${result.photographer}`,
-      thumbnailUrl: result.thumbnailUrl,
-      source: result.source,
-    });
+  onToggleBookmark(): void {
+    this.bookmarkToggled.emit(this.result());
   }
 }

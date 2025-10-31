@@ -2,31 +2,31 @@
 
 This directory contains the TypeScript `interface` and `type` definitions that establish the core data models for the entire application. Defining these structures provides strong typing, improves code clarity, and prevents common errors.
 
-## Core Models
-
-### `file-system.model.ts`
+## Core File System Models (`file-system.model.ts`)
 
 -   **`FileType`**: A string literal type (`'folder' | 'file'`) that ensures the `type` property of a node can only be one of these two values.
--   **`FileSystemNode`**: This is the most fundamental interface in the application. It defines the shape of an object representing a file or a folder.
-    -   `name: string`: The name of the file or folder.
-    -   `type: FileType`: The type of the node.
-    -   `children?: FileSystemNode[]`: An **optional** array of child nodes. This property only exists if the `type` is `'folder'`. The recursive nature of this interface (`FileSystemNode` can contain other `FileSystemNode`s) allows it to represent an entire directory tree.
-    -   `content?: string`: Optional content for files.
-    -   `modified?: string`: An optional modification timestamp.
+-   **`FileSystemNode`**: The fundamental interface for files and folders. It's a recursive structure that can represent an entire directory tree.
+-   **`SearchResultNode`**: Extends `FileSystemNode` to include the `path` to the item, used for displaying file search results.
+
+## Server & User Models
 
 ### `server-profile.model.ts`
-
--   **`ServerProfile`**: This interface defines the structure of a connection profile for a remote server.
-    -   `id: string`: A unique identifier for the profile.
-    -   `name: string`: A user-friendly name for the profile (e.g., "Production Server").
-    -   `brokerUrl: string`: The base URL for the backend message broker.
-    -   `imageUrl: string`: The base URL for the image server associated with this profile.
+-   **`ServerProfile`**: Defines the connection profile for a remote server, including URLs for the broker and image services.
 
 ### `user.model.ts`
+-   **`User`**: Defines the structure for an authenticated user's data. The `username` property is critically used as the `alias` for remote file system operations.
 
--   **`User`**: This type defines the structure of an authenticated user's data after a successful login. This information is used throughout the application to identify the user and customize their experience.
-    -   `id: string`: The unique identifier for the user.
-    -   `name: string`: The user's full or display name.
-    -   `username: string`: The user's login name or alias. This is critically used as the `alias` for file system operations to provide a sandboxed environment for each user.
-    -   `avatar: string`: URL to the user's avatar image.
-    -   `bio: string`: A short biography or description of the user.
+## "Idea Stream" and Search Models
+
+These models define the shape of data returned from the various (mock) search services used in the Idea Stream.
+
+- **`google-search-result.model.ts`**: Defines a standard web search result with a title, link, snippet, and source.
+- **`image-search-result.model.ts`**: Defines an image result with URLs, a description, and photographer info.
+- **`youtube-search-result.model.ts`**: Defines a video result with a video ID, title, thumbnail, and channel information.
+- **`academic-search-result.model.ts`**: Defines a result for a scholarly article, including authors and publication.
+
+## Bookmark Model (`bookmark.model.ts`)
+
+- **`BookmarkType`**: A string literal type (`'web' | 'image' | 'youtube'`, etc.) corresponding to the different types of content that can be saved.
+- **`Bookmark`**: The interface for a saved bookmark. It includes the original content data, a unique ID, and the `path` of the folder it was saved to.
+- **`NewBookmark`**: A utility type representing a bookmark before it has been saved and assigned an ID and path.

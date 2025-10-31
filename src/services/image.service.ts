@@ -24,8 +24,12 @@ export class ImageService {
       folderName = folderName.slice(0, -7);
     }
     
-    // Remove any "." characters from the folder name.
-    folderName = folderName.replace(/\./g, '');
+    // If the folder name resembles a JavaScript library (e.g., ends with .js),
+    // remove all dots to make it interchangeable with the version without dots.
+    // For other folder names, dots are preserved.
+    if (folderName.toLowerCase().endsWith('.js')) {
+      folderName = folderName.replace(/\./g, '');
+    }
     
     const folderNameWithDashes = folderName.replace(/ /g, '-');
     const lowerCaseFolderName = folderNameWithDashes.toLowerCase();

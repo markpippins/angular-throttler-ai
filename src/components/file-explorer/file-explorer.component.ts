@@ -1,5 +1,3 @@
-
-
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
@@ -14,6 +12,7 @@ import { InputDialogComponent } from '../input-dialog/input-dialog.component.js'
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component.js';
 import { AutoFocusSelectDirective } from '../../directives/auto-focus-select.directive.js';
 import { DragDropService, DragDropPayload } from '../../services/drag-drop.service.js';
+import { BookmarkService } from '../../services/bookmark.service.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
 import { GoogleSearchService } from '../../services/google-search.service.js';
 import { UnsplashService } from '../../services/unsplash.service.js';
@@ -47,7 +46,7 @@ interface Thumbnail {
 }
 
 // Type definitions for items in the unified stream
-type GeminiResult = { query: string; text: string };
+type GeminiResult = { query: string; text: string; publishedAt: string; };
 
 type StreamItem = 
   | (GoogleSearchResult & { type: 'web' })
@@ -55,6 +54,13 @@ type StreamItem =
   | (YoutubeSearchResult & { type: 'youtube' })
   | (AcademicSearchResult & { type: 'academic' })
   | (GeminiResult & { type: 'gemini' });
+
+type StreamItemType = 'web' | 'image' | 'youtube' | 'academic' | 'gemini';
+type StreamSortKey = 'relevance' | 'title' | 'source' | 'date';
+interface StreamSortCriteria {
+  key: StreamSortKey;
+  direction: 'asc' | 'desc';
+}
 
 @Component({
   selector: 'app-file-explorer',
@@ -66,6 +72,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   private renderer = inject(Renderer2);
   private clipboardService = inject(ClipboardService);
   private dragDropService = inject(DragDropService);
+  private bookmarkService = inject(BookmarkService);
   private googleSearchService = inject(GoogleSearchService);
   private unsplashService = inject(UnsplashService);
   private geminiService = inject(GeminiService);
@@ -153,6 +160,22 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   private unlistenBottomPaneMouseUp: (() => void) | null = null;
   
   streamResults = signal<StreamItem[]>([]);
+  streamSearchQuery = signal('');
+  streamSortCriteria = signal<StreamSortCriteria>({ key: 'relevance', direction: 'asc' });
+  activeStreamFilters = signal<Set<StreamItemType>>(new Set(['web', 'image', 'youtube', 'academic', 'gemini']));
+  isStreamSortDropdownOpen = signal(false);
+  isStreamFilterDropdownOpen = signal(false);
+  streamDisplayMode = signal<'grid' | 'list'>('grid');
+
+  streamFilterTypes: { type: StreamItemType, label: string, color: string }[] = [
+    { type: 'web', label: 'Web', color: 'bg-blue-500' },
+    { type: 'image', label: 'Images', color: 'bg-purple-500' },
+    { type: 'youtube', label: 'Videos', color: 'bg-red-500' },
+    { type: 'academic', label: 'Academic', color: 'bg-gray-500' },
+    { type: 'gemini', label: 'Gemini', color: 'bg-indigo-500' },
+  ];
+  
+  bookmarkedLinks = this.bookmarkService.bookmarkedLinks;
 
   @ViewChild('mainContentWrapper') mainContentWrapperEl!: ElementRef<HTMLDivElement>;
   @ViewChild('topPane') topPaneEl!: ElementRef<HTMLDivElement>;
@@ -202,6 +225,66 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     return items.filter(item => item.name.toLowerCase().includes(query));
   });
 
+  processedStreamResults = computed(() => {
+    let items = [...this.streamResults()];
+    const query = this.streamSearchQuery().toLowerCase().trim();
+    const filters = this.activeStreamFilters();
+    const { key: sortKey, direction } = this.streamSortCriteria();
+
+    // 1. Filter by type
+    if (filters.size < this.streamFilterTypes.length) {
+      items = items.filter(item => filters.has(item.type));
+    }
+    
+    // 2. Filter by search query
+    if (query) {
+      items = items.filter(item => {
+        const title = 'title' in item ? item.title : ('query' in item ? item.query : '');
+        const content = 'snippet' in item ? item.snippet : ('description' in item ? item.description : ('text' in item ? item.text : ''));
+        return title.toLowerCase().includes(query) || (content && content.toLowerCase().includes(query));
+      });
+    }
+
+    // 3. Sort
+    if (sortKey !== 'relevance') {
+      const sortDirection = direction === 'asc' ? 1 : -1;
+      items.sort((a, b) => {
+        if (sortKey === 'date') {
+          const dateA = new Date('publishedAt' in a && a.publishedAt ? a.publishedAt : 0).getTime();
+          const dateB = new Date('publishedAt' in b && b.publishedAt ? b.publishedAt : 0).getTime();
+          // For date, asc is oldest first, desc is newest first
+          return (dateA - dateB) * sortDirection;
+        } else {
+          const valA = this.getSortableValue(a, sortKey);
+          const valB = this.getSortableValue(b, sortKey);
+          if (valA < valB) return -1 * sortDirection;
+          if (valA > valB) return 1 * sortDirection;
+          return 0;
+        }
+      });
+    }
+    
+    return items;
+  });
+
+  private getSortableValue(item: StreamItem, key: 'title' | 'source'): string {
+    const lowerKey = key.toLowerCase();
+    switch (lowerKey) {
+        case 'title':
+            if ('title' in item) return item.title.toLowerCase();
+            if ('query' in item) return `Gemini: ${item.query}`.toLowerCase();
+            if ('description' in item) return item.description.toLowerCase();
+            return '';
+        case 'source':
+            if ('source' in item) return item.source.toLowerCase();
+            if ('channelTitle' in item) return item.channelTitle.toLowerCase();
+            if ('publication' in item) return item.publication.toLowerCase();
+            return 'gemini';
+        default:
+            return '';
+    }
+  }
+
   constructor() {
     effect(() => {
       this.refresh();
@@ -214,7 +297,20 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     });
 
     effect(() => {
-        Promise.resolve().then(() => this.updateStatus());
+        // By reading the signals here, we ensure Angular tracks them as dependencies for this effect.
+        const selectionSize = this.selectedItems().size;
+        const totalItems = this.state().items.length;
+        const filteredItemsCount = this.filteredItems().length;
+        const hasFilter = this.filterQuery().trim().length > 0;
+
+        // We emit the output in a microtask to prevent ExpressionChangedAfterItHasBeenCheckedError.
+        Promise.resolve().then(() => {
+            this.statusChanged.emit({
+                selectedItemsCount: selectionSize,
+                totalItemsCount: totalItems,
+                filteredItemsCount: hasFilter ? filteredItemsCount : null,
+            });
+        });
     });
     
     effect(() => {
@@ -254,7 +350,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     const imageResults: StreamItem[] = images.map(r => ({ ...r, type: 'image' }));
     const youtubeResults: StreamItem[] = youtube.map(r => ({ ...r, type: 'youtube' }));
     const academicResults: StreamItem[] = academic.map(r => ({ ...r, type: 'academic' }));
-    const geminiResult: StreamItem = { query: hardcodedQuery, text: gemini, type: 'gemini' };
+    const geminiResult: StreamItem = { query: hardcodedQuery, text: gemini, type: 'gemini', publishedAt: new Date().toISOString() };
 
     // Interleave results for a mixed stream
     const allResults = [geminiResult, ...webResults, ...imageResults, ...youtubeResults, ...academicResults];
@@ -279,15 +375,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     this.stopBottomPaneResize();
     this.renderer.removeStyle(document.body, 'user-select');
     if (this.clickTimer) clearTimeout(this.clickTimer);
-  }
-
-  private updateStatus(): void {
-    const hasFilter = this.filterQuery().trim().length > 0;
-    this.statusChanged.emit({
-      selectedItemsCount: this.selectedItems().size,
-      totalItemsCount: this.state().items.length,
-      filteredItemsCount: hasFilter ? this.filteredItems().length : null,
-    });
   }
   
   private async _loadContents(): Promise<void> {
@@ -381,8 +468,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     if (this.editingItemName()) return;
 
     event.stopPropagation();
-    this.closeContextMenu();
-    this.closeDestinationSubMenu();
+    this.closeAllMenus();
     
     const isCtrlOrMeta = event.metaKey || event.ctrlKey;
     const isShift = event.shiftKey;
@@ -491,7 +577,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     if (this.editingItemName()) return;
     event.preventDefault();
     event.stopPropagation();
-    this.closeDestinationSubMenu();
+    this.closeAllMenus();
 
     if (item && !this.selectedItems().has(item.name)) {
       this.handleSingleSelection(item.name);
@@ -546,8 +632,11 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
       case 'rename': this.onRename(); break;
       case 'share': this.onShare(); break;
       case 'delete': this.onDelete(); break;
+      case 'properties': this.onProperties(); break;
       case 'copyTo': this.onItemsCopiedTo(action.payload); break;
       case 'moveTo': this.onItemsMovedTo(action.payload); break;
+      case 'selectAll': this.selectAllItems(); break;
+      case 'clearSelection': this.clearSelection(); break;
     }
   }
 
@@ -760,12 +849,16 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   }
   
   onPropertiesFromContextMenu(): void {
+    this.onProperties();
+    this.closeContextMenu();
+  }
+
+  onProperties(): void {
     const selected = this.getSelectedNodes();
     if (selected.length === 1) {
         this.propertiesItem.set(selected[0]);
         this.isPropertiesDialogOpen.set(true);
     }
-    this.closeContextMenu();
   }
 
   closePropertiesDialog(): void {
@@ -876,22 +969,11 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     alert(`Dropped ${event.files.length} files onto ${event.item.name}. Uploading to specific folders is not implemented yet.`);
   }
 
-  onF2Pressed(event: KeyboardEvent): void {
-    if (event.key === 'F2') {
-      const selectedCount = this.selectedItems().size;
-      if (selectedCount === 1) {
-        event.preventDefault();
-        this.onRename();
-      }
-    }
-  }
-
   onMainAreaMouseDown(event: MouseEvent): void {
     if (this.editingItemName()) return;
     if (event.button !== 0 || (event.target as HTMLElement).closest('[data-is-selectable-item]')) return;
     
-    this.closeContextMenu();
-    this.closeDestinationSubMenu();
+    this.closeAllMenus();
     
     if (this.displayMode() === 'list') {
       this.selectedItems.set(new Set());
@@ -1063,5 +1145,128 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
 
   toggleBottomPane(): void {
     this.isBottomPaneCollapsed.update(v => !v);
+  }
+
+  private selectAllItems(): void {
+    const allItemNames = this.filteredItems().map(item => item.name);
+    this.selectedItems.set(new Set(allItemNames));
+    this.updateSingleSelectedItem();
+  }
+
+  private clearSelection(): void {
+      this.selectedItems.set(new Set());
+      this.updateSingleSelectedItem();
+  }
+
+  private closeAllMenus(): void {
+    this.closeContextMenu();
+    this.closeDestinationSubMenu();
+    this.isStreamSortDropdownOpen.set(false);
+    this.isStreamFilterDropdownOpen.set(false);
+  }
+
+  // --- Stream Toolbar Methods ---
+  onStreamSearchChange(event: Event): void {
+    this.streamSearchQuery.set((event.target as HTMLInputElement).value);
+  }
+
+  onStreamDisplayModeChange(mode: 'grid' | 'list'): void {
+    this.streamDisplayMode.set(mode);
+  }
+
+  onStreamSortChange(key: StreamSortKey): void {
+    const current = this.streamSortCriteria();
+    if (key === 'relevance') {
+      this.streamSortCriteria.set({ key: 'relevance', direction: 'asc' });
+    } else if (current.key === key) {
+      this.streamSortCriteria.update(c => ({ ...c, direction: c.direction === 'asc' ? 'desc' : 'asc' }));
+    } else {
+      // Newest date first is more intuitive default
+      const direction = key === 'date' ? 'desc' : 'asc';
+      this.streamSortCriteria.set({ key, direction });
+    }
+    this.isStreamSortDropdownOpen.set(false);
+  }
+
+  toggleStreamFilter(type: StreamItemType): void {
+    this.activeStreamFilters.update(filters => {
+      const newFilters = new Set(filters);
+      if (newFilters.has(type)) {
+        newFilters.delete(type);
+      } else {
+        newFilters.add(type);
+      }
+      return newFilters;
+    });
+  }
+
+  toggleAllStreamFilters(): void {
+    if (this.activeStreamFilters().size === this.streamFilterTypes.length) {
+      this.activeStreamFilters.set(new Set());
+    } else {
+      this.activeStreamFilters.set(new Set(this.streamFilterTypes.map(t => t.type)));
+    }
+  }
+
+  toggleStreamSortDropdown(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isStreamFilterDropdownOpen.set(false);
+    this.isStreamSortDropdownOpen.update(v => !v);
+  }
+
+  toggleStreamFilterDropdown(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isStreamSortDropdownOpen.set(false);
+    this.isStreamFilterDropdownOpen.update(v => !v);
+  }
+
+  getStreamItemLink(item: StreamItem): string {
+    if ('link' in item && item.link) return item.link;
+    if ('url' in item && item.url) return item.url;
+    // For Gemini results which lack a URL, create a unique-enough identifier
+    if (item.type === 'gemini') return `#gemini-${item.publishedAt}`;
+    return '#';
+  }
+
+  private streamItemToNewBookmark(item: StreamItem): NewBookmark {
+    const link = this.getStreamItemLink(item);
+    
+    let title: string;
+    if ('title' in item) title = item.title;
+    else if ('query' in item) title = `Gemini response for: ${item.query}`;
+    else title = item.description;
+
+    let snippet: string | undefined;
+    if ('snippet' in item) snippet = item.snippet;
+    else if ('text' in item) snippet = item.text;
+    else if ('photographer' in item) snippet = `Photo by ${item.photographer}`;
+    else snippet = item.description;
+
+    let source: string;
+    if ('source' in item) source = item.source;
+    else if ('channelTitle' in item) source = item.channelTitle;
+    else if ('publication' in item) source = item.publication;
+    else source = 'Gemini Search';
+
+    return {
+        type: item.type,
+        title,
+        link,
+        snippet,
+        source,
+        thumbnailUrl: 'thumbnailUrl' in item ? item.thumbnailUrl : undefined,
+    };
+  }
+
+  onBookmarkToggled(item: StreamItem): void {
+    const link = this.getStreamItemLink(item);
+    const existingBookmark = this.bookmarkService.findBookmarkByLink(link);
+
+    if (existingBookmark) {
+        this.bookmarkService.deleteBookmark(existingBookmark._id);
+    } else {
+        const newBookmark = this.streamItemToNewBookmark(item);
+        this.saveBookmark.emit(newBookmark);
+    }
   }
 }

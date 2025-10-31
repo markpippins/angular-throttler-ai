@@ -6,7 +6,17 @@
     <a [href]="result().url" target="_blank" class="font-semibold text-sm truncate text-[rgb(var(--color-text-base))] hover:underline hover:text-[rgb(var(--color-accent-text))]">{{ result().description }}</a>
     <p class="text-xs text-[rgb(var(--color-text-muted))] truncate">by {{ result().photographer }}</p>
   </div>
-  <button (click)="onSave()" title="Save to current folder" class="opacity-0 group-hover:opacity-100 p-1.5 rounded-full text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] transition-opacity flex-shrink-0">
+  <button 
+    (click)="onToggleBookmark()" 
+    [title]="isBookmarked() ? 'Remove bookmark' : 'Save to current folder'" 
+    class="opacity-0 group-hover:opacity-100 p-1.5 rounded-full transition-all flex-shrink-0"
+    [class.opacity-100]="isBookmarked()"
+    [class.text-blue-600]="isBookmarked()"
+    [class.dark:text-blue-400]="isBookmarked()"
+    [class.hover:bg-blue-100]="isBookmarked()"
+    [class.dark:hover:bg-blue-900/50]="isBookmarked()"
+    [class.text-[rgb(var(--color-text-muted))]]="!isBookmarked()"
+    [class.hover:bg-[rgb(var(--color-surface-hover))]]="!isBookmarked()">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
       <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12l-5-3-5 3V4z" />
     </svg>

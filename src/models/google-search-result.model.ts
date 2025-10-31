@@ -3,4 +3,5 @@ export interface GoogleSearchResult {
   link: string;
   snippet: string;
   source: string;
+  publishedAt: string;
 }

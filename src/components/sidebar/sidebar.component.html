@@ -39,7 +39,7 @@
                   <div class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div class="py-1">
                       <div (click)="onServersMenuClick()" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center px-4 py-2 text-sm cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" clip-rule="evenodd" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2-2H4a2 2 0 01-2-2v-2z" clip-rule="evenodd" /></svg>
                         <span>Servers</span>
                       </div>
                     </div>
@@ -48,7 +48,7 @@
               </div>
             </div>
             <!-- Tree View -->
-            <div class="flex-1 overflow-y-auto p-2">
+            <div class="flex-1 overflow-y-auto p-2" (contextmenu)="onSidebarAreaContextMenu($event)">
               @if(folderTree(); as tree) {
                 <app-tree-view 
                   [rootNode]="tree"
@@ -68,8 +68,8 @@
             </div>
           </div>
         </app-tab>
-        <app-tab title="Updates">
-          <app-newsfeed></app-newsfeed>
+        <app-tab title="Chat">
+          <app-chat></app-chat>
         </app-tab>
       </app-tab-control>
     </div>
@@ -87,27 +87,39 @@
 
   <!-- Tree View Context Menu -->
   @if (contextMenu(); as cm) {
-    <div class="fixed bg-[rgb(var(--color-surface-dialog))] border border-[rgb(var(--color-border-base))] rounded-md shadow-lg py-1 text-sm text-[rgb(var(--color-text-muted))] z-50"
+    <div class="fixed w-52 bg-[rgb(var(--color-surface-dialog))] border border-[rgb(var(--color-border-base))] rounded-md shadow-lg py-1 text-sm text-[rgb(var(--color-text-muted))] z-50"
          [style.left.px]="cm.x"
          [style.top.px]="cm.y"
          (click)="$event.stopPropagation()">
-      <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" 
+      <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" 
           [class.text-[rgb(var(--color-text-disabled))]]="!isNewAllowedInContextMenu()"
           [class.cursor-not-allowed]="!isNewAllowedInContextMenu()"
-          (click)="isNewAllowedInContextMenu() && handleNewFolder()">New folder</div>
-      <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer"
+          (click)="isNewAllowedInContextMenu() && handleNewFolder()">
+          <span>New folder</span>
+          <span class="text-[rgb(var(--color-text-subtle))]">Ctrl+Shift+N</span>
+      </div>
+      <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer"
           [class.text-[rgb(var(--color-text-disabled))]]="!isNewAllowedInContextMenu()"
           [class.cursor-not-allowed]="!isNewAllowedInContextMenu()"
-          (click)="isNewAllowedInContextMenu() && handleNewFile()">New file</div>
+          (click)="isNewAllowedInContextMenu() && handleNewFile()">
+          <span>New file</span>
+          <span class="text-[rgb(var(--color-text-subtle))]">Ctrl+Alt+N</span>
+        </div>
       <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-      <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer"
+      <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer"
           [class.text-[rgb(var(--color-text-disabled))]]="!isNewAllowedInContextMenu()"
           [class.cursor-not-allowed]="!isNewAllowedInContextMenu()"
-          (click)="isNewAllowedInContextMenu() && handleRename()">Rename</div>
-      <div class="px-4 py-2 hover:bg-[rgb(var(--color-danger-bg-hover))] cursor-pointer text-[rgb(var(--color-danger-text))] hover:text-[rgb(var(--color-danger-text-hover))]"
+          (click)="isNewAllowedInContextMenu() && handleRename()">
+          <span>Rename</span>
+          <span class="text-[rgb(var(--color-text-subtle))]">F2</span>
+        </div>
+      <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-danger-bg-hover))] cursor-pointer text-[rgb(var(--color-danger-text))] hover:text-[rgb(var(--color-danger-text-hover))]"
           [class.text-[rgb(var(--color-text-disabled))]]="!isNewAllowedInContextMenu()"
           [class.cursor-not-allowed]="!isNewAllowedInContextMenu()"
-          (click)="isNewAllowedInContextMenu() && handleDelete()">Delete</div>
+          (click)="isNewAllowedInContextMenu() && handleDelete()">
+          <span>Delete</span>
+          <span class="text-[rgb(var(--color-text-subtle))]">Del</span>
+        </div>
     </div>
   }
 

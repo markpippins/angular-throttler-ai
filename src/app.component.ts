@@ -1,5 +1,7 @@
 
 
+
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -23,6 +25,8 @@ import { ToolbarComponent, SortCriteria } from './components/toolbar/toolbar.com
 import { ClipboardService } from './services/clipboard.service.js';
 import { BookmarkService } from './services/bookmark.service.js';
 import { NewBookmark } from './models/bookmark.model.js';
+import { ToastsComponent } from './components/toasts/toasts.component.js';
+import { ToastService } from './services/toast.service.js';
 
 interface PanePath {
   id: number;
@@ -57,9 +61,10 @@ const readOnlyProviderOps = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent],
   host: {
     '(document:click)': 'onDocumentClick($event)',
+    '(document:keydown)': 'onKeyDown($event)',
   }
 })
 export class AppComponent implements OnInit, OnDestroy {
@@ -71,6 +76,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private preferencesService = inject(PreferencesService);
   private clipboardService = inject(ClipboardService);
   private bookmarkService = inject(BookmarkService);
+  private toastService = inject(ToastService);
   private injector = inject(Injector);
   private document: Document = inject(DOCUMENT);
   private renderer = inject(Renderer2);
@@ -140,7 +146,7 @@ export class AppComponent implements OnInit, OnDestroy {
       segment.endsWith('.magnet') ? segment.slice(0, -7) : segment
     );
   });
-  canGoUpActivePane = computed(() => this.activePanePath().length > 0);
+  canGoUpActivePane = computed(() => this.activePanePath().length > 1);
   
   pane1Path = computed(() => this.panePaths().find(p => p.id === 1)?.path ?? []);
   pane2Path = computed(() => this.panePaths().find(p => p.id === 2)?.path ?? []);
@@ -587,6 +593,10 @@ export class AppComponent implements OnInit, OnDestroy {
   onSaveBookmark(bookmark: NewBookmark): void {
     const path = this.activePanePath();
     this.bookmarkService.addBookmark(path, bookmark);
+    if (!this.isDetailPaneOpen()) {
+      const truncatedTitle = bookmark.title.length > 30 ? `${bookmark.title.substring(0, 27)}...` : bookmark.title;
+      this.toastService.show(`Saved "${truncatedTitle}"`);
+    }
   }
 
   onBookmarkDroppedOnPane(event: { bookmark: NewBookmark, dropOn: FileSystemNode }): void {
@@ -639,5 +649,137 @@ export class AppComponent implements OnInit, OnDestroy {
      await this.performTreeAction(path, (provider, providerPath) => 
       provider.createFile(providerPath, name)
     );
+  }
+  
+  onKeyDown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement;
+    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+    const isRenameInput = target.classList.contains('rename-input');
+
+    if (isRenameInput) {
+      return; // Let rename input handle its own keys.
+    }
+
+    // Handle keys that should be blocked if an input is focused.
+    if (event.key === 'F2') {
+      if (isInput) return; // Don't trigger rename if any other input is focused.
+      if (this.canRename()) {
+        event.preventDefault();
+        this.onToolbarAction('rename');
+      }
+      return;
+    }
+    
+    if (event.altKey && event.key === 'Enter') {
+        if (isInput) return;
+        if (this.canRename()) { // canRename implies one item selected
+            event.preventDefault();
+            this.onToolbarAction('properties');
+        }
+        return;
+    }
+
+    // New File: Ctrl+Alt+N - should work anywhere
+    if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 'n') {
+        event.preventDefault();
+        this.onToolbarAction('newFile');
+        return;
+    }
+    
+    // Toggle Split View: Ctrl+\ - should work anywhere
+    if (event.ctrlKey && event.key === '\\') {
+        event.preventDefault();
+        this.toggleSplitView();
+        return;
+    }
+
+    // Toggle Details Pane: Ctrl+Shift+I - should work anywhere
+    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'i') {
+        event.preventDefault();
+        this.toggleDetailPane();
+        return;
+    }
+
+    if (isInput) {
+      if (event.key === 'F5') { // Allow refresh from inputs.
+        event.preventDefault();
+        this.triggerRefresh();
+      }
+      if (event.key === 'F6') { // Allow pane switching from inputs
+        if (this.isSplitView()) {
+            event.preventDefault();
+            this.activePaneId.update(id => (id === 1 ? 2 : 1));
+        }
+      }
+      return; // Ignore other hotkeys in inputs.
+    }
+
+    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'n') {
+      event.preventDefault();
+      this.onToolbarAction('newFolder');
+      return;
+    }
+
+    if (event.ctrlKey) {
+      switch (event.key.toLowerCase()) {
+        case 'c':
+          if (this.canCutCopyShareDelete()) {
+            event.preventDefault();
+            this.onToolbarAction('copy');
+          }
+          break;
+        case 'x':
+          if (this.canCutCopyShareDelete()) {
+            event.preventDefault();
+            this.onToolbarAction('cut');
+          }
+          break;
+        case 'v':
+          if (this.canPaste()) {
+            event.preventDefault();
+            this.onToolbarAction('paste');
+          }
+          break;
+        case 'a':
+          event.preventDefault();
+          this.onToolbarAction('selectAll');
+          break;
+        case 'f':
+          event.preventDefault();
+          const filterInput = this.document.getElementById('toolbar-filter-input');
+          filterInput?.focus();
+          (filterInput as HTMLInputElement)?.select();
+          break;
+      }
+      return;
+    }
+
+    switch (event.key) {
+      case 'Delete':
+        if (this.canCutCopyShareDelete()) {
+          event.preventDefault();
+          this.onToolbarAction('delete');
+        }
+        break;
+      case 'F5':
+        event.preventDefault();
+        this.triggerRefresh();
+        break;
+      case 'F6':
+        if (this.isSplitView()) {
+            event.preventDefault();
+            this.activePaneId.update(id => (id === 1 ? 2 : 1));
+        }
+        break;
+      case 'Backspace':
+        if (this.canGoUpActivePane()) {
+          event.preventDefault();
+          this.goUpActivePane();
+        }
+        break;
+      case 'Escape':
+        this.onToolbarAction('clearSelection');
+        break;
+    }
   }
 }

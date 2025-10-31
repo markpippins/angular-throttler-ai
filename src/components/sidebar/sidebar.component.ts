@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, signal, inject, Renderer2, OnDestro
 import { CommonModule } from '@angular/common';
 import { TabControlComponent } from '../tabs/tab-control.component.js';
 import { TabComponent } from '../tabs/tab.component.js';
-import { NewsfeedComponent } from '../newsfeed/newsfeed.component.js';
+import { ChatComponent } from '../chat/chat.component.js';
 import { VerticalToolbarComponent } from '../vertical-toolbar/vertical-toolbar.component.js';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { TreeViewComponent } from '../tree-view/tree-view.component.js';
@@ -16,7 +16,7 @@ import { FileSystemProvider } from '../../services/file-system-provider.js';
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.component.html',
-  imports: [CommonModule, TabControlComponent, TabComponent, NewsfeedComponent, VerticalToolbarComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent],
+  imports: [CommonModule, TabControlComponent, TabComponent, ChatComponent, VerticalToolbarComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnDestroy {
@@ -161,6 +161,40 @@ export class SidebarComponent implements OnDestroy {
     event.event.preventDefault();
     event.event.stopPropagation();
     this.contextMenu.set({ x: event.event.clientX, y: event.event.clientY, path: event.path, node: event.node });
+  }
+
+  private findNodeByPath(root: FileSystemNode | null, path: string[]): FileSystemNode | null {
+    if (!root) return null;
+
+    if (path.length === 0) {
+      // An empty path corresponds to the root of the tree itself ('Home')
+      return root;
+    }
+
+    let currentNode: FileSystemNode | undefined = root;
+    for (const segment of path) {
+      currentNode = currentNode?.children?.find(c => c.name === segment);
+      if (!currentNode) return null;
+    }
+    
+    return currentNode ?? null;
+  }
+  
+  onSidebarAreaContextMenu(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    this.contextMenu.set(null); // Close any existing menu
+
+    const path = this.currentPath();
+    const root = this.folderTree();
+    const nodeForPath = this.findNodeByPath(root, path);
+
+    if (nodeForPath) {
+      // Set the context to the currently active path, allowing actions like "New Folder"
+      // to apply to the folder currently being viewed in the main pane.
+      this.contextMenu.set({ x: event.clientX, y: event.clientY, path: path, node: nodeForPath });
+    }
   }
 
   // --- Context Menu Action Handlers ---

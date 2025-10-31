@@ -10,13 +10,14 @@ The `AppComponent` is the top-level component that acts as the central controlle
 
 1.  **State Management:** It holds and manages the primary application state using **Angular Signals**. Key state signals include:
     -   `isSplitView`: A boolean that controls whether one or two file explorer panes are visible.
+    -   `isDetailPaneOpen`: Controls the visibility of the right-hand details/bookmarks pane.
     -   `activePaneId`: Determines which of the two panes is currently active.
     -   `folderTree`: Holds the combined, virtual directory structure.
     -   `panePaths`: An array that holds the current path for each active file explorer pane.
     -   `mountedProfiles` & `mountedProfileUsers`: Signals that track active server connections and the authenticated users for each session.
 
 2.  **Multi-Root & Per-User File System Orchestration:** This is the key architectural feature of the component.
-    -   On startup, it constructs a virtual "Home" folder that contains the root from the `InMemoryFileSystemService` and roots from any mounted remote servers.
+    -   On startup, it constructs a virtual "Home" folder that contains the root from the `SessionService` and roots from any mounted remote servers.
     -   When a user logs into a remote server, it creates a `RemoteFileSystemService` instance *specifically for that user*. This service uses the user's username as an `alias` for all backend file operations, ensuring each user has a sandboxed view of the remote file system.
     -   This virtual tree, including user-specific remote roots, is passed to the sidebar, allowing seamless navigation across different data sources.
 
@@ -26,8 +27,9 @@ The `AppComponent` is the top-level component that acts as the central controlle
     -   This design makes the `FileExplorerComponent` completely agnostic about its data source; it simply interacts with the `FileSystemProvider` interface it is given.
 
 4.  **Component Coordination:**
-    -   It orchestrates interactions between the `SidebarComponent`, `FileExplorerComponent`(s), and various dialogs.
+    -   It orchestrates interactions between the `SidebarComponent`, `ToolbarComponent`, `FileExplorerComponent`(s), and the `DetailPaneComponent`.
     -   It handles the `(loginAndMount)` event from the `ServerProfilesDialogComponent`, initiating the authentication flow and creating a new user-specific file system provider upon success.
+    -   It manages bookmarking events (`onSaveBookmark`, `onBookmarkDropped...`) by interacting with the `BookmarkService` and passing the relevant data.
 
 ### API and Interactions
 
@@ -38,4 +40,5 @@ The `AppComponent` is the top-level component that acts as the central controlle
     -   `onLoginAndMount()`: Handles the login process and, on success, mounts a user-specific remote file system.
     -   `onUnmountProfile()`: Destroys a `RemoteFileSystemService` instance and clears the associated user session.
     -   `toggleSplitView()`: Manages the split-view layout.
+    -   `toggleDetailPane()`: Manages the visibility of the details pane.
     -   `onPane1PathChanged()` / `onPane2PathChanged()`: Keeps the parent component's record of each pane's path in sync.

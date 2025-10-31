@@ -5,4 +5,5 @@ export interface ImageSearchResult {
   description: string;
   photographer: string;
   source: string;
+  publishedAt: string;
 }

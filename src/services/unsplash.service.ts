@@ -26,6 +26,7 @@ export class UnsplashService {
             description: `A descriptive caption for an image related to ${query}.`,
             photographer: 'Mock Photographer',
             source: 'picsum.photos',
+            publishedAt: new Date(Date.now() - i * 1000 * 60 * 60 * 24 * 3).toISOString(),
           };
         })
       )

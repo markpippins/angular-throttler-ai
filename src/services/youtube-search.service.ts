@@ -17,6 +17,7 @@ export class YoutubeSearchService {
           description: `This video provides a comprehensive tutorial on ${query}, from the basic concepts to advanced techniques. Perfect for beginners and experts alike.`,
           thumbnailUrl: 'https://picsum.photos/seed/yt1/320/180',
           channelTitle: 'Tech Tutorials',
+          publishedAt: '2023-11-10T14:00:00Z',
         },
         {
           videoId: 'oHg5SJYRHA0',
@@ -24,6 +25,7 @@ export class YoutubeSearchService {
           description: `We debunk the most common myths and misconceptions surrounding ${query}. You might be surprised by what you learn!`,
           thumbnailUrl: 'https://picsum.photos/seed/yt2/320/180',
           channelTitle: 'Myth Busters',
+          publishedAt: '2024-03-22T18:00:00Z',
         },
         {
           videoId: 'YddwkMJG1Jo',
@@ -31,6 +33,7 @@ export class YoutubeSearchService {
           description: `Explore the fascinating history and evolution of ${query} in this in-depth documentary, featuring interviews with leading experts.`,
           thumbnailUrl: 'https://picsum.photos/seed/yt3/320/180',
           channelTitle: 'History Explained',
+          publishedAt: '2022-07-19T10:00:00Z',
         },
       ])
     );

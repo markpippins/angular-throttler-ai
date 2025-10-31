@@ -1,7 +1,6 @@
 import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GoogleSearchResult } from '../../models/google-search-result.model.js';
-import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-web-result-list-item',
@@ -12,16 +11,10 @@ import { NewBookmark } from '../../models/bookmark.model.js';
 })
 export class WebResultListItemComponent {
   result = input.required<GoogleSearchResult>();
-  saveBookmark = output<NewBookmark>();
+  isBookmarked = input(false);
+  bookmarkToggled = output<GoogleSearchResult>();
 
-  onSave(): void {
-    const result = this.result();
-    this.saveBookmark.emit({
-      type: 'web',
-      title: result.title,
-      link: result.link,
-      snippet: result.snippet,
-      source: result.source,
-    });
+  onToggleBookmark(): void {
+    this.bookmarkToggled.emit(this.result());
   }
 }

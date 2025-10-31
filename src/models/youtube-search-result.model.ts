@@ -4,4 +4,5 @@ export interface YoutubeSearchResult {
   description: string;
   thumbnailUrl: string;
   channelTitle: string;
+  publishedAt: string;
 }

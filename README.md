@@ -7,10 +7,12 @@ Throttler is a modern, web-based file explorer clone inspired by the Windows Exp
 - **Modern Angular:** Built with the latest standalone components, signals for state management, and zoneless change detection for high performance.
 - **Virtual & Remote File Systems:** Seamlessly navigate and manage files across a virtual "Session" system (persisted in browser storage) and any number of user-configured remote servers.
 - **Dual Pane View:** Toggle between a single or a split-view interface to manage files across two directories simultaneously.
+- **Idea Stream:** A dynamic, contextual pane provides related web search results, images, videos, and AI-generated summaries based on the current context.
+- **Details Pane & Bookmarking:** Save any item from the Idea Stream as a bookmark associated with the current folder. View and manage these bookmarks in the slide-out Details Pane.
 - **Theming:** Choose between Light, Steel, and Dark themes to customize the user interface. The selected theme is persisted in local storage.
-- **Comprehensive File Operations:** Supports creating files/folders, renaming, deleting, cut, copy, and paste on supported file systems.
-- **Drag & Drop:** Upload files by dragging them from your desktop into the explorer.
-- **File Search:** A search bar is available to quickly find files within the current location.
+- **Comprehensive File Operations:** Supports creating files/folders, renaming, deleting, cut, copy, paste, and context menu actions in both the main view and the folder tree.
+- **Drag & Drop:** Upload files by dragging them from your desktop into the explorer. Move items by dragging them between folders or panes.
+- **Filtering:** A filter bar is available to quickly find files within the current location by name.
 
 ## Running the Application (Web Version)
 

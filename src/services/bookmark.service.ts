@@ -1,4 +1,4 @@
-import { Injectable, signal, effect } from '@angular/core';
+import { Injectable, signal, effect, computed } from '@angular/core';
 import { Bookmark, NewBookmark } from '../models/bookmark.model.js';
 
 const BOOKMARKS_STORAGE_KEY = 'file-explorer-bookmarks';
@@ -9,6 +9,7 @@ const BOOKMARKS_STORAGE_KEY = 'file-explorer-bookmarks';
 export class BookmarkService {
   private bookmarks = signal<Bookmark[]>([]);
   public allBookmarks = this.bookmarks.asReadonly();
+  public bookmarkedLinks = computed(() => new Set(this.bookmarks().map(b => b.link)));
 
   constructor() {
     this.loadBookmarks();
@@ -48,5 +49,9 @@ export class BookmarkService {
 
   deleteBookmark(bookmarkId: string): void {
     this.bookmarks.update(current => current.filter(b => b._id !== bookmarkId));
+  }
+
+  findBookmarkByLink(link: string): Bookmark | undefined {
+    return this.bookmarks().find(b => b.link === link);
   }
 }

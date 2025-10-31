@@ -1,25 +1,28 @@
-# `BottomPaneComponent` and Search Results Documentation
+# "Idea Stream" Components Documentation
 
-This directory contains the `BottomPaneComponent` and a suite of related components that collectively create the application's multi-faceted search results view.
+This document describes the suite of components that collectively create the "Idea Stream," the application's multi-faceted contextual content view. This feature is not a single component, but rather an integrated part of the `FileExplorerComponent`.
 
-## `BottomPaneComponent`
+## Feature Overview
 
-This is the main container component that appears at the bottom of the screen when a search is active.
+The "Idea Stream" is a resizable, collapsible pane at the bottom of the `FileExplorerComponent`. Its purpose is to provide users with dynamically fetched, relevant content related to their current context (e.g., the folder they are in). It displays an interleaved feed of mock data from various sources.
 
-### Core Responsibilities
+The stream's layout automatically adapts to the `FileExplorerComponent`'s main display mode:
+- When the file explorer is in **Grid View**, the stream shows content as a grid of rich "Card" components.
+- When the file explorer is in **List View**, the stream shows a more compact list of "List Item" components.
 
-1.  **Layout and Visibility:** It provides the main layout for the search results area and is conditionally rendered by the `AppComponent`.
-2.  **Tab Management:** It uses the `TabControlComponent` to create tabs for different search sources (Files, Google, Images, etc.).
-3.  **Content Projection:** It projects the various search result components (e.g., `WebSearchResultsComponent`, `ImageSearchResultsComponent`) into the appropriate tabs.
-4.  **Event Aggregation:** It listens for events from its child components, such as `saveBookmark`, and propagates them up to the `AppComponent` for handling. It also provides the "Close" button to dismiss the search view.
+## Stream Result Components
 
-## Search Result Components
+These are a series of presentational components, each tailored to display a specific type of search result. They all follow the same pattern: they receive an object with the result data via an `input()` and emit a `NewBookmark` object via a `saveBookmark` `output()` when the user wants to save an item.
 
-These are a series of presentational components, each tailored to display a specific type of search result. They all follow a similar pattern: they receive an array of data via an `input()` and emit a `NewBookmark` object via an `output()` when the user wants to save an item.
+The components are organized into two subdirectories based on their visual style:
 
--   **`search-results`**: Displays file system search results in a list, showing the file name and its path.
--   **`web-search-results`**: Displays mock web search results with a title, link, and snippet.
--   **`image-search-results`**: Displays mock image results in a responsive grid.
--   **`gemini-search-results`**: Displays a formatted text block for a mock generative AI response.
--   **`youtube-search-results`**: Displays mock video results with thumbnails, titles, and descriptions.
--   **`academic-search-results`**: Displays mock academic paper results with titles, authors, and publication info.
+### `stream-cards`
+Used for the grid view display.
+-   **`web-result-card`**: Displays mock web search results with a title, link, and snippet.
+-   **`image-result-card`**: Displays mock image results in a responsive grid.
+-   **`gemini-result-card`**: Displays a formatted text block for a mock generative AI response.
+-   **`youtube-result-card`**: Displays mock video results with thumbnails, titles, and descriptions.
+-   **`academic-result-card`**: Displays mock academic paper results with titles, authors, and publication info.
+
+### `stream-list-items`
+Used for the list view display. This directory contains a list-item equivalent for each of the card components above, providing a more compact representation of the same data.

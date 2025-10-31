@@ -4,4 +4,5 @@ export interface AcademicSearchResult {
   publication: string;
   snippet: string;
   link: string;
+  publishedAt: string;
 }

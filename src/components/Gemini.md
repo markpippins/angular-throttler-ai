@@ -14,13 +14,25 @@ This directory is the heart of the application's UI, containing all the reusable
 ## Core UI Components
 
 ### `file-explorer`
-The main component for displaying and interacting with files and folders in a single pane. See its dedicated `Gemini.md` for details.
+The main component for displaying files, folders, and the "Idea Stream" in a single pane. See its dedicated `Gemini.md` for details.
 
 ### `sidebar`
-The collapsible and resizable left-hand panel containing the folder tree view and other tabs. See its dedicated `Gemini.md` for details.
+The collapsible and resizable left-hand panel containing the folder tree view and the new Chat tab. See its dedicated `Gemini.md` for details.
 
 ### `toolbar`
-The row of action buttons (New, Cut, Copy, etc.) that sits above the file explorer pane.
+The row of action buttons (New, Cut, Copy, etc.) and view controls that sits above the file explorer pane.
 
 ### `detail-pane`
-A slide-out pane on the right side that was intended to show detailed properties for a selected file and a list of saved bookmarks relevant to the current folder.
+A slide-out pane on the right side that shows saved bookmarks and an RSS feed relevant to the current folder.
+
+### `chat`
+A component displayed within the `sidebar` that provides a boilerplate chat interface, which is enabled if a Gemini API key is configured.
+
+### `rss-feed`
+A component displayed within the `detail-pane` that shows a mock list of RSS feed items.
+
+## "Idea Stream" Components
+This is a suite of presentational components used within the `file-explorer`'s bottom pane to display different types of contextual content. They are organized into two visual styles: cards (for grid view) and list items (for list view).
+
+- **`stream-cards`**: Contains `WebResultCardComponent`, `ImageResultCardComponent`, `YoutubeResultCardComponent`, `AcademicResultCardComponent`, and `GeminiResultCardComponent`.
+- **`stream-list-items`**: Contains the list-based equivalents for each of the card components.
