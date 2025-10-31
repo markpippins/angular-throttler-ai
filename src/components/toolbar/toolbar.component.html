@@ -1,3 +1,4 @@
+
 <div class="flex items-center px-4 h-12 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface-muted))]">
   <!-- Default View -->
   <div class="flex items-center space-x-2">
@@ -176,7 +177,7 @@
         <path d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zM7 7a1 1 0 00-1 1v4a1 1 0 001 1h2a1 1 0 001-1V8a1 1 0 00-1-1H7zm1-4a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1h2a1 1 0 001-1V4zm5 4a1 1 0 00-1 1v4a1 1 0 001 1h2a1 1 0 001-1V8a1 1 0 00-1-1h-2zm1-4a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1h2a1 1 0 001-1V4z" />
       </svg>
     </button>
-    <button (click)="detailPaneClick.emit()" title="Details Pane (Ctrl+Shift+I)"
+    <button (click)="detailPaneClick.emit()" title="Details Pane (Ctrl+Shift+D)"
             class="p-2 rounded-md transition-colors"
             [class.bg-[rgb(var(--color-accent-bg))]]="isDetailPaneActive()"
             [class.text-[rgb(var(--color-accent-text))]]="isDetailPaneActive()"

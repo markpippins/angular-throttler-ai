@@ -1,3 +1,4 @@
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -727,8 +728,8 @@ export class AppComponent implements OnInit, OnDestroy {
         return;
     }
 
-    // Toggle Details Pane: Ctrl+Shift+I - should work anywhere
-    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'i') {
+    // Toggle Details Pane: Ctrl+Shift+D - should work anywhere
+    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'd') {
         event.preventDefault();
         this.toggleDetailPane();
         return;
