@@ -1177,7 +1177,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
       this.updateSingleSelectedItem();
   }
 
-  private closeAllMenus(): void {
+  closeAllMenus(): void {
     this.closeContextMenu();
     this.closeDestinationSubMenu();
     this.isStreamSortDropdownOpen.set(false);
