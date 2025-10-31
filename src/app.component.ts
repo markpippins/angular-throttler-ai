@@ -1,7 +1,3 @@
-
-
-
-
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -623,12 +619,50 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  private updatePathsAfterRename(oldPath: string[], newPath: string[]): void {
+    const oldPathString = oldPath.join('/');
+    this.panePaths.update(paths => {
+        return paths.map(panePath => {
+            const currentPathString = panePath.path.join('/');
+            if (currentPathString === oldPathString) {
+                // This pane was viewing the renamed folder directly
+                return { ...panePath, path: newPath };
+            }
+            if (currentPathString.startsWith(oldPathString + '/')) {
+                // This pane was viewing a subfolder of the renamed folder
+                const subPath = panePath.path.slice(oldPath.length);
+                return { ...panePath, path: [...newPath, ...subPath] };
+            }
+            return panePath;
+        });
+    });
+  }
+
+  onPaneItemRenamed({ oldName, newName }: { oldName: string, newName: string }, parentPath: string[]): void {
+    const oldFullPath = [...parentPath, oldName];
+    const newFullPath = [...parentPath, newName];
+    this.updatePathsAfterRename(oldFullPath, newFullPath);
+    // Refresh the tree to reflect the change.
+    this.loadFolderTree();
+  }
+
   async onSidebarRenameItem({ path, newName }: { path: string[]; newName: string }): Promise<void> {
     const oldName = path[path.length - 1];
     const parentPath = path.slice(0, -1);
-    await this.performTreeAction(parentPath, (provider, providerPath) => 
-      provider.rename(providerPath, oldName, newName)
-    );
+    try {
+      const provider = this.getProviderForPath(parentPath);
+      const providerPath = parentPath.slice(1);
+      await provider.rename(providerPath, oldName, newName);
+
+      const newFullPath = [...parentPath, newName];
+      this.updatePathsAfterRename(path, newFullPath);
+    } catch(e) {
+      alert(`Operation failed: ${(e as Error).message}`);
+    } finally {
+      // The panes will update reactively because their `path` input changes.
+      // We only need to reload the tree for the sidebar view itself.
+      await this.loadFolderTree();
+    }
   }
 
   async onSidebarDeleteItem(path: string[]): Promise<void> {

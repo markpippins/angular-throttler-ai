@@ -107,7 +107,8 @@
               (statusChanged)="onPane1StatusChanged($event)"
               (sortChange)="onSortChange($event)"
               (saveBookmark)="onSaveBookmark($event)"
-              (bookmarkDropped)="onBookmarkDroppedOnPane($event)">
+              (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
+              (itemRenamed)="onPaneItemRenamed($event, pane1Path())">
             </app-file-explorer>
           </div>
 
@@ -138,7 +139,8 @@
                 (statusChanged)="onPane2StatusChanged($event)"
                 (sortChange)="onSortChange($event)"
                 (saveBookmark)="onSaveBookmark($event)"
-                (bookmarkDropped)="onBookmarkDroppedOnPane($event)">
+                (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
+                (itemRenamed)="onPaneItemRenamed($event, pane2Path())">
               </app-file-explorer>
             </div>
           }

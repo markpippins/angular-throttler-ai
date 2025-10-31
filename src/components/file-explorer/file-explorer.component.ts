@@ -96,6 +96,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   activated = output<number>();
   pathChanged = output<string[]>();
   itemSelected = output<FileSystemNode | null>();
+  itemRenamed = output<{ oldName: string, newName: string }>();
   directoryChanged = output<void>();
   statusChanged = output<{
     selectedItemsCount: number;
@@ -746,6 +747,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
 
     try {
       await this.fileSystemProvider().rename(this.providerPath(), oldName, trimmedNewName);
+      this.itemRenamed.emit({ oldName, newName: trimmedNewName });
       await this.loadContents();
       this.handleSingleSelection(trimmedNewName);
       this.updateSingleSelectedItem();

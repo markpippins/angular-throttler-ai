@@ -11,7 +11,10 @@
   <button 
     (click)="onToggleBookmark()" 
     [title]="isBookmarked() ? 'Remove bookmark' : 'Save to current folder'" 
-    class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 p-1.5 rounded-full transition-all"
+    class="absolute top-1 right-1 p-1.5 rounded-full transition-all"
+    [class.opacity-100]="isBookmarked()"
+    [class.opacity-0]="!isBookmarked()"
+    [class.group-hover:opacity-100]="!isBookmarked()"
     [class.bg-blue-100]="isBookmarked()"
     [class.dark:bg-blue-900/50]="isBookmarked()"
     [class.text-blue-600]="isBookmarked()"
