@@ -1,5 +1,6 @@
 
 
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -25,6 +26,8 @@ import { BookmarkService } from './services/bookmark.service.js';
 import { NewBookmark } from './models/bookmark.model.js';
 import { ToastsComponent } from './components/toasts/toasts.component.js';
 import { ToastService } from './services/toast.service.js';
+import { WebviewDialogComponent } from './components/webview-dialog/webview-dialog.component.js';
+import { WebviewService } from './services/webview.service.js';
 
 interface PanePath {
   id: number;
@@ -59,7 +62,7 @@ const readOnlyProviderOps = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent],
   host: {
     '(document:click)': 'onDocumentClick($event)',
     '(document:keydown)': 'onKeyDown($event)',
@@ -75,6 +78,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private clipboardService = inject(ClipboardService);
   private bookmarkService = inject(BookmarkService);
   private toastService = inject(ToastService);
+  private webviewService = inject(WebviewService);
   private injector = inject(Injector);
   private document: Document = inject(DOCUMENT);
   private renderer = inject(Renderer2);
@@ -210,6 +214,9 @@ export class AppComponent implements OnInit, OnDestroy {
   canRename = computed(() => this.activePaneStatus().selectedItemsCount === 1);
   canPaste = computed(() => !!this.clipboardService.clipboard());
 
+  // --- Webview Dialog State ---
+  webviewContent = signal<{url: string, title: string} | null>(null);
+
   constructor() {
     this.loadTheme();
     this.getProvider = this.getProviderForPath.bind(this);
@@ -249,6 +256,10 @@ export class AppComponent implements OnInit, OnDestroy {
       const theme = this.currentTheme();
       localStorage.setItem(THEME_STORAGE_KEY, theme);
       this.document.body.className = theme;
+    });
+
+    effect(() => {
+      this.webviewContent.set(this.webviewService.viewRequest());
     });
   }
   
@@ -690,6 +701,11 @@ export class AppComponent implements OnInit, OnDestroy {
   onKeyDown(event: KeyboardEvent): void {
     // Handle high-priority Escape key presses for modals first.
     if (event.key === 'Escape') {
+      if (this.webviewContent()) {
+        event.preventDefault();
+        this.webviewService.close();
+        return;
+      }
       if (this.isServerProfilesDialogOpen()) {
         event.preventDefault(); // prevent any other default browser behavior
         this.closeServerProfilesDialog();

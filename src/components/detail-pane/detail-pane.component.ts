@@ -5,6 +5,7 @@ import { Bookmark } from '../../models/bookmark.model.js';
 import { TabControlComponent } from '../tabs/tab-control.component.js';
 import { TabComponent } from '../tabs/tab.component.js';
 import { RssFeedComponent } from '../rss-feed/rss-feed.component.js';
+import { WebviewService } from '../../services/webview.service.js';
 
 @Component({
   selector: 'app-detail-pane',
@@ -17,6 +18,7 @@ export class DetailPaneComponent implements OnDestroy {
   close = output<void>();
 
   private bookmarkService = inject(BookmarkService);
+  private webviewService = inject(WebviewService);
   private renderer = inject(Renderer2);
 
   // --- Resizing State & Logic ---
@@ -50,6 +52,10 @@ export class DetailPaneComponent implements OnDestroy {
   
   deleteBookmark(bookmarkId: string): void {
     this.bookmarkService.deleteBookmark(bookmarkId);
+  }
+
+  openBookmark(bookmark: Bookmark): void {
+    this.webviewService.open(bookmark.link, bookmark.title);
   }
 
   onFilterChange(event: Event): void {

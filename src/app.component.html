@@ -203,4 +203,12 @@
   }
 
   <app-toasts></app-toasts>
+
+  @if (webviewContent(); as content) {
+    <app-webview-dialog
+      [url]="content.url"
+      [title]="content.title"
+      (close)="webviewService.close()">
+    </app-webview-dialog>
+  }
 </div>

@@ -1,9 +1,11 @@
 <div class="flex items-center p-2 rounded-md group hover:bg-[rgb(var(--color-surface))] transition-colors duration-150">
   <div class="flex-shrink-0 w-8 h-8 rounded-md overflow-hidden bg-[rgb(var(--color-surface-muted))]">
-    <img [src]="result().thumbnailUrl" [alt]="result().description" class="w-full h-full object-cover">
+    <a href="#" (click)="openLink($event)">
+      <img [src]="result().thumbnailUrl" [alt]="result().description" class="w-full h-full object-cover">
+    </a>
   </div>
   <div class="flex-grow min-w-0 mx-3">
-    <a [href]="result().url" target="_blank" class="font-semibold text-sm truncate text-[rgb(var(--color-text-base))] hover:underline hover:text-[rgb(var(--color-accent-text))]">{{ result().description }}</a>
+    <a href="#" (click)="openLink($event)" class="font-semibold text-sm truncate text-[rgb(var(--color-text-base))] hover:underline hover:text-[rgb(var(--color-accent-text))]">{{ result().description }}</a>
     <p class="text-xs text-[rgb(var(--color-text-muted))] truncate">by {{ result().photographer }}</p>
   </div>
   <button 

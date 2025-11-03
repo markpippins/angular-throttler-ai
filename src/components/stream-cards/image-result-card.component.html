@@ -1,9 +1,11 @@
 <div 
   class="w-40 h-40 group relative rounded-lg shadow-md overflow-hidden"
   [title]="result().description + '\nby ' + result().photographer">
-  <img [src]="result().thumbnailUrl" [alt]="result().description" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-  <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-  <div class="absolute bottom-0 left-0 p-2 text-white">
+  <a href="#" (click)="openLink($event)">
+    <img [src]="result().thumbnailUrl" [alt]="result().description" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+  </a>
+  <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none"></div>
+  <div class="absolute bottom-0 left-0 p-2 text-white pointer-events-none">
     <p class="text-xs font-semibold truncate">{{ result().description }}</p>
     <p class="text-xs opacity-80">by {{ result().photographer }}</p>
   </div>

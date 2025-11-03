@@ -70,8 +70,8 @@
                         }
                       }
                     </div>
-                    <div class="flex-1">
-                      <a [href]="bookmark.link" target="_blank" class="font-semibold text-[rgb(var(--color-text-base))] hover:underline hover:text-[rgb(var(--color-accent-text))] break-all line-clamp-2">{{ bookmark.title }}</a>
+                    <div class="flex-1 min-w-0">
+                      <button (click)="openBookmark(bookmark)" class="text-left font-semibold text-[rgb(var(--color-text-base))] hover:underline hover:text-[rgb(var(--color-accent-text))] break-all line-clamp-2">{{ bookmark.title }}</button>
                       <p class="text-xs text-[rgb(var(--color-text-subtle))] mt-1 line-clamp-2">{{ bookmark.snippet || bookmark.source }}</p>
                     </div>
                     <button (click)="deleteBookmark(bookmark._id)" class="opacity-0 group-hover:opacity-100 p-1 rounded-full text-[rgb(var(--color-text-subtle))] hover:bg-[rgb(var(--color-danger-bg-hover))] hover:text-[rgb(var(--color-danger-text))] transition-opacity">
