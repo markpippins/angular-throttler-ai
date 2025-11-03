@@ -22,46 +22,42 @@
   </button>
   
   <div class="relative h-5 w-5 mr-2 flex-shrink-0 flex items-center justify-center">
-    @if (imageService()) {
-      @if (iconUrl() && !imageHasError()) {
-        <!-- Custom Image: Replaces default icons -->
-        <img [src]="iconUrl()" alt="icon" 
-            class="h-5 w-5 object-contain transition-opacity duration-300"
-            [class.opacity-0]="!imageIsLoaded()"
-            (load)="onImageLoad()"
-            (error)="onImageError()" />
-        <!-- Loading spinner for the custom image -->
-        @if (!imageIsLoaded()) {
-          <svg class="animate-spin h-4 w-4 text-[rgb(var(--color-text-subtle))] absolute" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        }
-      } @else {
-        <!-- Default Folder Icons -->
-        @if (isExpanded()) {
-          <!-- Open Folder Icon -->
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-          </svg>
-        } @else {
-          <!-- Closed Folder Icon -->
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-          </svg>
-        }
+    @if (iconUrl() && !imageHasError()) {
+      <!-- Custom Image: Replaces default icons -->
+      <img [src]="iconUrl()" alt="icon" 
+          class="h-5 w-5 object-contain transition-opacity duration-300"
+          [class.opacity-0]="!imageIsLoaded()"
+          (load)="onImageLoad()"
+          (error)="onImageError()" />
+      <!-- Loading spinner for the custom image -->
+      @if (!imageIsLoaded()) {
+        <svg class="animate-spin h-4 w-4 text-[rgb(var(--color-text-subtle))] absolute" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
       }
     } @else {
-      <!-- Fallback if no image service is provided -->
-       @if (isExpanded()) {
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-          </svg>
-        } @else {
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-          </svg>
-        }
+      <!-- Default Folder Icons -->
+      @if (isExpanded()) {
+        <!-- Open Folder Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+        </svg>
+      } @else {
+        <!-- Closed Folder Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+        </svg>
+      }
+    }
+
+    <!-- Disconnected Overlay for Server Roots -->
+    @if (node().isServerRoot && !node().connected) {
+      <div class="absolute -bottom-0.5 -right-0.5 bg-[rgb(var(--color-surface-sidebar))] rounded-full flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+      </div>
     }
   </div>
   
@@ -77,7 +73,7 @@
         [currentPath]="currentPath()"
         [level]="level() + 1"
         [expansionCommand]="expansionCommand()"
-        [imageService]="imageService()"
+        [getImageService]="getImageService()"
         [getProvider]="getProvider()"
         (pathChange)="onChildPathChange($event)"
         (loadChildren)="onLoadChildren($event)"

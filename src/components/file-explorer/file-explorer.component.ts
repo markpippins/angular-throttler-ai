@@ -186,6 +186,25 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
 
   isHighlighted = computed(() => this.isActive() && this.isSplitView());
   
+  isCurrentRootConnected = computed(() => {
+    const path = this.path();
+    if (path.length === 0) return true; // Home is always "connected"
+
+    const rootName = path[0];
+    const folderTree = this.folderTree();
+    if (!folderTree?.children) return true; // Assume connected if tree is not available, or we are at Home root
+
+    const rootNode = folderTree.children.find(node => node.name === rootName);
+    
+    // If it's a server root, check its connected status.
+    if (rootNode?.isServerRoot) {
+        return rootNode.connected ?? false;
+    }
+    
+    // If it's not a server root (e.g., local session), it's always considered connected.
+    return true;
+  });
+  
   private providerPath = computed(() => {
     const p = this.path();
     return p.length > 0 ? p.slice(1) : [];
@@ -597,6 +616,11 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   }
 
   onContextMenu(event: MouseEvent, item: FileSystemNode | null = null): void {
+    if (!this.isCurrentRootConnected()) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     if (this.editingItemName()) return;
     event.preventDefault();
     event.stopPropagation();

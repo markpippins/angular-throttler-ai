@@ -22,7 +22,7 @@ import { FileSystemProvider } from '../../services/file-system-provider.js';
 export class SidebarComponent implements OnDestroy {
   folderTree = input<FileSystemNode | null>(null);
   currentPath = input<string[]>([]);
-  imageService = input<ImageService | null>(null);
+  getImageService = input<(path: string[]) => ImageService>();
   getProvider = input<(path: string[]) => FileSystemProvider>();
   
   pathChange = output<string[]>();
@@ -31,10 +31,14 @@ export class SidebarComponent implements OnDestroy {
   itemsMoved = output<{ destPath: string[]; payload: DragDropPayload }>();
   bookmarkDropped = output<{ bookmark: NewBookmark, destPath: string[] }>();
   serversMenuClick = output<void>();
+  localConfigMenuClick = output<void>();
   renameItemInTree = output<{ path: string[], newName: string }>();
   deleteItemInTree = output<string[]>();
   createFolderInTree = output<{ path: string[], name: string }>();
   createFileInTree = output<{ path: string[], name: string }>();
+  connectToServer = output<string>();
+  disconnectFromServer = output<string>();
+  editServerProfile = output<string>();
 
   isCollapsed = signal(false);
   width = signal(288); // Default width is 288px (w-72)
@@ -42,9 +46,12 @@ export class SidebarComponent implements OnDestroy {
   treeExpansionCommand = signal<{ command: 'expand' | 'collapse', id: number } | null>(null);
   isHamburgerMenuOpen = signal(false);
 
+  // FIX: Declare properties to hold renderer listener cleanup functions.
+  private unlistenMouseMove: (() => void) | null = null;
+  private unlistenMouseUp: (() => void) | null = null;
+
   // --- Context Menu State ---
   contextMenu = signal<{ x: number; y: number; path: string[]; node: FileSystemNode } | null>(null);
-  isNewAllowedInContextMenu = computed(() => (this.contextMenu()?.path.length ?? 0) > 0);
   
   // --- Dialog State ---
   isInputDialogOpen = signal(false);
@@ -58,9 +65,6 @@ export class SidebarComponent implements OnDestroy {
   private preCollapseWidth = 288;
   private renderer = inject(Renderer2);
   private elementRef = inject(ElementRef);
-  
-  private unlistenMouseMove: (() => void) | null = null;
-  private unlistenMouseUp: (() => void) | null = null;
   
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event) {
@@ -156,6 +160,11 @@ export class SidebarComponent implements OnDestroy {
     this.serversMenuClick.emit();
     this.isHamburgerMenuOpen.set(false);
   }
+
+  onLocalConfigMenuClick(): void {
+    this.localConfigMenuClick.emit();
+    this.isHamburgerMenuOpen.set(false);
+  }
   
   onTreeContextMenu(event: { event: MouseEvent; path: string[]; node: FileSystemNode; }): void {
     event.event.preventDefault();
@@ -197,7 +206,33 @@ export class SidebarComponent implements OnDestroy {
     }
   }
 
+  isChildOfWritableRoot(path: string[]): boolean {
+    if (path.length <= 1) {
+      // This is a safeguard. The template logic should prevent this from being called
+      // for the Home root (path.length === 0). For top-level items, we let the
+      // specific menu logic handle it.
+      return false;
+    }
+
+    const rootNodeName = path[0];
+    // The folderTree is the 'Home' node. Its children are the roots we care about.
+    const rootNodeInTree = this.folderTree()?.children?.find(c => c.name === rootNodeName);
+
+    if (rootNodeInTree?.isServerRoot) {
+      // It's a child of a server. Writable only if connected.
+      return rootNodeInTree.connected ?? false;
+    }
+    
+    // If not a child of a server root, it must be a child of the local session root,
+    // which is always writable.
+    return true;
+  }
+
   // --- Context Menu Action Handlers ---
+  handleSettings(): void {
+    this.localConfigMenuClick.emit();
+    this.contextMenu.set(null);
+  }
 
   handleRename(): void {
     const ctx = this.contextMenu();
@@ -243,6 +278,30 @@ export class SidebarComponent implements OnDestroy {
     this.isInputDialogOpen.set(true);
   }
   
+  handleConnect(): void {
+    const profileId = this.contextMenu()?.node.profileId;
+    if (profileId) {
+      this.connectToServer.emit(profileId);
+    }
+    this.contextMenu.set(null);
+  }
+
+  handleDisconnect(): void {
+    const profileId = this.contextMenu()?.node.profileId;
+    if (profileId) {
+      this.disconnectFromServer.emit(profileId);
+    }
+    this.contextMenu.set(null);
+  }
+
+  handleEditProfile(): void {
+    const profileId = this.contextMenu()?.node.profileId;
+    if (profileId) {
+      this.editServerProfile.emit(profileId);
+    }
+    this.contextMenu.set(null);
+  }
+
   // --- Dialog Submit/Cancel Handlers ---
 
   onInputDialogSubmit(value: string): void {

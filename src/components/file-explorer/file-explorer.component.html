@@ -109,6 +109,12 @@
                   <div class="col-span-full text-center py-12 text-[rgb(var(--color-text-subtle))]">
                       @if (filterQuery()) {
                         <p>No items match your filter.</p>
+                      } @else if (!isCurrentRootConnected()) {
+                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        <p class="mt-2 font-semibold">Server Not Connected</p>
+                        <p>Connect to this server profile to view its contents.</p>
                       } @else {
                         <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -218,6 +224,9 @@
                     <td colspan="4" class="text-center py-12 text-[rgb(var(--color-text-subtle))]">
                       @if (filterQuery()) {
                         <p>No items match your filter.</p>
+                      } @else if (!isCurrentRootConnected()) {
+                        <p class="font-semibold">Server Not Connected</p>
+                        <p>Connect to this server profile to view its contents.</p>
                       } @else {
                         <p>This folder is empty.</p>
                       }

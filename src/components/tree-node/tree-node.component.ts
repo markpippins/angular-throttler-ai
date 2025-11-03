@@ -23,7 +23,7 @@ export class TreeNodeComponent implements OnInit {
   currentPath = input.required<string[]>();
   level = input(0);
   expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
-  imageService = input<ImageService | null>(null);
+  getImageService = input<(path: string[]) => ImageService>();
   getProvider = input<(path: string[]) => FileSystemProvider>();
 
   pathChange = output<string[]>();
@@ -38,9 +38,16 @@ export class TreeNodeComponent implements OnInit {
   isDragOver = signal(false);
   
   iconUrl = computed(() => {
-    const service = this.imageService();
-    if (!service) return null;
-    return service.getIconUrl(this.node());
+    const getImageService = this.getImageService();
+    if (!getImageService) return null;
+    
+    const service = getImageService(this.path());
+    const node = this.node();
+
+    if (node.isServerRoot) {
+        return service.getIconUrl({ ...node, name: 'cloud' });
+    }
+    return service.getIconUrl(node);
   });
 
   isSelected = computed(() => {
@@ -113,7 +120,11 @@ export class TreeNodeComponent implements OnInit {
 
   // This method only changes local state. SAFE to be called from effects.
   private expandProgrammatically(): void {
+    const node = this.node();
     if (this.isExpandable() && !this.isExpanded()) {
+      if (node.isServerRoot && !node.connected) {
+        return;
+      }
       this.isExpanded.set(true);
     }
   }
@@ -126,12 +137,17 @@ export class TreeNodeComponent implements OnInit {
 
   toggleExpand(event: MouseEvent): void {
     event.stopPropagation();
+    const node = this.node();
     if (!this.isExpandable()) return;
+    if (node.isServerRoot && !node.connected) {
+        // Do not expand and do not try to load children if disconnected
+        return;
+    }
 
     const expanding = !this.isExpanded();
     this.isExpanded.set(expanding);
 
-    if (expanding && !this.node().childrenLoaded) {
+    if (expanding && !node.childrenLoaded) {
       this.loadChildren.emit(this.path());
     }
   }

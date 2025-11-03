@@ -1,6 +1,7 @@
-import { Injectable, signal, effect } from '@angular/core';
+import { Injectable, signal, effect, inject } from '@angular/core';
 import { FileSystemNode } from '../models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './file-system-provider.js';
+import { LocalConfigService } from './local-config.service.js';
 
 const SESSION_FS_STORAGE_KEY = 'file-explorer-session-fs';
 
@@ -29,8 +30,9 @@ function cloneNode(node: FileSystemNode): FileSystemNode {
   providedIn: 'root',
 })
 export class SessionService implements FileSystemProvider {
+  private localConfigService = inject(LocalConfigService);
   private rootNode = signal<FileSystemNode>({
-    name: 'Session',
+    name: '', // Name will be set from config service
     type: 'folder',
     children: [
       {
@@ -136,15 +138,18 @@ export class SessionService implements FileSystemProvider {
   private loadTreeFromStorage(): void {
     try {
       const storedTree = localStorage.getItem(SESSION_FS_STORAGE_KEY);
+      const sessionName = this.localConfigService.sessionName();
       if (storedTree) {
         const parsedTree: FileSystemNode = JSON.parse(storedTree);
-        // Basic validation
-        if (parsedTree && parsedTree.name && parsedTree.type === 'folder') {
+        // Basic validation and overwrite name with config
+        if (parsedTree && parsedTree.type === 'folder') {
+          parsedTree.name = sessionName;
           this.rootNode.set(parsedTree);
           return;
         }
       }
-      // If nothing in storage, save the default tree
+      // If nothing in storage, save the default tree with the correct name
+      this.rootNode.update(root => ({ ...root, name: sessionName }));
       this.saveTreeToStorage();
 
     } catch (e) {
@@ -175,7 +180,10 @@ export class SessionService implements FileSystemProvider {
   }
 
   async getFolderTree(): Promise<FileSystemNode> {
-    return cloneNode(this.rootNode());
+    const tree = cloneNode(this.rootNode());
+    // Ensure the tree name is always up-to-date with the latest config
+    tree.name = this.localConfigService.sessionName();
+    return tree;
   }
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {

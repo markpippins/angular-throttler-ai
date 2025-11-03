@@ -18,7 +18,6 @@ interface ChatMessage {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChatComponent {
-  isApiKeyAvailable = signal(false);
   isLoading = signal(false);
   
   messages = signal<ChatMessage[]>([]);
@@ -35,12 +34,10 @@ export class ChatComponent {
         apiKey = process.env.API_KEY;
       }
     } catch (e) {
-      console.warn('Could not access process.env.API_KEY. This is expected in a browser environment without a bundler.');
-      apiKey = undefined;
+      console.warn('Could not access process.env.API_KEY. Chat will run in demo mode.');
     }
 
     if (apiKey) {
-      this.isApiKeyAvailable.set(true);
       try {
         const ai = new GoogleGenAI({ apiKey: apiKey });
         this.chat = ai.chats.create({
@@ -49,22 +46,22 @@ export class ChatComponent {
         this.messages.set([{ role: 'model', text: 'Hello! How can I help you today?' }]);
       } catch (e) {
         console.error("Failed to initialize Gemini Chat", e);
-        this.isApiKeyAvailable.set(false); // Revert on failure
+        this.chat = null; // Ensure chat is null on failure
         this.messages.set([
-          { role: 'model', text: 'Error: Could not initialize the AI Chat service. The API key might be invalid.' }
+          { role: 'model', text: 'Error: Could not initialize the AI Chat service. The API key might be invalid. Running in demo mode.' }
         ]);
       }
     } else {
-      this.isApiKeyAvailable.set(false);
+      this.chat = null;
       this.messages.set([
-        { role: 'model', text: 'Chat is disabled. A Gemini API key is required to use this feature.' }
+        { role: 'model', text: 'Hello! This is a demo chat. I will echo your messages. To enable the real AI chat, please configure a Gemini API key.' }
       ]);
     }
   }
 
   async sendMessage(): Promise<void> {
     const messageText = this.newMessage().trim();
-    if (!messageText || !this.chat || this.isLoading() || !this.isApiKeyAvailable()) {
+    if (!messageText || this.isLoading()) {
       return;
     }
 
@@ -74,7 +71,17 @@ export class ChatComponent {
     this.messages.update(msgs => [...msgs, { role: 'user', text: messageText }]);
     this.newMessage.set('');
 
-    // Add a placeholder for the model's streaming response
+    // If there is no real chat session, run in demo/echo mode.
+    if (!this.chat) {
+      setTimeout(() => {
+        const echoMessage = `You said: "${messageText}"`;
+        this.messages.update(msgs => [...msgs, { role: 'model', text: echoMessage }]);
+        this.isLoading.set(false);
+      }, 500);
+      return;
+    }
+    
+    // --- Real chat logic ---
     this.messages.update(msgs => [...msgs, { role: 'model', text: '' }]);
 
     try {

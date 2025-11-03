@@ -4,7 +4,7 @@
     <app-sidebar 
       [folderTree]="folderTree()"
       [currentPath]="activePanePath()"
-      [imageService]="defaultImageService()"
+      [getImageService]="getImageService"
       [getProvider]="getProvider"
       (pathChange)="onSidebarNavigation($event)"
       (refreshTree)="loadFolderTree()"
@@ -12,10 +12,14 @@
       (itemsMoved)="onSidebarItemsMoved($event)"
       (bookmarkDropped)="onBookmarkDroppedOnSidebar($event)"
       (serversMenuClick)="openServerProfilesDialog()"
+      (localConfigMenuClick)="openLocalConfigDialog()"
       (renameItemInTree)="onSidebarRenameItem($event)"
       (deleteItemInTree)="onSidebarDeleteItem($event)"
       (createFolderInTree)="onSidebarNewFolder($event)"
-      (createFileInTree)="onSidebarNewFile($event)">
+      (createFileInTree)="onSidebarNewFile($event)"
+      (connectToServer)="onConnectToServer($event)"
+      (disconnectFromServer)="onDisconnectFromServer($event)"
+      (editServerProfile)="onEditServerProfile($event)">
     </app-sidebar>
 
     <div class="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -196,10 +200,27 @@
     <app-server-profiles-dialog 
       [mountedProfileIds]="mountedProfileIds()"
       [mountedProfileUsers]="mountedProfileUsers()"
+      [initialProfileForEdit]="profileForEdit()"
       (close)="closeServerProfilesDialog()"
       (loginAndMount)="onLoginAndMount($event)"
+      (profileRenamed)="onServerProfileRenamed($event)"
       (unmountProfile)="onUnmountProfile($event)">
     </app-server-profiles-dialog>
+  }
+
+  @if(isLocalConfigDialogOpen()) {
+    <app-local-config-dialog 
+      (close)="closeLocalConfigDialog()"
+      (save)="onLocalConfigSaved($event)">
+    </app-local-config-dialog>
+  }
+
+  @if (profileForLogin(); as profile) {
+    <app-login-dialog 
+      [profile]="profile"
+      (close)="profileForLogin.set(null)"
+      (submitLogin)="onLoginSubmittedFromSidebar($event)">
+    </app-login-dialog>
   }
 
   <app-toasts></app-toasts>

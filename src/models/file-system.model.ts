@@ -7,6 +7,10 @@ export interface FileSystemNode {
   content?: string; // for files
   modified?: string; // for display
   childrenLoaded?: boolean;
+  // Properties for virtual server profile nodes in the tree
+  isServerRoot?: boolean;
+  profileId?: string;
+  connected?: boolean;
 }
 
 // FIX: Add missing SearchResultNode interface.

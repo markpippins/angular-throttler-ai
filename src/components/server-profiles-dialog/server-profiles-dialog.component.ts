@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, output, inject, signal, input, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, output, inject, signal, input, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ServerProfileService } from '../../services/server-profile.service.js';
 import { ServerProfile } from '../../models/server-profile.model.js';
@@ -21,15 +21,18 @@ type FormState = {
   imports: [CommonModule, LoginDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ServerProfilesDialogComponent {
+export class ServerProfilesDialogComponent implements OnInit {
   profileService = inject(ServerProfileService);
   toastService = inject(ToastService);
   
   mountedProfileIds = input<string[]>([]);
   mountedProfileUsers = input<Map<string, User>>(new Map());
+  initialProfileForEdit = input<ServerProfile | null>(null);
+
   close = output<void>();
   loginAndMount = output<{ profile: ServerProfile, username: string, password: string }>();
   unmountProfile = output<ServerProfile>();
+  profileRenamed = output<{ oldName: string, newName: string, profile: ServerProfile }>();
 
   selectedProfileId = signal<string | null>(null);
   
@@ -39,6 +42,8 @@ export class ServerProfilesDialogComponent {
   // State for login dialog
   isLoginDialogOpen = signal(false);
   profileToLogin = signal<ServerProfile | null>(null);
+  
+  private originalProfileName: string | null = null;
 
   // Computed signal to find the full profile object when editing.
   selectedProfile = computed(() => {
@@ -48,6 +53,13 @@ export class ServerProfilesDialogComponent {
     }
     return null;
   });
+
+  ngOnInit(): void {
+    const profileToEdit = this.initialProfileForEdit();
+    if (profileToEdit) {
+      this.startEdit(profileToEdit);
+    }
+  }
 
   startAddNew(): void {
     this.formState.set({
@@ -59,16 +71,19 @@ export class ServerProfilesDialogComponent {
       autoConnect: false,
     });
     this.selectedProfileId.set(null);
+    this.originalProfileName = null;
   }
   
   startEdit(profile: ServerProfile): void {
     this.formState.set({ ...profile, searchUrl: profile.searchUrl ?? '', autoConnect: profile.autoConnect ?? false });
     this.selectedProfileId.set(profile.id);
+    this.originalProfileName = profile.name;
   }
   
   cancelEdit(): void {
     this.formState.set(null);
     this.selectedProfileId.set(null);
+    this.originalProfileName = null;
   }
 
   saveProfile(): void {
@@ -76,14 +91,22 @@ export class ServerProfilesDialogComponent {
     if (!state || !state.name.trim()) return;
 
     if (state.id) { // Editing existing
-      this.profileService.updateProfile(state as ServerProfile);
+      const oldName = this.originalProfileName;
+      const updatedProfile = state as ServerProfile;
+      this.profileService.updateProfile(updatedProfile);
       this.toastService.show(`Profile "${state.name}" updated.`);
+      
+      if (oldName && oldName !== state.name) {
+          this.profileRenamed.emit({ oldName, newName: state.name, profile: updatedProfile });
+      }
+      this.originalProfileName = state.name; // Update for subsequent edits without closing
     } else { // Adding new
       const { id, ...newProfileData } = state;
       this.profileService.addProfile(newProfileData);
       this.toastService.show(`Profile "${state.name}" created.`);
       this.formState.set(null);
       this.selectedProfileId.set(null);
+      this.originalProfileName = null;
     }
   }
   
