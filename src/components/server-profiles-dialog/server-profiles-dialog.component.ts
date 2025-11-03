@@ -92,18 +92,35 @@ export class ServerProfilesDialogComponent implements OnInit {
 
     if (state.id) { // Editing existing
       const oldName = this.originalProfileName;
-      const updatedProfile = state as ServerProfile;
-      this.profileService.updateProfile(updatedProfile);
-      this.toastService.show(`Profile "${state.name}" updated.`);
       
-      if (oldName && oldName !== state.name) {
-          this.profileRenamed.emit({ oldName, newName: state.name, profile: updatedProfile });
+      const updatedProfile: ServerProfile = {
+        id: state.id,
+        name: state.name.trim(),
+        brokerUrl: state.brokerUrl.trim(),
+        imageUrl: state.imageUrl.trim(),
+        // Conditionally add searchUrl only if it's not empty, making the persisted object cleaner.
+        ...(state.searchUrl.trim() && { searchUrl: state.searchUrl.trim() }),
+        autoConnect: state.autoConnect,
+      };
+
+      this.profileService.updateProfile(updatedProfile);
+      this.toastService.show(`Profile "${updatedProfile.name}" updated.`);
+      
+      if (oldName && oldName !== updatedProfile.name) {
+          this.profileRenamed.emit({ oldName, newName: updatedProfile.name, profile: updatedProfile });
       }
-      this.originalProfileName = state.name; // Update for subsequent edits without closing
+      this.originalProfileName = updatedProfile.name;
     } else { // Adding new
-      const { id, ...newProfileData } = state;
+      const newProfileData = {
+        name: state.name.trim(),
+        brokerUrl: state.brokerUrl.trim(),
+        imageUrl: state.imageUrl.trim(),
+        ...(state.searchUrl.trim() && { searchUrl: state.searchUrl.trim() }),
+        autoConnect: state.autoConnect,
+      };
+
       this.profileService.addProfile(newProfileData);
-      this.toastService.show(`Profile "${state.name}" created.`);
+      this.toastService.show(`Profile "${newProfileData.name}" created.`);
       this.formState.set(null);
       this.selectedProfileId.set(null);
       this.originalProfileName = null;
@@ -146,9 +163,13 @@ export class ServerProfilesDialogComponent implements OnInit {
     this.unmountProfile.emit(profile);
   }
 
-  onFormValueChange(event: Event, field: keyof Omit<FormState, 'id'>): void {
-    const input = event.target as HTMLInputElement;
-    const value = input.type === 'checkbox' ? input.checked : input.value;
+  onFormValueChange(event: Event, field: keyof Omit<FormState, 'id' | 'autoConnect'>): void {
+    const value = (event.target as HTMLInputElement).value;
     this.formState.update(state => state ? { ...state, [field]: value } : null);
+  }
+
+  onCheckboxChange(event: Event, field: 'autoConnect'): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.formState.update(state => state ? { ...state, [field]: checked } : null);
   }
 }

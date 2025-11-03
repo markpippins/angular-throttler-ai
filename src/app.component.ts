@@ -1,3 +1,5 @@
+
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -182,7 +184,15 @@ export class AppComponent implements OnInit, OnDestroy {
   public getProvider: (path: string[]) => FileSystemProvider;
   
   public getImageServiceForPath(path: string[]): ImageService {
-    if (path.length === 0) return this.defaultImageService;
+    if (path.length === 0) {
+      const homeProfileStub = {
+          id: 'home-view',
+          name: 'Home',
+          brokerUrl: '',
+          imageUrl: this.localConfigService.defaultImageUrl()
+      };
+      return new ImageService(homeProfileStub, this.imageClientService, this.preferencesService);
+    }
     const root = path[0];
     const remoteService = this.remoteImageServices().get(root);
     if (remoteService) return remoteService;
@@ -266,7 +276,7 @@ export class AppComponent implements OnInit, OnDestroy {
             isServerRoot: true,
             profileId: p.id,
             connected: this.mountedProfileIds().includes(p.id)
-        })).sort((a, b) => a.name.localeCompare(b.name));
+        }));
         
         return [localRoot, ...serverProfileNodes];
       },

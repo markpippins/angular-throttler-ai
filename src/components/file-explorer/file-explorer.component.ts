@@ -33,6 +33,8 @@ import { ImageResultListItemComponent } from '../stream-list-items/image-result-
 import { GeminiResultListItemComponent } from '../stream-list-items/gemini-result-list-item.component.js';
 import { YoutubeResultListItemComponent } from '../stream-list-items/youtube-result-list-item.component.js';
 import { AcademicResultListItemComponent } from '../stream-list-items/academic-result-list-item.component.js';
+import { ToastService } from '../../services/toast.service.js';
+import { LocalConfigService } from '../../services/local-config.service.js';
 
 interface FileSystemState {
   status: 'loading' | 'success' | 'error';
@@ -80,6 +82,8 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   private geminiService = inject(GeminiService);
   private youtubeSearchService = inject(YoutubeSearchService);
   private academicSearchService = inject(AcademicSearchService);
+  private toastService = inject(ToastService);
+  public localConfigService = inject(LocalConfigService);
 
   // Inputs & Outputs for multi-pane communication
   id = input.required<number>();
@@ -108,6 +112,12 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   sortChange = output<SortCriteria>();
   saveBookmark = output<NewBookmark>();
   bookmarkDropped = output<{ bookmark: NewBookmark, dropOn: FileSystemNode }>();
+
+  // New outputs for context menu actions
+  connectToServer = output<string>();
+  disconnectFromServer = output<string>();
+  editServerProfile = output<string>();
+  localConfigMenuClick = output<void>();
 
   state = signal<FileSystemState>({ status: 'loading', items: [] });
   contextMenu = signal<{ x: number; y: number; item: FileSystemNode | null } | null>(null);
@@ -214,6 +224,22 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     const items = [...this.state().items];
     const { key, direction } = this.sortCriteria();
     const directionMultiplier = direction === 'asc' ? 1 : -1;
+
+    // Special sorting for the root "Home" view to keep local session first.
+    if (this.path().length === 0) {
+      const localNode = items.find(item => !item.isServerRoot);
+      const serverNodes = items.filter(item => item.isServerRoot);
+      
+      // Always sort server nodes alphabetically ascending by name.
+      serverNodes.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      
+      const result: FileSystemNode[] = [];
+      if (localNode) {
+        result.push(localNode);
+      }
+      result.push(...serverNodes);
+      return result;
+    }
 
     items.sort((a, b) => {
       const aIsSpecial = a.type === 'folder' && SPECIAL_FOLDERS.has(a.name.toLowerCase());
@@ -468,6 +494,11 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   }
 
   async openItem(item: FileSystemNode): Promise<void> {
+    if (item.isServerRoot && !item.connected) {
+      this.toastService.show(`"${item.name}" is not connected.`, 'info');
+      return;
+    }
+    
     if (item.type === 'folder') {
       this.pathChanged.emit([...this.path(), item.name]);
       return;
@@ -933,7 +964,11 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   }
 
   getIconUrl(item: FileSystemNode): string | null {
-    return this.imageService().getIconUrl(item);
+    const imageService = this.imageService();
+    if (item.isServerRoot) {
+      return imageService.getIconUrl({ ...item, name: 'cloud' });
+    }
+    return imageService.getIconUrl(item);
   }
 
   onImageError(name: string): void {
@@ -1313,5 +1348,35 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
         const newBookmark = this.streamItemToNewBookmark(item);
         this.saveBookmark.emit(newBookmark);
     }
+  }
+
+  // Handlers for the new context menu items
+  handleConnect(): void {
+    const profileId = this.contextMenu()?.item?.profileId;
+    if (profileId) {
+      this.connectToServer.emit(profileId);
+    }
+    this.closeContextMenu();
+  }
+
+  handleDisconnect(): void {
+    const profileId = this.contextMenu()?.item?.profileId;
+    if (profileId) {
+      this.disconnectFromServer.emit(profileId);
+    }
+    this.closeContextMenu();
+  }
+
+  handleEditProfile(): void {
+    const profileId = this.contextMenu()?.item?.profileId;
+    if (profileId) {
+      this.editServerProfile.emit(profileId);
+    }
+    this.closeContextMenu();
+  }
+  
+  handleSettings(): void {
+    this.localConfigMenuClick.emit();
+    this.closeContextMenu();
   }
 }

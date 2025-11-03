@@ -191,6 +191,13 @@
                               <img [src]="iconUrl" [alt]="item.type" class="absolute inset-0 h-5 w-5 object-contain" (error)="onImageError(item.name)" />
                             }
                           }
+                          @if (item.isServerRoot && !item.connected) {
+                            <div class="absolute -bottom-0.5 -right-0.5 bg-[rgb(var(--color-surface))] rounded-full flex items-center justify-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                              </svg>
+                            </div>
+                          }
                         </div>
                       } @else {
                         @let iconUrl = getIconUrl(item);
@@ -474,49 +481,74 @@
          [style.top.px]="cm.y"
          (click)="$event.stopPropagation()">
       @if (cm.item) {
-        <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onCut()">
-          <span>Cut</span>
-          <span class="text-[rgb(var(--color-text-subtle))]">Ctrl+X</span>
-        </div>
-        <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onCopy()">
-          <span>Copy</span>
-          <span class="text-[rgb(var(--color-text-subtle))]">Ctrl+C</span>
-        </div>
-        
-        @if (cm.item.type === 'folder' && !cm.item.name.endsWith('.magnet')) {
+        @if (path().length === 0 && (cm.item.isServerRoot || cm.item.name === localConfigService.sessionName())) {
+          <!-- Special menus for root items in "Home" view -->
+          @if (cm.item.isServerRoot) {
+            <!-- Server Root Node Menu -->
+            @if (cm.item.connected) {
+              <div (click)="handleDisconnect()" class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer">
+                <span>Disconnect</span>
+              </div>
+            } @else {
+              <div (click)="handleConnect()" class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer">
+                <span>Connect...</span>
+              </div>
+            }
+            <div (click)="handleEditProfile()" class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer">
+              <span>Edit...</span>
+            </div>
+          } @else {
+            <!-- Local Session Root Node Menu -->
+            <div (click)="handleSettings()" class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer">
+              <span>Settings...</span>
+            </div>
+          }
+        } @else {
+          <!-- Standard File/Folder Menu -->
+          <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onCut()">
+            <span>Cut</span>
+            <span class="text-[rgb(var(--color-text-subtle))]">Ctrl+X</span>
+          </div>
+          <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onCopy()">
+            <span>Copy</span>
+            <span class="text-[rgb(var(--color-text-subtle))]">Ctrl+C</span>
+          </div>
+          
+          @if (cm.item.type === 'folder' && !cm.item.name.endsWith('.magnet')) {
+            <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+            <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onMagnetizeFromContextMenu()">
+              <span>Magnetize</span>
+            </div>
+          }
+
           <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-          <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onMagnetizeFromContextMenu()">
-            <span>Magnetize</span>
+          <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onRename()">
+            <span>Rename</span>
+            <span class="text-[rgb(var(--color-text-subtle))]">F2</span>
+          </div>
+          <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-danger-bg-hover))] cursor-pointer text-[rgb(var(--color-danger-text))] hover:text-[rgb(var(--color-danger-text-hover))]" (click)="onDelete()">
+            <span>Delete</span>
+            <span class="text-[rgb(var(--color-text-subtle))]">Del</span>
+          </div>
+          <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+          <div class="relative px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer flex items-center justify-between"
+              (mouseenter)="openDestinationSubMenu('copy', $event)"
+              (mouseleave)="onDestinationSubMenuLeave()">
+              <span>Copy to</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 text-[rgb(var(--color-text-subtle))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+          </div>
+          <div class="relative px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer flex items-center justify-between"
+              (mouseenter)="openDestinationSubMenu('move', $event)"
+              (mouseleave)="onDestinationSubMenuLeave()">
+              <span>Move to</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 text-[rgb(var(--color-text-subtle))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+          </div>
+          <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+          <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onPropertiesFromContextMenu()">
+            <span>Properties</span>
+            <span class="text-[rgb(var(--color-text-subtle))]">Alt+Enter</span>
           </div>
         }
-
-        <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-        <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onRename()">
-          <span>Rename</span>
-          <span class="text-[rgb(var(--color-text-subtle))]">F2</span>
-        </div>
-        <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-danger-bg-hover))] cursor-pointer text-[rgb(var(--color-danger-text))] hover:text-[rgb(var(--color-danger-text-hover))]" (click)="onDelete()">
-          <span>Delete</span>
-          <span class="text-[rgb(var(--color-text-subtle))]">Del</span>
-        </div>
-        <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-        <div class="relative px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer flex items-center justify-between"
-             (mouseenter)="openDestinationSubMenu('copy', $event)"
-             (mouseleave)="onDestinationSubMenuLeave()">
-             <span>Copy to</span>
-             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 text-[rgb(var(--color-text-subtle))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-        </div>
-        <div class="relative px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer flex items-center justify-between"
-             (mouseenter)="openDestinationSubMenu('move', $event)"
-             (mouseleave)="onDestinationSubMenuLeave()">
-             <span>Move to</span>
-             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2 text-[rgb(var(--color-text-subtle))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-        </div>
-        <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-        <div class="flex justify-between items-center px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onPropertiesFromContextMenu()">
-          <span>Properties</span>
-          <span class="text-[rgb(var(--color-text-subtle))]">Alt+Enter</span>
-        </div>
       } @else {
         @if (path().length === 0) {
           <div class="flex justify-between items-center px-4 py-2 text-[rgb(var(--color-text-disabled))] cursor-not-allowed">

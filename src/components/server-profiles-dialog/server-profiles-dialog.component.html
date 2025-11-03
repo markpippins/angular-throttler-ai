@@ -81,7 +81,7 @@
             </div>
 
             <div class="flex items-center mt-4">
-              <input type="checkbox" id="autoConnect" [checked]="form.autoConnect" (change)="onFormValueChange($event, 'autoConnect')"
+              <input type="checkbox" id="autoConnect" [checked]="form.autoConnect" (change)="onCheckboxChange($event, 'autoConnect')"
                     class="h-4 w-4 rounded border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-accent-text))] focus:ring-[rgb(var(--color-accent-ring))]">
               <label for="autoConnect" class="ml-2 block text-sm font-medium text-[rgb(var(--color-text-muted))]">
                 Auto-connect on startup

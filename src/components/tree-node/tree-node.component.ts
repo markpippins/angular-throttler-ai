@@ -1,3 +1,4 @@
+
 import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
@@ -73,9 +74,26 @@ export class TreeNodeComponent implements OnInit {
     if (!children) {
       return [];
     }
-    // Only show folders in the tree view, and sort them by name
-    return children
-      .filter(c => c.type === 'folder')
+    
+    const folderChildren = children.filter(c => c.type === 'folder');
+
+    // Special sorting for children of the root "Home" node
+    if (this.level() === 0) {
+      const localNode = folderChildren.find(item => !item.isServerRoot);
+      const serverNodes = folderChildren.filter(item => item.isServerRoot);
+      
+      serverNodes.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      
+      const result: FileSystemNode[] = [];
+      if (localNode) {
+        result.push(localNode);
+      }
+      result.push(...serverNodes);
+      return result;
+    }
+
+    // Default alphabetical sort for all other nodes
+    return folderChildren
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   });
 
