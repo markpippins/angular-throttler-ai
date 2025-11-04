@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { openDB, DBSchema, IDBPDatabase } from 'https://next.esm.sh/idb@8';
 import { ServerProfile } from '../models/server-profile.model.js';
 
 const DB_NAME = 'file-explorer-db';
@@ -21,7 +21,7 @@ export class DbService {
 
   constructor() {
     this.dbPromise = openDB<FileExplorerDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db: IDBPDatabase<FileExplorerDB>) {
         if (!db.objectStoreNames.contains(PROFILES_STORE)) {
           db.createObjectStore(PROFILES_STORE, { keyPath: 'id' });
         }
