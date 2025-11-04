@@ -38,7 +38,7 @@ export class DbService {
 
   async addProfile(profile: ServerProfile): Promise<void> {
     const db = await this.dbPromise;
-    await db.add(PROFILES_STORE, profile);
+    await db.put(PROFILES_STORE, profile);
   }
   
   async updateProfile(profile: ServerProfile): Promise<void> {

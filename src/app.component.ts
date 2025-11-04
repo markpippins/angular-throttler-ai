@@ -1,5 +1,6 @@
 
 
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -824,7 +825,7 @@ export class AppComponent implements OnInit, OnDestroy {
       });
     });
 
-    // 2. If the profile was mounted, update the provider maps.
+    // 2. If the profile was mounted, update the provider maps and the mountedProfiles array.
     if (this.mountedProfileIds().includes(profile.id)) {
       const provider = this.remoteProviders().get(oldName);
       if (provider) {
@@ -851,6 +852,11 @@ export class AppComponent implements OnInit, OnDestroy {
             return newMap;
         });
       }
+      
+      // Also update the mountedProfiles signal to ensure its data is not stale.
+      this.mountedProfiles.update(profiles => 
+        profiles.map(p => p.id === profile.id ? profile : p)
+      );
     }
   }
 
