@@ -1,9 +1,6 @@
-import { Component, ChangeDetectionStrategy, signal, inject, Renderer2, OnDestroy, input, output, HostListener, ElementRef, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject, Renderer2, OnDestroy, input, output, HostListener, ElementRef, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TabControlComponent } from '../tabs/tab-control.component.js';
-import { TabComponent } from '../tabs/tab.component.js';
 import { ChatComponent } from '../chat/chat.component.js';
-import { VerticalToolbarComponent } from '../vertical-toolbar/vertical-toolbar.component.js';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { TreeViewComponent } from '../tree-view/tree-view.component.js';
 import { ImageService } from '../../services/image.service.js';
@@ -16,7 +13,7 @@ import { FileSystemProvider } from '../../services/file-system-provider.js';
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.component.html',
-  imports: [CommonModule, TabControlComponent, TabComponent, ChatComponent, VerticalToolbarComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent],
+  imports: [CommonModule, ChatComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnDestroy {
@@ -24,6 +21,7 @@ export class SidebarComponent implements OnDestroy {
   currentPath = input<string[]>([]);
   getImageService = input<(path: string[]) => ImageService>();
   getProvider = input<(path: string[]) => FileSystemProvider>();
+  isChatVisible = input(true);
   
   pathChange = output<string[]>();
   refreshTree = output<void>();
@@ -40,15 +38,22 @@ export class SidebarComponent implements OnDestroy {
   disconnectFromServer = output<string>();
   editServerProfile = output<string>();
 
-  isCollapsed = signal(false);
   width = signal(288); // Default width is 288px (w-72)
   isResizing = signal(false);
   treeExpansionCommand = signal<{ command: 'expand' | 'collapse', id: number } | null>(null);
   isHamburgerMenuOpen = signal(false);
 
-  // FIX: Declare properties to hold renderer listener cleanup functions.
   private unlistenMouseMove: (() => void) | null = null;
   private unlistenMouseUp: (() => void) | null = null;
+
+  // --- Vertical Resizing State for internal panes ---
+  treePaneHeight = signal(400); // Start with a reasonable pixel height
+  isResizingVertical = signal(false);
+  private unlistenVerticalMouseMove: (() => void) | null = null;
+  private unlistenVerticalMouseUp: (() => void) | null = null;
+  isChatPaneCollapsed = signal(false);
+
+  @ViewChild('contentContainer') contentContainerEl!: ElementRef<HTMLDivElement>;
 
   // --- Context Menu State ---
   contextMenu = signal<{ x: number; y: number; path: string[]; node: FileSystemNode } | null>(null);
@@ -62,7 +67,6 @@ export class SidebarComponent implements OnDestroy {
   private confirmDialogCallback = signal<(() => void) | null>(null);
   confirmDialogConfig = signal<{ title: string; message: string; confirmText: string }>({ title: '', message: '', confirmText: 'OK' });
 
-  private preCollapseWidth = 288;
   private renderer = inject(Renderer2);
   private elementRef = inject(ElementRef);
   
@@ -74,21 +78,8 @@ export class SidebarComponent implements OnDestroy {
     // Always close context menu on any document click
     if (this.contextMenu()) this.contextMenu.set(null);
   }
-
-  toggleCollapse(): void {
-    const collapsing = !this.isCollapsed();
-    if (collapsing) {
-      this.preCollapseWidth = this.width();
-    }
-    this.isCollapsed.set(collapsing);
-    if (!collapsing) { // on expand
-      this.width.set(this.preCollapseWidth);
-    }
-  }
   
   startResize(event: MouseEvent): void {
-    if (this.isCollapsed()) return;
-
     this.isResizing.set(true);
     const startX = event.clientX;
     const startWidth = this.width();
@@ -121,6 +112,50 @@ export class SidebarComponent implements OnDestroy {
       this.unlistenMouseUp();
       this.unlistenMouseUp = null;
     }
+  }
+
+  // --- Vertical resize methods ---
+  startVerticalResize(event: MouseEvent): void {
+    this.isResizingVertical.set(true);
+    const container = this.contentContainerEl.nativeElement;
+    const containerRect = container.getBoundingClientRect();
+    const startY = event.clientY;
+    const startHeight = this.treePaneHeight();
+
+    event.preventDefault();
+
+    this.unlistenVerticalMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+      const dy = e.clientY - startY;
+      let newHeight = startHeight + dy;
+      
+      const minHeight = 100;
+      const maxHeight = containerRect.height - 100; // Leave 100px for the bottom pane
+      if (newHeight < minHeight) newHeight = minHeight;
+      if (newHeight > maxHeight) newHeight = maxHeight;
+      
+      this.treePaneHeight.set(newHeight);
+    });
+
+    this.unlistenVerticalMouseUp = this.renderer.listen('document', 'mouseup', () => {
+      this.stopVerticalResize();
+    });
+  }
+
+  private stopVerticalResize(): void {
+    if (!this.isResizingVertical()) return;
+    this.isResizingVertical.set(false);
+    if (this.unlistenVerticalMouseMove) {
+      this.unlistenVerticalMouseMove();
+      this.unlistenVerticalMouseMove = null;
+    }
+    if (this.unlistenVerticalMouseUp) {
+      this.unlistenVerticalMouseUp();
+      this.unlistenVerticalMouseUp = null;
+    }
+  }
+
+  toggleChatPaneCollapse(): void {
+    this.isChatPaneCollapsed.update(v => !v);
   }
 
   onTreeViewPathChange(path: string[]): void {
@@ -316,5 +351,6 @@ export class SidebarComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stopResize();
+    this.stopVerticalResize();
   }
 }

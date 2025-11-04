@@ -1,26 +1,29 @@
 <div class="flex flex-col h-screen font-sans antialiased text-[rgb(var(--color-text-base))] bg-[rgb(var(--color-background))]">
   <!-- Main Content -->
   <main class="flex-1 flex flex-row overflow-hidden">
-    <app-sidebar 
-      [folderTree]="folderTree()"
-      [currentPath]="activePanePath()"
-      [getImageService]="getImageService"
-      [getProvider]="getProvider"
-      (pathChange)="onSidebarNavigation($event)"
-      (refreshTree)="loadFolderTree()"
-      (loadChildren)="onLoadChildren($event)"
-      (itemsMoved)="onSidebarItemsMoved($event)"
-      (bookmarkDropped)="onBookmarkDroppedOnSidebar($event)"
-      (serversMenuClick)="openServerProfilesDialog()"
-      (localConfigMenuClick)="openLocalConfigDialog()"
-      (renameItemInTree)="onSidebarRenameItem($event)"
-      (deleteItemInTree)="onSidebarDeleteItem($event)"
-      (createFolderInTree)="onSidebarNewFolder($event)"
-      (createFileInTree)="onSidebarNewFile($event)"
-      (connectToServer)="onConnectToServer($event)"
-      (disconnectFromServer)="onDisconnectFromServer($event)"
-      (editServerProfile)="onEditServerProfile($event)">
-    </app-sidebar>
+    @if (isSidebarVisible()) {
+      <app-sidebar 
+        [folderTree]="folderTree()"
+        [currentPath]="activePanePath()"
+        [getImageService]="getImageService"
+        [getProvider]="getProvider"
+        [isChatVisible]="isChatVisible()"
+        (pathChange)="onSidebarNavigation($event)"
+        (refreshTree)="loadFolderTree()"
+        (loadChildren)="onLoadChildren($event)"
+        (itemsMoved)="onSidebarItemsMoved($event)"
+        (bookmarkDropped)="onBookmarkDroppedOnSidebar($event)"
+        (serversMenuClick)="openServerProfilesDialog()"
+        (localConfigMenuClick)="openLocalConfigDialog()"
+        (renameItemInTree)="onSidebarRenameItem($event)"
+        (deleteItemInTree)="onSidebarDeleteItem($event)"
+        (createFolderInTree)="onSidebarNewFolder($event)"
+        (createFileInTree)="onSidebarNewFile($event)"
+        (connectToServer)="onConnectToServer($event)"
+        (disconnectFromServer)="onDisconnectFromServer($event)"
+        (editServerProfile)="onEditServerProfile($event)">
+      </app-sidebar>
+    }
 
     <div class="flex-1 flex flex-col overflow-hidden min-w-0">
       <!-- Address Bar -->
@@ -65,6 +68,11 @@
         [filterQuery]="activeFilterQuery()"
         [isSplitViewActive]="isSplitView()"
         [isDetailPaneActive]="isDetailPaneOpen()"
+        [isSidebarVisible]="isSidebarVisible()"
+        [isChatVisible]="isChatVisible()"
+        [isSavedItemsVisible]="isSavedItemsVisible()"
+        [isRssFeedVisible]="isRssFeedVisible()"
+        [isStreamVisible]="isStreamVisible()"
         (newFolderClick)="onToolbarAction('newFolder')"
         (newFileClick)="onToolbarAction('newFile')"
         (filesUploaded)="onToolbarAction('upload', $event)"
@@ -81,7 +89,12 @@
         (filterChange)="onFilterChange($event)"
         (splitViewClick)="toggleSplitView()"
         (detailPaneClick)="toggleDetailPane()"
-        (themeMenuClick)="openThemeMenu($event)">
+        (themeMenuClick)="openThemeMenu($event)"
+        (toggleSidebar)="toggleSidebar()"
+        (toggleChat)="toggleChat()"
+        (toggleSavedItems)="toggleSavedItems()"
+        (toggleRssFeed)="toggleRssFeed()"
+        (toggleStream)="toggleStream()">
       </app-toolbar>
 
       <div class="flex-1 flex flex-row overflow-hidden">
@@ -104,6 +117,7 @@
               [sortCriteria]="pane1SortCriteria()"
               [displayMode]="pane1DisplayMode()"
               [filterQuery]="pane1FilterQuery()"
+              [isStreamVisible]="isStreamVisible()"
               (activated)="setActivePane($event)"
               (pathChanged)="onPane1PathChanged($event)"
               (itemSelected)="onItemSelectedInPane($event)"
@@ -136,6 +150,7 @@
                 [sortCriteria]="pane2SortCriteria()"
                 [displayMode]="pane2DisplayMode()"
                 [filterQuery]="pane2FilterQuery()"
+                [isStreamVisible]="isStreamVisible()"
                 (activated)="setActivePane($event)"
                 (pathChanged)="onPane2PathChanged($event)"
                 (itemSelected)="onItemSelectedInPane($event)"
@@ -153,6 +168,8 @@
         @if (isDetailPaneOpen()) {
           <app-detail-pane
             [path]="activePanePath()"
+            [isSavedItemsVisible]="isSavedItemsVisible()"
+            [isRssFeedVisible]="isRssFeedVisible()"
             (close)="toggleDetailPane()">
           </app-detail-pane>
         }

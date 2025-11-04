@@ -96,6 +96,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   sortCriteria = input<SortCriteria>({ key: 'name', direction: 'asc' });
   displayMode = input<'grid' | 'list'>('grid');
   filterQuery = input('');
+  isStreamVisible = input(true);
 
   activated = output<number>();
   pathChanged = output<string[]>();

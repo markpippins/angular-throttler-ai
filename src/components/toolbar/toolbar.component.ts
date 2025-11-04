@@ -1,4 +1,5 @@
 
+
 import { Component, ChangeDetectionStrategy, output, signal, ElementRef, inject, viewChild, input } from '@angular/core';
 import { DestinationNodeComponent } from '../destination-node/destination-node.component.js';
 import { FileSystemNode } from '../../models/file-system.model.js';
@@ -42,6 +43,13 @@ export class ToolbarComponent {
   filterQuery = input('');
   isSplitViewActive = input(false);
   isDetailPaneActive = input(false);
+  
+  // Inputs for pane visibility status
+  isSidebarVisible = input(true);
+  isChatVisible = input(true);
+  isSavedItemsVisible = input(true);
+  isRssFeedVisible = input(true);
+  isStreamVisible = input(true);
 
   // Outputs for events
   newFolderClick = output<void>();
@@ -61,6 +69,13 @@ export class ToolbarComponent {
   splitViewClick = output<void>();
   detailPaneClick = output<void>();
   themeMenuClick = output<MouseEvent>();
+  
+  // Outputs for pane visibility toggles
+  toggleSidebar = output<void>();
+  toggleChat = output<void>();
+  toggleSavedItems = output<void>();
+  toggleRssFeed = output<void>();
+  toggleStream = output<void>();
 
   fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 

@@ -1,6 +1,3 @@
-
-
-
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -31,6 +28,7 @@ import { WebviewService } from './services/webview.service.js';
 import { LocalConfigDialogComponent } from './components/local-config-dialog/local-config-dialog.component.js';
 import { LocalConfig, LocalConfigService } from './services/local-config.service.js';
 import { LoginDialogComponent } from './components/login-dialog/login-dialog.component.js';
+import { UiPreferencesService } from './services/ui-preferences.service.js';
 
 interface PanePath {
   id: number;
@@ -87,6 +85,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private document: Document = inject(DOCUMENT);
   private renderer = inject(Renderer2);
   private elementRef = inject(ElementRef);
+  private uiPreferencesService = inject(UiPreferencesService);
   private homeProvider: FileSystemProvider;
 
   // --- State Management ---
@@ -96,10 +95,17 @@ export class AppComponent implements OnInit, OnDestroy {
   isServerProfilesDialogOpen = signal(false);
   isLocalConfigDialogOpen = signal(false);
   isThemeDropdownOpen = signal(false);
-  isDetailPaneOpen = signal(false);
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
   refreshPanes = signal(0);
+  
+  // --- Pane Visibility State (from service) ---
+  isSidebarVisible = this.uiPreferencesService.isSidebarVisible;
+  isChatVisible = this.uiPreferencesService.isChatVisible;
+  isDetailPaneOpen = this.uiPreferencesService.isDetailPaneOpen;
+  isSavedItemsVisible = this.uiPreferencesService.isSavedItemsVisible;
+  isRssFeedVisible = this.uiPreferencesService.isRssFeedVisible;
+  isStreamVisible = this.uiPreferencesService.isStreamVisible;
   
   // Keep track of each pane's path
   private panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
@@ -475,9 +481,30 @@ export class AppComponent implements OnInit, OnDestroy {
       }
     });
   }
+  
+  // --- Pane Visibility Toggles ---
+  toggleSidebar(): void {
+    this.uiPreferencesService.toggleSidebar();
+  }
+
+  toggleChat(): void {
+    this.uiPreferencesService.toggleChat();
+  }
 
   toggleDetailPane(): void {
-    this.isDetailPaneOpen.update(v => !v);
+    this.uiPreferencesService.toggleDetailPane();
+  }
+
+  toggleSavedItems(): void {
+    this.uiPreferencesService.toggleSavedItems();
+  }
+
+  toggleRssFeed(): void {
+    this.uiPreferencesService.toggleRssFeed();
+  }
+
+  toggleStream(): void {
+    this.uiPreferencesService.toggleStream();
   }
 
   onItemSelectedInPane(item: FileSystemNode | null): void {
@@ -861,7 +888,31 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onKeyDown(event: KeyboardEvent): void {
-    // Handle high-priority Escape key presses for modals first.
+    // Handle F-key pane toggles first, as they should work anywhere.
+    switch(event.key) {
+      case 'F8':
+        event.preventDefault();
+        this.toggleStream();
+        return;
+      case 'F9':
+        event.preventDefault();
+        this.toggleSidebar();
+        return;
+      case 'F10':
+        event.preventDefault();
+        this.toggleChat();
+        return;
+      case 'F11':
+        event.preventDefault();
+        this.toggleSavedItems();
+        return;
+      case 'F12':
+        event.preventDefault();
+        this.toggleRssFeed();
+        return;
+    }
+    
+    // Handle high-priority Escape key presses for modals.
     if (event.key === 'Escape') {
       if (this.profileForLogin()) {
         event.preventDefault();
