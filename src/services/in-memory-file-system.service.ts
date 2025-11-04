@@ -415,4 +415,43 @@ export class SessionService implements FileSystemProvider {
   uploadFile(path: string[], file: File): Promise<void> {
     return this.createFile(path, file.name);
   }
+
+  async importTree(destPath: string[], data: FileSystemNode): Promise<void> {
+    this.rootNode.update(currentRoot => {
+      const newRoot = cloneNode(currentRoot);
+      const destNode = this.findNodeInTree(newRoot, destPath);
+  
+      if (!destNode || destNode.type !== 'folder') {
+        throw new Error('Import failed: Destination path is not a valid folder.');
+      }
+      
+      const merge = (targetNode: FileSystemNode, sourceNode: FileSystemNode) => {
+        if (sourceNode.type !== 'folder') return;
+        if (!targetNode.children) {
+          targetNode.children = [];
+        }
+  
+        let existingChild = targetNode.children.find(c => c.name === sourceNode.name && c.type === 'folder');
+  
+        if (existingChild) {
+          if (sourceNode.children) {
+            sourceNode.children.forEach(sourceChild => merge(existingChild!, sourceChild));
+          }
+        } else {
+          const clonedSource = cloneNode(sourceNode);
+          const setModifiedDates = (node: FileSystemNode) => {
+              node.modified = new Date().toISOString();
+              if (node.children) node.children.forEach(setModifiedDates);
+          };
+          setModifiedDates(clonedSource);
+          targetNode.children.push(clonedSource);
+        }
+      };
+  
+      merge(destNode, data);
+      destNode.modified = new Date().toISOString();
+  
+      return newRoot;
+    });
+  }
 }

@@ -2,6 +2,8 @@ import { Injectable, signal, effect, computed } from '@angular/core';
 
 const PREFERENCES_STORAGE_KEY = 'file-explorer-ui-preferences';
 
+export type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
+
 export interface UiPreferences {
   isSidebarVisible: boolean;
   isChatVisible: boolean;
@@ -9,6 +11,13 @@ export interface UiPreferences {
   isSavedItemsVisible: boolean;
   isRssFeedVisible: boolean;
   isStreamVisible: boolean;
+  sidebarWidth: number | null;
+  sidebarTreeHeight: number | null;
+  splitViewPaneWidth: number | null;
+  explorerStreamHeight: number | null;
+  detailPaneWidth: number | null;
+  detailPaneSavedHeight: number | null;
+  theme: Theme;
 }
 
 const DEFAULT_PREFERENCES: UiPreferences = {
@@ -18,6 +27,13 @@ const DEFAULT_PREFERENCES: UiPreferences = {
   isSavedItemsVisible: true,
   isRssFeedVisible: true,
   isStreamVisible: true,
+  sidebarWidth: null,
+  sidebarTreeHeight: null,
+  splitViewPaneWidth: null,
+  explorerStreamHeight: null,
+  detailPaneWidth: null,
+  detailPaneSavedHeight: null,
+  theme: 'theme-light',
 };
 
 @Injectable({
@@ -33,6 +49,13 @@ export class UiPreferencesService {
   public readonly isSavedItemsVisible = computed(() => this.preferences().isSavedItemsVisible);
   public readonly isRssFeedVisible = computed(() => this.preferences().isRssFeedVisible);
   public readonly isStreamVisible = computed(() => this.preferences().isStreamVisible);
+  public readonly sidebarWidth = computed(() => this.preferences().sidebarWidth);
+  public readonly sidebarTreeHeight = computed(() => this.preferences().sidebarTreeHeight);
+  public readonly splitViewPaneWidth = computed(() => this.preferences().splitViewPaneWidth);
+  public readonly explorerStreamHeight = computed(() => this.preferences().explorerStreamHeight);
+  public readonly detailPaneWidth = computed(() => this.preferences().detailPaneWidth);
+  public readonly detailPaneSavedHeight = computed(() => this.preferences().detailPaneSavedHeight);
+  public readonly theme = computed(() => this.preferences().theme);
 
   constructor() {
     this.loadPreferences();
@@ -66,7 +89,7 @@ export class UiPreferencesService {
     }
   }
 
-  // Public methods to toggle state
+  // --- Public methods to toggle visibility state ---
   toggleSidebar(): void {
     this.preferences.update(p => ({ ...p, isSidebarVisible: !p.isSidebarVisible }));
   }
@@ -89,5 +112,34 @@ export class UiPreferencesService {
   
   toggleStream(): void {
     this.preferences.update(p => ({ ...p, isStreamVisible: !p.isStreamVisible }));
+  }
+
+  // --- Public methods to set pane dimensions ---
+  setSidebarWidth(width: number): void {
+    this.preferences.update(p => ({ ...p, sidebarWidth: width }));
+  }
+
+  setSidebarTreeHeight(height: number): void {
+    this.preferences.update(p => ({ ...p, sidebarTreeHeight: height }));
+  }
+
+  setSplitViewPaneWidth(width: number): void {
+    this.preferences.update(p => ({ ...p, splitViewPaneWidth: width }));
+  }
+  
+  setExplorerStreamHeight(height: number): void {
+    this.preferences.update(p => ({ ...p, explorerStreamHeight: height }));
+  }
+  
+  setDetailPaneWidth(width: number): void {
+    this.preferences.update(p => ({ ...p, detailPaneWidth: width }));
+  }
+
+  setDetailPaneSavedHeight(height: number): void {
+    this.preferences.update(p => ({ ...p, detailPaneSavedHeight: height }));
+  }
+
+  setTheme(theme: Theme): void {
+    this.preferences.update(p => ({ ...p, theme }));
   }
 }

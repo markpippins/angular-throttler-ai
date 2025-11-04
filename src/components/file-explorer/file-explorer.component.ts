@@ -1,5 +1,3 @@
-
-
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
@@ -35,6 +33,9 @@ import { ImageResultListItemComponent } from '../stream-list-items/image-result-
 import { GeminiResultListItemComponent } from '../stream-list-items/gemini-result-list-item.component.js';
 import { YoutubeResultListItemComponent } from '../stream-list-items/youtube-result-list-item.component.js';
 import { AcademicResultListItemComponent } from '../stream-list-items/academic-result-list-item.component.js';
+import { UiPreferencesService } from '../../services/ui-preferences.service.js';
+import { FolderPropertiesService } from '../../services/folder-properties.service.js';
+import { FolderProperties } from '../../models/folder-properties.model.js';
 
 interface FileSystemState {
   status: 'loading' | 'success' | 'error';
@@ -82,6 +83,8 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   private geminiService = inject(GeminiService);
   private youtubeSearchService = inject(YoutubeSearchService);
   private academicSearchService = inject(AcademicSearchService);
+  private uiPreferencesService = inject(UiPreferencesService);
+  private folderPropertiesService = inject(FolderPropertiesService);
 
   // Inputs & Outputs for multi-pane communication
   id = input.required<number>();
@@ -159,7 +162,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   dragOverListItemName = signal<string | null>(null);
 
   // --- Bottom Pane State ---
-  bottomPaneHeight = signal(40); // Initial height as percentage
+  bottomPaneHeight = signal(this.uiPreferencesService.explorerStreamHeight() ?? 40);
   isResizingBottomPane = signal(false);
   isBottomPaneCollapsed = signal(false);
   private unlistenBottomPaneMouseMove: (() => void) | null = null;
@@ -170,15 +173,14 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   streamSortCriteria = signal<StreamSortCriteria>({ key: 'relevance', direction: 'asc' });
   activeStreamFilters = signal<Set<StreamItemType>>(new Set(['web', 'image', 'youtube', 'academic', 'gemini']));
   isStreamSortDropdownOpen = signal(false);
-  isStreamFilterDropdownOpen = signal(false);
   streamDisplayMode = signal<'grid' | 'list'>('grid');
 
-  streamFilterTypes: { type: StreamItemType, label: string, color: string }[] = [
-    { type: 'web', label: 'Web', color: 'bg-blue-500' },
-    { type: 'image', label: 'Images', color: 'bg-purple-500' },
-    { type: 'youtube', label: 'Videos', color: 'bg-red-500' },
-    { type: 'academic', label: 'Academic', color: 'bg-gray-500' },
-    { type: 'gemini', label: 'Gemini', color: 'bg-indigo-500' },
+  streamFilterTypes: { type: StreamItemType, label: string, iconPath: string }[] = [
+    { type: 'web', label: 'Web', iconPath: 'M10 2a8 8 0 100 16 8 8 0 000-16zM2 10a8 8 0 0113.167-5.321l-1.334.667A6 6 0 1010 16a6 6 0 005.321-3.167l.667-1.334A8.001 8.001 0 0110 18 8 8 0 012 10z' },
+    { type: 'image', label: 'Images', iconPath: 'M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 3a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H3zm13.5 11.5l-3-3a1 1 0 00-1.414 0l-1.586 1.586-1.086-1.086a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L8 14.414l1.086 1.086a1 1 0 001.414 0l1.586-1.586 2.586 2.586a1 1 0 001.414-1.414zM8 8a1 1 0 100-2 1 1 0 000 2z' },
+    { type: 'youtube', label: 'Videos', iconPath: 'M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z' },
+    { type: 'academic', label: 'Academic', iconPath: 'M9 4h6a2 2 0 012 2v12l-8-4-8 4V6a2 2 0 012-2h6zM9 4v12l6-3V6a1 1 0 00-1-1H9z' },
+    { type: 'gemini', label: 'Gemini', iconPath: 'M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z' }
   ];
   
   bookmarkedLinks = this.bookmarkService.bookmarkedLinks;
@@ -928,12 +930,28 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     }
   }
 
+  async onPropertiesSaved(props: Partial<Omit<FolderProperties, 'path'>>): Promise<void> {
+    const item = this.propertiesItem();
+    if (item) {
+      const fullPath = [...this.path(), item.name];
+      await this.folderPropertiesService.updateProperties(fullPath, props);
+      this.closePropertiesDialog();
+      await this.loadContents();
+      this.directoryChanged.emit();
+    }
+  }
+
   closePropertiesDialog(): void {
     this.isPropertiesDialogOpen.set(false);
     this.propertiesItem.set(null);
   }
   
   getDisplayName(item: FileSystemNode): string {
+    const fullPath = [...this.path(), item.name];
+    const props = this.folderPropertiesService.getProperties(fullPath);
+    if (props?.displayName) {
+      return props.displayName;
+    }
     if (item.name.endsWith('.magnet')) {
       return item.name.slice(0, -7);
     }
@@ -953,10 +971,12 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
 
   getIconUrl(item: FileSystemNode): string | null {
     const imageService = this.imageService();
+    const fullPath = [...this.path(), item.name];
+    const props = this.folderPropertiesService.getProperties(fullPath);
     if (item.isServerRoot) {
       return imageService.getIconUrl({ ...item, name: 'cloud' });
     }
-    return imageService.getIconUrl(item);
+    return imageService.getIconUrl(item, props?.imageName);
   }
 
   onImageError(name: string): void {
@@ -1212,6 +1232,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
           this.unlistenBottomPaneMouseUp();
           this.unlistenBottomPaneMouseUp = null;
       }
+      this.uiPreferencesService.setExplorerStreamHeight(this.bottomPaneHeight());
   }
 
   toggleBottomPane(): void {
@@ -1233,7 +1254,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     this.closeContextMenu();
     this.closeDestinationSubMenu();
     this.isStreamSortDropdownOpen.set(false);
-    this.isStreamFilterDropdownOpen.set(false);
   }
 
   // --- Stream Toolbar Methods ---
@@ -1277,14 +1297,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
 
   toggleStreamSortDropdown(event: MouseEvent): void {
     event.stopPropagation();
-    this.isStreamFilterDropdownOpen.set(false);
     this.isStreamSortDropdownOpen.update(v => !v);
-  }
-
-  toggleStreamFilterDropdown(event: MouseEvent): void {
-    event.stopPropagation();
-    this.isStreamSortDropdownOpen.set(false);
-    this.isStreamFilterDropdownOpen.update(v => !v);
   }
 
   getStreamItemLink(item: StreamItem): string {

@@ -41,7 +41,7 @@
            (keydown.enter)="$event.target.blur()"
            (keydown.escape)="cancelRename.emit()"
            (click)="$event.stopPropagation()"
-           class="mt-2 text-center text-xs w-full bg-[rgb(var(--color-surface))] text-[rgb(var(--color-text-base))] border border-[rgb(var(--color-accent-ring))] rounded p-0.5 focus:outline-none">
+           class="mt-2 text-center text-xs w-full bg-[rgb(var(--color-surface))] text-[rgb(var(--color-text-base))] border border-[rgb(var(--color-accent-ring))] rounded p-0.5 focus:outline-none rename-input">
   } @else {
     <span class="mt-2 text-center text-xs break-all truncate w-full text-[rgb(var(--color-text-muted))] group-hover:text-[rgb(var(--color-accent-text))] pointer-events-none">{{ displayName() }}</span>
   }

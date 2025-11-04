@@ -15,6 +15,8 @@
         (bookmarkDropped)="onBookmarkDroppedOnSidebar($event)"
         (serversMenuClick)="openServerProfilesDialog()"
         (localConfigMenuClick)="openLocalConfigDialog()"
+        (importClick)="isImportDialogOpen.set(true)"
+        (exportClick)="isExportDialogOpen.set(true)"
         (renameItemInTree)="onSidebarRenameItem($event)"
         (deleteItemInTree)="onSidebarDeleteItem($event)"
         (createFolderInTree)="onSidebarNewFolder($event)"
@@ -90,6 +92,7 @@
         (splitViewClick)="toggleSplitView()"
         (detailPaneClick)="toggleDetailPane()"
         (themeMenuClick)="openThemeMenu($event)"
+        (rssFeedsMenuClick)="openRssFeedsDialog()"
         (toggleSidebar)="toggleSidebar()"
         (toggleChat)="toggleChat()"
         (toggleSavedItems)="toggleSavedItems()"
@@ -170,7 +173,8 @@
             [path]="activePanePath()"
             [isSavedItemsVisible]="isSavedItemsVisible()"
             [isRssFeedVisible]="isRssFeedVisible()"
-            (close)="toggleDetailPane()">
+            (close)="toggleDetailPane()"
+            (manageRssFeeds)="openRssFeedsDialog()">
           </app-detail-pane>
         }
       </div>
@@ -193,26 +197,6 @@
     }
   </div>
 
-  @if(isThemeDropdownOpen()) {
-    <div class="absolute z-50 mt-2 w-32 origin-top-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" 
-        [style.left.px]="themeMenuPosition().x"
-        [style.top.px]="themeMenuPosition().y"
-        role="menu">
-      <div class="py-1" role="none">
-        @for(theme of themes; track theme.id) {
-          <div (click)="setTheme(theme.id)" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center px-4 py-2 text-sm cursor-pointer" role="menuitem">
-            <span class="w-5">
-              @if (currentTheme() === theme.id) {
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-accent-text))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-              }
-            </span>
-            <span>{{ theme.name }}</span>
-          </div>
-        }
-      </div>
-    </div>
-  }
-
   @if(isServerProfilesDialogOpen()) {
     <app-server-profiles-dialog 
       [mountedProfileIds]="mountedProfileIds()"
@@ -231,6 +215,30 @@
       (save)="onLocalConfigSaved($event)">
     </app-local-config-dialog>
   }
+  
+  @if(isRssFeedsDialogOpen()) {
+    <app-rss-feeds-dialog (close)="closeRssFeedsDialog()"></app-rss-feeds-dialog>
+  }
+
+  @if(isImportDialogOpen()) {
+    <app-import-dialog 
+        [localSessionNode]="localSessionNode()"
+        [getImageService]="getImageService"
+        [getProvider]="getProvider"
+        (close)="isImportDialogOpen.set(false)"
+        (importData)="handleImport($event)">
+    </app-import-dialog>
+  }
+
+  @if(isExportDialogOpen()) {
+      <app-export-dialog
+          [localSessionNode]="localSessionNode()"
+          [getImageService]="getImageService"
+          [getProvider]="getProvider"
+          (close)="isExportDialogOpen.set(false)"
+          (exportData)="handleExport($event)">
+      </app-export-dialog>
+  }
 
   @if (profileForLogin(); as profile) {
     <app-login-dialog 
@@ -248,5 +256,25 @@
       [title]="content.title"
       (close)="webviewService.close()">
     </app-webview-dialog>
+  }
+
+  <!-- Theme Dropdown -->
+  @if (isThemeDropdownOpen()) {
+    <div 
+        class="fixed z-20 w-36 origin-top-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none theme-menu"
+        [style.top]="themeMenuPosition().top"
+        [style.left]="themeMenuPosition().left"
+        (click)="$event.stopPropagation()">
+        <div class="py-1">
+            @for(theme of themes; track theme.id) {
+            <div (click)="setTheme(theme.id)" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center px-4 py-2 text-sm cursor-pointer">
+                <span class="w-5">
+                @if(currentTheme() === theme.id) { <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> }
+                </span>
+                <span>{{ theme.name }}</span>
+            </div>
+            }
+        </div>
+    </div>
   }
 </div>

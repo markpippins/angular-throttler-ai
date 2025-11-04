@@ -1,8 +1,7 @@
-
-
 import { Component, ChangeDetectionStrategy, output, signal, ElementRef, inject, viewChild, input } from '@angular/core';
 import { DestinationNodeComponent } from '../destination-node/destination-node.component.js';
 import { FileSystemNode } from '../../models/file-system.model.js';
+import { Theme } from '../../services/ui-preferences.service.js';
 
 export type SortKey = 'name' | 'modified';
 export type SortDirection = 'asc' | 'desc';
@@ -69,6 +68,7 @@ export class ToolbarComponent {
   splitViewClick = output<void>();
   detailPaneClick = output<void>();
   themeMenuClick = output<MouseEvent>();
+  rssFeedsMenuClick = output<void>();
   
   // Outputs for pane visibility toggles
   toggleSidebar = output<void>();
@@ -108,6 +108,11 @@ export class ToolbarComponent {
   
   onThemeMenuItemClick(event: MouseEvent): void {
     this.themeMenuClick.emit(event);
+    this.isHamburgerMenuOpen.set(false);
+  }
+
+  onRssFeedsMenuItemClick(): void {
+    this.rssFeedsMenuClick.emit();
     this.isHamburgerMenuOpen.set(false);
   }
 
@@ -155,7 +160,7 @@ export class ToolbarComponent {
   
   onDestinationSelectedForMove(path: string[]): void {
     this.moveItemsTo.emit(path);
-    this.isMoveToOpen.set(false);
+    this.isCopyToOpen.set(false);
   }
 
   onFilterInputChange(event: Event): void {

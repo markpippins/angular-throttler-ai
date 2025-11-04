@@ -13,6 +13,7 @@ import { NewBookmark } from '../../models/bookmark.model.js';
 })
 export class FolderComponent {
   item = input.required<FileSystemNode>();
+  displayName = input.required<string>();
   iconUrl = input<string | null>(null);
   hasFailedToLoadImage = input<boolean>(false);
   isSelected = input<boolean>(false);
@@ -29,14 +30,6 @@ export class FolderComponent {
 
   imageIsLoaded = signal(false);
   private dragDropService = inject(DragDropService);
-
-  displayName = computed(() => {
-    const name = this.item().name;
-    if (name.endsWith('.magnet')) {
-      return name.slice(0, -7);
-    }
-    return name;
-  });
 
   constructor() {
     effect(() => {

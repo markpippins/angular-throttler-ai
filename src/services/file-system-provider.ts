@@ -17,4 +17,5 @@ export abstract class FileSystemProvider {
   abstract uploadFile(path: string[], file: File): Promise<void>;
   abstract move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void>;
   abstract copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void>;
+  abstract importTree(destPath: string[], data: FileSystemNode): Promise<void>;
 }

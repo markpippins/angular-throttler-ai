@@ -123,4 +123,8 @@ export class RemoteFileSystemService implements FileSystemProvider {
     
     await Promise.all(copyPromises);
   }
+
+  importTree(destPath: string[], data: FileSystemNode): Promise<void> {
+    return Promise.reject(new Error('Import operation is not supported for remote file systems.'));
+  }
 }

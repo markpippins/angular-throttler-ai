@@ -1,6 +1,8 @@
-import { Component, ChangeDetectionStrategy, input, computed, signal, OnInit, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, computed, signal, OnInit, inject, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WebviewService } from '../../services/webview.service.js';
+import { RssFeedService } from '../../services/rss-feed.service.js';
+import { RssFeed } from '../../models/rss-feed.model.js';
 
 interface RssItem {
   title: string;
@@ -8,11 +10,6 @@ interface RssItem {
   date: string;
   snippet: string;
   link: string;
-}
-
-interface RssFeed {
-  name: string;
-  url: string;
 }
 
 @Component({
@@ -23,30 +20,21 @@ interface RssFeed {
 })
 export class RssFeedComponent implements OnInit {
   filterQuery = input('');
+  manageFeeds = output<void>();
+
   private webviewService = inject(WebviewService);
+  private rssFeedService = inject(RssFeedService);
 
   // --- State Signals ---
-  feeds = signal<RssFeed[]>([]);
-  selectedFeedUrl = signal<string | null>(null);
-  articles = signal<Map<string, RssItem[]>>(new Map());
+  feeds = this.rssFeedService.feeds;
+  selectedFeed = signal<RssFeed | null>(null);
+  articles = signal<RssItem[]>([]);
   isLoading = signal(false);
-
-  isAddingFeed = signal(false);
-  newFeedUrl = signal('');
   isFeedDropdownOpen = signal(false);
 
   // --- Computed Signals ---
-  selectedFeed = computed(() => {
-    const url = this.selectedFeedUrl();
-    if (!url) return null;
-    return this.feeds().find(f => f.url === url);
-  });
-
   filteredItems = computed(() => {
-    const url = this.selectedFeedUrl();
-    if (!url) return [];
-
-    const feedArticles = this.articles().get(url) ?? [];
+    const feedArticles = this.articles() ?? [];
     const query = this.filterQuery().toLowerCase();
 
     if (!query) {
@@ -59,53 +47,31 @@ export class RssFeedComponent implements OnInit {
   });
   
   ngOnInit(): void {
-    this.setupMockData();
     const firstFeed = this.feeds()[0];
     if (firstFeed) {
       this.selectFeed(firstFeed);
     }
   }
 
-  private setupMockData(): void {
-    const mockFeeds: RssFeed[] = [
-      { name: 'Angular Blog', url: 'angular.io/blog' },
-      { name: 'Smashing Magazine', url: 'smashingmagazine.com/feed' },
-    ];
-    this.feeds.set(mockFeeds);
-
-    const mockArticles = new Map<string, RssItem[]>();
-    mockArticles.set('angular.io/blog', [
+  private setupMockArticlesForFeed(feed: RssFeed): void {
+    // This is a mock implementation for fetching articles.
+    // A real implementation would use HttpClient to fetch and parse the RSS feed.
+    const mockArticles: RssItem[] = [
       {
-        title: 'Angular v20 Released with Major Performance Boosts',
-        source: 'Official Angular Blog',
+        title: `Article 1 for ${feed.name}`,
+        source: feed.name,
         date: '2 hours ago',
         snippet: 'The new release introduces significant improvements to the rendering engine and build times...',
-        link: 'https://blog.angular.io/',
+        link: `https://${feed.url}`,
       },
       {
-        title: 'Exploring the new Signals API in Angular',
-        source: 'Official Angular Blog',
+        title: `Article 2 for ${feed.name}`,
+        source: feed.name,
         date: '1 day ago',
         snippet: 'A deep dive into how signals are changing state management for the better in modern Angular apps.',
-        link: 'https://blog.angular.io/',
+        link: `https://${feed.url}`,
       },
-    ]);
-    mockArticles.set('smashingmagazine.com/feed', [
-       {
-        title: 'Component Design Patterns for Scalable Apps',
-        source: 'Smashing Magazine',
-        date: '3 days ago',
-        snippet: 'Learn about best practices for creating maintainable and reusable components in large-scale projects.',
-        link: 'https://www.smashingmagazine.com/2023/01/front-end-testing-playwright-end-to-end-tests/',
-      },
-      {
-        title: 'A Guide To Modern CSS Colors With RGB, HSL, HWB, LAB And LCH',
-        source: 'Smashing Magazine',
-        date: '5 days ago',
-        snippet: 'A look into how we can use the modern CSS color spaces to build more accessible and vibrant websites.',
-        link: 'https://www.smashingmagazine.com/2021/11/guide-modern-css-colors-rgb-hsl-hwb-lab-lch/',
-      },
-    ]);
+    ];
     this.articles.set(mockArticles);
   }
 
@@ -115,41 +81,29 @@ export class RssFeedComponent implements OnInit {
   }
 
   selectFeed(feed: RssFeed): void {
-    this.selectedFeedUrl.set(feed.url);
+    this.selectedFeed.set(feed);
     this.isFeedDropdownOpen.set(false);
     this.refreshFeed();
   }
 
   refreshFeed(): void {
-    if (this.isLoading()) return;
+    const feed = this.selectedFeed();
+    if (!feed || this.isLoading()) return;
+
     this.isLoading.set(true);
-    // Simulate network delay
+    // Simulate network delay for fetching articles
     setTimeout(() => {
+      this.setupMockArticlesForFeed(feed); // Use mock data for now
       this.isLoading.set(false);
     }, 500);
   }
 
-  toggleAddFeed(): void {
-    this.isAddingFeed.update(v => !v);
-    this.newFeedUrl.set(''); // Reset input on toggle
-  }
-
-  saveNewFeed(): void {
-    const url = this.newFeedUrl().trim();
-    if (!url) return;
-
-    // Mock: just add it to the list. A real app would validate and fetch the feed.
-    const name = url.replace(/^(https?:\/\/)?(www\.)?/i, '').split('/')[0];
-    const newFeed: RssFeed = { name, url };
-    
-    this.feeds.update(feeds => [...feeds, newFeed]);
-    this.articles.update(articles => new Map(articles).set(url, [])); // Add empty articles for now
-    this.selectFeed(newFeed);
-    this.isAddingFeed.set(false);
-    this.newFeedUrl.set('');
-  }
-
   openArticle(item: RssItem): void {
     this.webviewService.open(item.link, item.title);
+  }
+
+  onManageFeedsClick(): void {
+    this.isFeedDropdownOpen.set(false); // Close dropdown if open
+    this.manageFeeds.emit();
   }
 }

@@ -44,6 +44,7 @@
                   @if (item.type === 'folder') {
                     <app-folder #selectableItem
                       [item]="item"
+                      [displayName]="getDisplayName(item)"
                       [iconUrl]="getIconUrl(item)"
                       [hasFailedToLoadImage]="failedImageItems().has(item.name)"
                       [isSelected]="selectedItems().has(item.name)"
@@ -281,31 +282,30 @@
               </button>
             </div>
 
-            <!-- Filter Dropdown -->
-            <div class="relative inline-block text-left">
-              <button (click)="toggleStreamFilterDropdown($event)" type="button" title="Filter Stream" class="p-2 rounded-md text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
-                </svg>
-              </button>
-               @if(isStreamFilterDropdownOpen()) {
-                <div class="absolute left-0 bottom-full z-10 mb-2 w-48 origin-bottom-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu">
-                  <div class="py-1" role="none">
-                    <div (click)="toggleAllStreamFilters()" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center px-4 py-2 text-sm cursor-pointer font-semibold" role="menuitem">
-                       <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-3" [checked]="activeStreamFilters().size === streamFilterTypes.length" [indeterminate]="activeStreamFilters().size > 0 && activeStreamFilters().size < streamFilterTypes.length">
-                       <span>All Types</span>
-                    </div>
-                    <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-                    @for(filter of streamFilterTypes; track filter.type) {
-                      <div (click)="toggleStreamFilter(filter.type)" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center px-4 py-2 text-sm cursor-pointer" role="menuitem">
-                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-3" [checked]="activeStreamFilters().has(filter.type)">
-                        <div class="w-2.5 h-2.5 rounded-full mr-2" [class]="filter.color"></div>
-                        <span>{{ filter.label }}</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
+            <!-- Filter Buttons -->
+            <div class="flex items-center rounded-md bg-[rgb(var(--color-surface))] p-0.5 border border-[rgb(var(--color-border-muted))] space-x-0.5">
+                <button (click)="toggleAllStreamFilters()" title="Toggle All Filters" 
+                        class="p-1.5 rounded-sm transition-colors text-[rgb(var(--color-text-muted))]"
+                        [class.bg-[rgb(var(--color-accent-solid-bg))]]="activeStreamFilters().size === streamFilterTypes.length"
+                        [class.text-white]="activeStreamFilters().size === streamFilterTypes.length"
+                        [class.hover:bg-[rgb(var(--color-surface-hover))]]="activeStreamFilters().size !== streamFilterTypes.length">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+                <div class="w-px h-5 bg-[rgb(var(--color-border-muted))] mx-1"></div>
+                @for(filter of streamFilterTypes; track filter.type) {
+                    <button (click)="toggleStreamFilter(filter.type)" [title]="filter.label"
+                            class="p-1.5 rounded-sm transition-colors"
+                            [class.bg-[rgb(var(--color-accent-bg))]]="activeStreamFilters().has(filter.type)"
+                            [class.text-[rgb(var(--color-accent-text))]]="activeStreamFilters().has(filter.type)"
+                            [class.text-[rgb(var(--color-text-muted))]]="!activeStreamFilters().has(filter.type)"
+                            [class.hover:bg-[rgb(var(--color-surface-hover))]]="!activeStreamFilters().has(filter.type)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" [attr.d]="filter.iconPath" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                }
             </div>
             
             <!-- Sort Dropdown -->
@@ -643,8 +643,10 @@
   @if (isPropertiesDialogOpen() && propertiesItem(); as item) {
     <app-properties-dialog
       [item]="item"
+      [parentPath]="path()"
       [imageService]="imageService()"
-      (close)="closePropertiesDialog()">
+      (close)="closePropertiesDialog()"
+      (save)="onPropertiesSaved($event)">
     </app-properties-dialog>
   }
 

@@ -28,7 +28,11 @@ import { WebviewService } from './services/webview.service.js';
 import { LocalConfigDialogComponent } from './components/local-config-dialog/local-config-dialog.component.js';
 import { LocalConfig, LocalConfigService } from './services/local-config.service.js';
 import { LoginDialogComponent } from './components/login-dialog/login-dialog.component.js';
-import { UiPreferencesService } from './services/ui-preferences.service.js';
+import { Theme, UiPreferencesService } from './services/ui-preferences.service.js';
+import { RssFeedsDialogComponent } from './components/rss-feeds-dialog/rss-feeds-dialog.component.js';
+import { ImportDialogComponent } from './components/import-dialog/import-dialog.component.js';
+import { ExportDialogComponent } from './components/export-dialog/export-dialog.component.js';
+import { FolderPropertiesService } from './services/folder-properties.service.js';
 
 interface PanePath {
   id: number;
@@ -39,11 +43,7 @@ interface PaneStatus {
   totalItemsCount: number;
   filteredItemsCount: number | null;
 }
-type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
-
-// FIX: Define the missing constant for the theme storage key.
-const THEME_STORAGE_KEY = 'file-explorer-theme';
 
 const readOnlyProviderOps = {
   createDirectory: () => Promise.reject(new Error('Operation not supported.')),
@@ -54,6 +54,7 @@ const readOnlyProviderOps = {
   uploadFile: () => Promise.reject(new Error('Operation not supported.')),
   move: () => Promise.reject(new Error('Operation not supported.')),
   copy: () => Promise.reject(new Error('Operation not supported.')),
+  importTree: () => Promise.reject(new Error('Operation not supported.')),
   // FIX: Added missing `getFileContent` to satisfy the FileSystemProvider interface.
   // The home provider is a virtual directory and has no files to get content from.
   getFileContent: () => Promise.reject(new Error('Operation not supported.')),
@@ -63,10 +64,10 @@ const readOnlyProviderOps = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent],
   host: {
-    '(document:click)': 'onDocumentClick($event)',
     '(document:keydown)': 'onKeyDown($event)',
+    '(document:click)': 'onDocumentClick($event)',
   }
 })
 export class AppComponent implements OnInit, OnDestroy {
@@ -81,6 +82,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private bookmarkService = inject(BookmarkService);
   private toastService = inject(ToastService);
   private webviewService = inject(WebviewService);
+  private folderPropertiesService = inject(FolderPropertiesService);
   private injector = inject(Injector);
   private document: Document = inject(DOCUMENT);
   private renderer = inject(Renderer2);
@@ -94,7 +96,9 @@ export class AppComponent implements OnInit, OnDestroy {
   folderTree = signal<FileSystemNode | null>(null);
   isServerProfilesDialogOpen = signal(false);
   isLocalConfigDialogOpen = signal(false);
-  isThemeDropdownOpen = signal(false);
+  isRssFeedsDialogOpen = signal(false);
+  isImportDialogOpen = signal(false);
+  isExportDialogOpen = signal(false);
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
   refreshPanes = signal(0);
@@ -134,13 +138,14 @@ export class AppComponent implements OnInit, OnDestroy {
   });
   
   // --- Theme Management ---
-  currentTheme = signal<Theme>('theme-light');
-  themeMenuPosition = signal({ x: 0, y: 0 });
+  currentTheme = this.uiPreferencesService.theme;
   themes: {id: Theme, name: string}[] = [
     { id: 'theme-light', name: 'Light' },
     { id: 'theme-steel', name: 'Steel' },
     { id: 'theme-dark', name: 'Dark' },
   ];
+  isThemeDropdownOpen = signal(false);
+  themeMenuPosition = signal({ top: '0px', left: '0px' });
 
   activePanePath = computed(() => {
     const activeId = this.activePaneId();
@@ -163,7 +168,7 @@ export class AppComponent implements OnInit, OnDestroy {
   pane2Path = computed(() => this.panePaths().find(p => p.id === 2)?.path ?? []);
 
   // --- Pane Resizing State ---
-  pane1Width = signal(50); // Initial width as percentage
+  pane1Width = signal(this.uiPreferencesService.splitViewPaneWidth() ?? 50);
   isResizingPanes = signal(false);
   private unlistenPaneMouseMove: (() => void) | null = null;
   private unlistenPaneMouseUp: (() => void) | null = null;
@@ -265,8 +270,13 @@ export class AppComponent implements OnInit, OnDestroy {
   // --- Webview Dialog State ---
   webviewContent = signal<{url: string, title: string} | null>(null);
 
+  // --- Specific node for import/export dialogs ---
+  localSessionNode = computed(() => {
+    const sessionName = this.localConfigService.sessionName();
+    return this.folderTree()?.children?.find(c => c.name === sessionName) ?? null;
+  });
+
   constructor() {
-    this.loadTheme();
     this.getProvider = this.getProviderForPath.bind(this);
     this.getImageService = this.getImageServiceForPath.bind(this);
 
@@ -307,9 +317,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }, { allowSignalWrites: true });
 
     effect(() => {
-      const theme = this.currentTheme();
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
-      this.document.body.className = theme;
+      this.document.body.className = this.currentTheme();
     });
 
     effect(() => {
@@ -335,22 +343,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.stopPaneResize();
   }
 
-  loadTheme(): void {
-    try {
-      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme;
-      if (storedTheme && this.themes.some(t => t.id === storedTheme)) {
-        this.currentTheme.set(storedTheme);
-      } else {
-        this.currentTheme.set('theme-light');
-      }
-    } catch (e) {
-      console.error('Failed to load theme from localStorage', e);
-      this.currentTheme.set('theme-light');
-    }
-  }
-
   setTheme(theme: Theme): void {
-    this.currentTheme.set(theme);
+    this.uiPreferencesService.setTheme(theme);
     this.isThemeDropdownOpen.set(false);
   }
 
@@ -358,13 +352,19 @@ export class AppComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     const target = event.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
-    this.themeMenuPosition.set({ x: rect.left, y: rect.bottom + 5 });
-    this.isThemeDropdownOpen.update(v => !v);
+    this.themeMenuPosition.set({
+        top: `${rect.bottom + 4}px`,
+        left: `${rect.left}px`,
+    });
+    this.isThemeDropdownOpen.set(true);
   }
   
   onDocumentClick(event: Event): void {
     if (this.isThemeDropdownOpen()) {
-      this.isThemeDropdownOpen.set(false);
+        const themeMenu = this.elementRef.nativeElement.querySelector('.theme-menu');
+        if (themeMenu && !themeMenu.contains(event.target)) {
+            this.isThemeDropdownOpen.set(false);
+        }
     }
   }
 
@@ -582,6 +582,14 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isLocalConfigDialogOpen.set(false);
   }
   
+  openRssFeedsDialog(): void {
+    this.isRssFeedsDialogOpen.set(true);
+  }
+
+  closeRssFeedsDialog(): void {
+    this.isRssFeedsDialogOpen.set(false);
+  }
+  
   onLocalConfigSaved(config: LocalConfig): void {
     this.localConfigService.updateConfig(config);
     this.toastService.show('Local configuration saved.');
@@ -692,6 +700,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.unlistenPaneMouseUp();
         this.unlistenPaneMouseUp = null;
     }
+    this.uiPreferencesService.setSplitViewPaneWidth(this.pane1Width());
   }
   
   onToolbarAction(name: string, payload?: any) {
@@ -773,9 +782,10 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
-  onPaneItemRenamed({ oldName, newName }: { oldName: string, newName: string }, parentPath: string[]): void {
+  async onPaneItemRenamed({ oldName, newName }: { oldName: string, newName: string }, parentPath: string[]): Promise<void> {
     const oldFullPath = [...parentPath, oldName];
     const newFullPath = [...parentPath, newName];
+    await this.folderPropertiesService.handleRename(oldFullPath, newFullPath);
     this.updatePathsAfterRename(oldFullPath, newFullPath);
     // Refresh the tree to reflect the change.
     this.loadFolderTree();
@@ -790,6 +800,7 @@ export class AppComponent implements OnInit, OnDestroy {
       await provider.rename(providerPath, oldName, newName);
 
       const newFullPath = [...parentPath, newName];
+      await this.folderPropertiesService.handleRename(path, newFullPath);
       this.updatePathsAfterRename(path, newFullPath);
     } catch(e) {
       alert(`Operation failed: ${(e as Error).message}`);
@@ -801,9 +812,10 @@ export class AppComponent implements OnInit, OnDestroy {
   async onSidebarDeleteItem(path: string[]): Promise<void> {
     const name = path[path.length - 1];
     const parentPath = path.slice(0, -1);
-    await this.performTreeAction(parentPath, (provider, providerPath) => 
-      provider.removeDirectory(providerPath, name) // Tree only has directories
-    );
+    await this.performTreeAction(parentPath, async (provider, providerPath) => {
+      await provider.removeDirectory(providerPath, name); // Tree only has directories
+      await this.folderPropertiesService.handleDelete(path);
+    });
   }
 
   async onSidebarNewFolder({ path, name }: { path: string[]; name: string }): Promise<void> {
@@ -840,7 +852,11 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  onServerProfileRenamed({ oldName, newName, profile }: { oldName: string, newName: string, profile: ServerProfile }): void {
+  async onServerProfileRenamed({ oldName, newName, profile }: { oldName: string, newName: string, profile: ServerProfile }): Promise<void> {
+    const oldPath = [oldName];
+    const newPath = [newName];
+    await this.folderPropertiesService.handleRename(oldPath, newPath);
+    
     // 1. Update pane paths that were pointing to the old profile name.
     this.panePaths.update(paths => {
       return paths.map(panePath => {
@@ -887,6 +903,36 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  // --- Import/Export ---
+  handleExport({ node, path }: { node: FileSystemNode; path: string[] }): void {
+    const jsonString = JSON.stringify(node, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const filename = path.length > 0 ? path.join('_') + '.json' : 'local_session_export.json';
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.isExportDialogOpen.set(false);
+    this.toastService.show(`Exported ${filename}`);
+  }
+
+  async handleImport({ destPath, data }: { destPath: string[]; data: FileSystemNode }): Promise<void> {
+    try {
+      await this.sessionFs.importTree(destPath, data);
+      this.isImportDialogOpen.set(false);
+      // FIX: Replace `Array.prototype.at()` with `array[array.length - 1]` for compatibility with older TypeScript targets.
+      this.toastService.show(`Successfully imported into "${destPath.length > 0 ? destPath[destPath.length - 1] : await this.sessionFs.getFolderTree().then(t => t.name)}".`);
+      await this.loadFolderTree();
+      this.refreshPanes.update(v => v + 1);
+    } catch (e) {
+      this.toastService.show(`Import failed: ${(e as Error).message}`, 'error');
+    }
+  }
+
   onKeyDown(event: KeyboardEvent): void {
     // Handle F-key pane toggles first, as they should work anywhere.
     switch(event.key) {
@@ -914,9 +960,29 @@ export class AppComponent implements OnInit, OnDestroy {
     
     // Handle high-priority Escape key presses for modals.
     if (event.key === 'Escape') {
+      if (this.isThemeDropdownOpen()) {
+        event.preventDefault();
+        this.isThemeDropdownOpen.set(false);
+        return;
+      }
+      if (this.isExportDialogOpen()) {
+        event.preventDefault();
+        this.isExportDialogOpen.set(false);
+        return;
+      }
+      if (this.isImportDialogOpen()) {
+        event.preventDefault();
+        this.isImportDialogOpen.set(false);
+        return;
+      }
       if (this.profileForLogin()) {
         event.preventDefault();
         this.profileForLogin.set(null);
+        return;
+      }
+       if (this.isRssFeedsDialogOpen()) {
+        event.preventDefault();
+        this.closeRssFeedsDialog();
         return;
       }
       if (this.webviewContent()) {
@@ -937,7 +1003,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     const target = event.target as HTMLElement;
-    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
     const isRenameInput = target.classList.contains('rename-input');
 
     if (isRenameInput) {

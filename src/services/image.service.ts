@@ -10,7 +10,7 @@ export class ImageService {
     private preferencesService: PreferencesService
   ) {}
 
-  getIconUrl(item: FileSystemNode): string | null {
+  getIconUrl(item: FileSystemNode, customImageName?: string | null): string | null {
     if (item.type !== 'folder') {
       return null;
     }
@@ -19,7 +19,7 @@ export class ImageService {
       return null;
     }
 
-    let folderName = item.name;
+    let folderName = customImageName || item.name;
     if (folderName.endsWith('.magnet')) {
       folderName = folderName.slice(0, -7);
     }

@@ -9,18 +9,25 @@ import { NewBookmark } from '../../models/bookmark.model.js';
 import { InputDialogComponent } from '../input-dialog/input-dialog.component.js';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component.js';
 import { FileSystemProvider } from '../../services/file-system-provider.js';
+import { UiPreferencesService } from '../../services/ui-preferences.service.js';
+import { ExportDialogComponent } from '../export-dialog/export-dialog.component.js';
+import { ImportDialogComponent } from '../import-dialog/import-dialog.component.js';
 
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.component.html',
-  imports: [CommonModule, ChatComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent],
+  imports: [CommonModule, ChatComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent, ExportDialogComponent, ImportDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnDestroy {
+  private renderer = inject(Renderer2);
+  private elementRef = inject(ElementRef);
+  private uiPreferencesService = inject(UiPreferencesService);
+
   folderTree = input<FileSystemNode | null>(null);
-  currentPath = input<string[]>([]);
-  getImageService = input<(path: string[]) => ImageService>();
-  getProvider = input<(path: string[]) => FileSystemProvider>();
+  currentPath = input.required<string[]>();
+  getImageService = input.required<(path: string[]) => ImageService>();
+  getProvider = input.required<(path: string[]) => FileSystemProvider>();
   isChatVisible = input(true);
   
   pathChange = output<string[]>();
@@ -30,6 +37,8 @@ export class SidebarComponent implements OnDestroy {
   bookmarkDropped = output<{ bookmark: NewBookmark, destPath: string[] }>();
   serversMenuClick = output<void>();
   localConfigMenuClick = output<void>();
+  importClick = output<void>();
+  exportClick = output<void>();
   renameItemInTree = output<{ path: string[], newName: string }>();
   deleteItemInTree = output<string[]>();
   createFolderInTree = output<{ path: string[], name: string }>();
@@ -38,7 +47,7 @@ export class SidebarComponent implements OnDestroy {
   disconnectFromServer = output<string>();
   editServerProfile = output<string>();
 
-  width = signal(288); // Default width is 288px (w-72)
+  width = signal(this.uiPreferencesService.sidebarWidth() ?? 288);
   isResizing = signal(false);
   treeExpansionCommand = signal<{ command: 'expand' | 'collapse', id: number } | null>(null);
   isHamburgerMenuOpen = signal(false);
@@ -47,7 +56,7 @@ export class SidebarComponent implements OnDestroy {
   private unlistenMouseUp: (() => void) | null = null;
 
   // --- Vertical Resizing State for internal panes ---
-  treePaneHeight = signal(400); // Start with a reasonable pixel height
+  treePaneHeight = signal(this.uiPreferencesService.sidebarTreeHeight() ?? 400);
   isResizingVertical = signal(false);
   private unlistenVerticalMouseMove: (() => void) | null = null;
   private unlistenVerticalMouseUp: (() => void) | null = null;
@@ -66,9 +75,6 @@ export class SidebarComponent implements OnDestroy {
   isConfirmDialogOpen = signal(false);
   private confirmDialogCallback = signal<(() => void) | null>(null);
   confirmDialogConfig = signal<{ title: string; message: string; confirmText: string }>({ title: '', message: '', confirmText: 'OK' });
-
-  private renderer = inject(Renderer2);
-  private elementRef = inject(ElementRef);
   
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event) {
@@ -112,6 +118,7 @@ export class SidebarComponent implements OnDestroy {
       this.unlistenMouseUp();
       this.unlistenMouseUp = null;
     }
+    this.uiPreferencesService.setSidebarWidth(this.width());
   }
 
   // --- Vertical resize methods ---
@@ -152,6 +159,7 @@ export class SidebarComponent implements OnDestroy {
       this.unlistenVerticalMouseUp();
       this.unlistenVerticalMouseUp = null;
     }
+    this.uiPreferencesService.setSidebarTreeHeight(this.treePaneHeight());
   }
 
   toggleChatPaneCollapse(): void {
@@ -191,13 +199,21 @@ export class SidebarComponent implements OnDestroy {
     this.isHamburgerMenuOpen.update(v => !v);
   }
 
-  onServersMenuClick(): void {
-    this.serversMenuClick.emit();
-    this.isHamburgerMenuOpen.set(false);
-  }
-
-  onLocalConfigMenuClick(): void {
-    this.localConfigMenuClick.emit();
+  onMenuItemClick(emitterName: 'localConfigMenuClick' | 'importClick' | 'exportClick' | 'serversMenuClick'): void {
+    switch (emitterName) {
+      case 'localConfigMenuClick':
+        this.localConfigMenuClick.emit();
+        break;
+      case 'importClick':
+        this.importClick.emit();
+        break;
+      case 'exportClick':
+        this.exportClick.emit();
+        break;
+      case 'serversMenuClick':
+        this.serversMenuClick.emit();
+        break;
+    }
     this.isHamburgerMenuOpen.set(false);
   }
   

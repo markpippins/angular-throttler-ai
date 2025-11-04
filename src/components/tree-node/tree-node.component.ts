@@ -1,4 +1,3 @@
-
 import { Component, ChangeDetectionStrategy, input, output, signal, computed, effect, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
@@ -6,26 +5,27 @@ import { ImageService } from '../../services/image.service.js';
 import { DragDropService, DragDropPayload } from '../../services/drag-drop.service.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
 import { FileSystemProvider } from '../../services/file-system-provider.js';
-// FIX: Removed self-import of TreeNodeComponent. For a recursive standalone component,
-// the component class can be used in the `imports` array without importing it from its own file.
-// This was causing a name collision error during compilation.
+import { FolderPropertiesService } from '../../services/folder-properties.service.js';
 
 @Component({
   selector: 'app-tree-node',
   templateUrl: './tree-node.component.html',
+  // FIX: For recursive components, the component itself must be included in the imports.
+  // The self-import statement was removed from the top of the file to resolve a name conflict.
   imports: [CommonModule, TreeNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TreeNodeComponent implements OnInit {
   private dragDropService = inject(DragDropService);
+  private folderPropertiesService = inject(FolderPropertiesService);
 
   node = input.required<FileSystemNode>();
   path = input.required<string[]>();
   currentPath = input.required<string[]>();
   level = input(0);
   expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
-  getImageService = input<(path: string[]) => ImageService>();
-  getProvider = input<(path: string[]) => FileSystemProvider>();
+  getImageService = input.required<(path: string[]) => ImageService>();
+  getProvider = input.required<(path: string[]) => FileSystemProvider>();
 
   pathChange = output<string[]>();
   loadChildren = output<string[]>();
@@ -37,18 +37,18 @@ export class TreeNodeComponent implements OnInit {
   imageHasError = signal(false);
   imageIsLoaded = signal(false);
   isDragOver = signal(false);
+
+  properties = computed(() => this.folderPropertiesService.getProperties(this.path()));
   
   iconUrl = computed(() => {
-    const getImageService = this.getImageService();
-    if (!getImageService) return null;
-    
-    const service = getImageService(this.path());
+    const service = this.getImageService()(this.path());
     const node = this.node();
+    const props = this.properties();
 
     if (node.isServerRoot) {
         return service.getIconUrl({ ...node, name: 'cloud' });
     }
-    return service.getIconUrl(node);
+    return service.getIconUrl(node, props?.imageName);
   });
 
   isSelected = computed(() => {
@@ -62,6 +62,10 @@ export class TreeNodeComponent implements OnInit {
   });
 
   displayName = computed(() => {
+    const props = this.properties();
+    if (props?.displayName) {
+        return props.displayName;
+    }
     const name = this.node().name;
     if (name.endsWith('.magnet')) {
       return name.slice(0, -7);
@@ -233,12 +237,8 @@ export class TreeNodeComponent implements OnInit {
   }
 
   onDragStart(event: DragEvent): void {
-    const provider = this.getProvider()?.(this.path());
-    if (!provider) {
-      console.error('Drag operation failed: Could not find a file system provider for the source item.');
-      return;
-    };
-
+    const provider = this.getProvider()(this.path());
+    
     const payload: DragDropPayload = {
         type: 'filesystem',
         payload: { sourceProvider: provider, sourcePath: this.path().slice(0, -1), items: [this.node()] }
