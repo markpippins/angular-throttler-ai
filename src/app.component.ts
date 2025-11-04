@@ -417,7 +417,8 @@ export class AppComponent implements OnInit, OnDestroy {
       this.mountedProfileUsers.update(map => new Map(map).set(profile.id, user));
       this.connectionStatus.set('connected');
     } catch (e) {
-      alert(`Failed to connect to server "${profile.name}". Please check credentials and profile settings. Error: ${(e as Error).message}`);
+      const errorMessage = `Login failed for "${profile.name}": ${(e as Error).message}`;
+      this.toastService.show(errorMessage, 'error', 8000);
       if (this.mountedProfiles().length === 0) {
         this.connectionStatus.set('disconnected');
       } else {

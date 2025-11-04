@@ -112,11 +112,7 @@
               (sortChange)="onSortChange($event)"
               (saveBookmark)="onSaveBookmark($event)"
               (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
-              (itemRenamed)="onPaneItemRenamed($event, pane1Path())"
-              (connectToServer)="onConnectToServer($event)"
-              (disconnectFromServer)="onDisconnectFromServer($event)"
-              (editServerProfile)="onEditServerProfile($event)"
-              (localConfigMenuClick)="openLocalConfigDialog()">
+              (itemRenamed)="onPaneItemRenamed($event, pane1Path())">
             </app-file-explorer>
           </div>
 
@@ -148,11 +144,7 @@
                 (sortChange)="onSortChange($event)"
                 (saveBookmark)="onSaveBookmark($event)"
                 (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
-                (itemRenamed)="onPaneItemRenamed($event, pane2Path())"
-                (connectToServer)="onConnectToServer($event)"
-                (disconnectFromServer)="onDisconnectFromServer($event)"
-                (editServerProfile)="onEditServerProfile($event)"
-                (localConfigMenuClick)="openLocalConfigDialog()">
+                (itemRenamed)="onPaneItemRenamed($event, pane2Path())">
               </app-file-explorer>
             </div>
           }

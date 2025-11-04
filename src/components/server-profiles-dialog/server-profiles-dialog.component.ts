@@ -86,7 +86,7 @@ export class ServerProfilesDialogComponent implements OnInit {
     this.originalProfileName = null;
   }
 
-  saveProfile(): void {
+  async saveProfile(): Promise<void> {
     const state = this.formState();
     if (!state || !state.name.trim()) return;
 
@@ -103,7 +103,7 @@ export class ServerProfilesDialogComponent implements OnInit {
         autoConnect: state.autoConnect,
       };
 
-      this.profileService.updateProfile(updatedProfile);
+      await this.profileService.updateProfile(updatedProfile);
       this.toastService.show(`Profile "${updatedProfile.name}" updated.`);
       
       if (oldName && oldName !== updatedProfile.name) {
@@ -119,7 +119,7 @@ export class ServerProfilesDialogComponent implements OnInit {
         autoConnect: state.autoConnect,
       };
 
-      this.profileService.addProfile(newProfileData);
+      await this.profileService.addProfile(newProfileData);
       this.toastService.show(`Profile "${newProfileData.name}" created.`);
       this.formState.set(null);
       this.selectedProfileId.set(null);
@@ -127,13 +127,13 @@ export class ServerProfilesDialogComponent implements OnInit {
     }
   }
   
-  deleteProfile(id: string): void {
+  async deleteProfile(id: string): Promise<void> {
     if (confirm('Are you sure you want to delete this profile?')) {
       const profileToUnmount = this.profileService.profiles().find(p => p.id === id);
       if (profileToUnmount && this.mountedProfileIds().includes(id)) {
         this.unmountProfile.emit(profileToUnmount);
       }
-      this.profileService.deleteProfile(id);
+      await this.profileService.deleteProfile(id);
       if (this.formState()?.id === id) {
         this.formState.set(null);
       }

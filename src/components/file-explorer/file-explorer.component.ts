@@ -1,3 +1,5 @@
+
+
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
@@ -33,8 +35,6 @@ import { ImageResultListItemComponent } from '../stream-list-items/image-result-
 import { GeminiResultListItemComponent } from '../stream-list-items/gemini-result-list-item.component.js';
 import { YoutubeResultListItemComponent } from '../stream-list-items/youtube-result-list-item.component.js';
 import { AcademicResultListItemComponent } from '../stream-list-items/academic-result-list-item.component.js';
-import { ToastService } from '../../services/toast.service.js';
-import { LocalConfigService } from '../../services/local-config.service.js';
 
 interface FileSystemState {
   status: 'loading' | 'success' | 'error';
@@ -82,8 +82,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   private geminiService = inject(GeminiService);
   private youtubeSearchService = inject(YoutubeSearchService);
   private academicSearchService = inject(AcademicSearchService);
-  private toastService = inject(ToastService);
-  public localConfigService = inject(LocalConfigService);
 
   // Inputs & Outputs for multi-pane communication
   id = input.required<number>();
@@ -112,12 +110,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   sortChange = output<SortCriteria>();
   saveBookmark = output<NewBookmark>();
   bookmarkDropped = output<{ bookmark: NewBookmark, dropOn: FileSystemNode }>();
-
-  // New outputs for context menu actions
-  connectToServer = output<string>();
-  disconnectFromServer = output<string>();
-  editServerProfile = output<string>();
-  localConfigMenuClick = output<void>();
 
   state = signal<FileSystemState>({ status: 'loading', items: [] });
   contextMenu = signal<{ x: number; y: number; item: FileSystemNode | null } | null>(null);
@@ -494,11 +486,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   }
 
   async openItem(item: FileSystemNode): Promise<void> {
-    if (item.isServerRoot && !item.connected) {
-      this.toastService.show(`"${item.name}" is not connected.`, 'info');
-      return;
-    }
-    
     if (item.type === 'folder') {
       this.pathChanged.emit([...this.path(), item.name]);
       return;
@@ -1348,35 +1335,5 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
         const newBookmark = this.streamItemToNewBookmark(item);
         this.saveBookmark.emit(newBookmark);
     }
-  }
-
-  // Handlers for the new context menu items
-  handleConnect(): void {
-    const profileId = this.contextMenu()?.item?.profileId;
-    if (profileId) {
-      this.connectToServer.emit(profileId);
-    }
-    this.closeContextMenu();
-  }
-
-  handleDisconnect(): void {
-    const profileId = this.contextMenu()?.item?.profileId;
-    if (profileId) {
-      this.disconnectFromServer.emit(profileId);
-    }
-    this.closeContextMenu();
-  }
-
-  handleEditProfile(): void {
-    const profileId = this.contextMenu()?.item?.profileId;
-    if (profileId) {
-      this.editServerProfile.emit(profileId);
-    }
-    this.closeContextMenu();
-  }
-  
-  handleSettings(): void {
-    this.localConfigMenuClick.emit();
-    this.closeContextMenu();
   }
 }

@@ -1,5 +1,6 @@
-import { Injectable, signal, computed, effect } from '@angular/core';
+import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { ServerProfile } from '../models/server-profile.model.js';
+import { DbService } from './db.service.js';
 
 const PROFILES_STORAGE_KEY = 'file-explorer-server-profiles';
 const ACTIVE_PROFILE_ID_STORAGE_KEY = 'file-explorer-active-profile-id';
@@ -18,6 +19,7 @@ const DEFAULT_PROFILES: ServerProfile[] = [
   providedIn: 'root',
 })
 export class ServerProfileService {
+  private dbService = inject(DbService);
   profiles = signal<ServerProfile[]>([]);
   activeProfileId = signal<string | null>(null);
 
@@ -43,21 +45,44 @@ export class ServerProfileService {
   constructor() {
     this.loadProfiles();
     effect(() => {
-      // Persist changes to profiles or active profile ID
-      this.saveProfiles();
+      // This effect now ONLY persists the active profile ID to localStorage.
+      try {
+        const activeId = this.activeProfileId();
+        if (activeId) {
+          localStorage.setItem(ACTIVE_PROFILE_ID_STORAGE_KEY, activeId);
+        } else {
+          localStorage.removeItem(ACTIVE_PROFILE_ID_STORAGE_KEY);
+        }
+      } catch (e) {
+        console.error('Failed to save active profile ID to localStorage', e);
+      }
     });
   }
 
-  private loadProfiles(): void {
+  private async loadProfiles(): Promise<void> {
     try {
-      const profilesJson = localStorage.getItem(PROFILES_STORAGE_KEY);
-      const storedProfiles = profilesJson ? JSON.parse(profilesJson) : [];
-      
-      if (storedProfiles.length > 0) {
-        this.profiles.set(storedProfiles);
-      } else {
-        this.profiles.set(DEFAULT_PROFILES);
+      let profiles = await this.dbService.getAllProfiles();
+
+      if (profiles.length === 0) {
+        // One-time migration from localStorage or use defaults
+        const profilesJson = localStorage.getItem(PROFILES_STORAGE_KEY);
+        const storedProfiles = profilesJson ? JSON.parse(profilesJson) : [];
+        
+        if (storedProfiles.length > 0) {
+          profiles = storedProfiles;
+          // Clean up old storage key after migration
+          localStorage.removeItem(PROFILES_STORAGE_KEY);
+        } else {
+          profiles = DEFAULT_PROFILES;
+        }
+
+        // Populate IndexedDB with the determined profiles
+        for (const profile of profiles) {
+          await this.dbService.addProfile(profile);
+        }
       }
+
+      this.profiles.set(profiles);
 
       const activeId = localStorage.getItem(ACTIVE_PROFILE_ID_STORAGE_KEY);
       if (activeId && this.profiles().some(p => p.id === activeId)) {
@@ -67,23 +92,9 @@ export class ServerProfileService {
         this.activeProfileId.set(this.profiles()[0]?.id ?? null);
       }
     } catch (e) {
-      console.error('Failed to load profiles from localStorage', e);
+      console.error('Failed to load profiles from IndexedDB', e);
       this.profiles.set(DEFAULT_PROFILES);
-      this.activeProfileId.set(DEFAULT_PROFILES[0].id);
-    }
-  }
-
-  private saveProfiles(): void {
-    try {
-      localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(this.profiles()));
-      const activeId = this.activeProfileId();
-      if (activeId) {
-        localStorage.setItem(ACTIVE_PROFILE_ID_STORAGE_KEY, activeId);
-      } else {
-        localStorage.removeItem(ACTIVE_PROFILE_ID_STORAGE_KEY);
-      }
-    } catch (e) {
-      console.error('Failed to save profiles to localStorage', e);
+      this.activeProfileId.set(DEFAULT_PROFILES[0]?.id ?? null);
     }
   }
 
@@ -91,18 +102,21 @@ export class ServerProfileService {
     return `profile-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 
-  addProfile(profileData: Omit<ServerProfile, 'id'>): void {
+  async addProfile(profileData: Omit<ServerProfile, 'id'>): Promise<void> {
     const newProfile: ServerProfile = { ...profileData, id: this.generateId() };
+    await this.dbService.addProfile(newProfile);
     this.profiles.update(profiles => [...profiles, newProfile]);
   }
 
-  updateProfile(updatedProfile: ServerProfile): void {
+  async updateProfile(updatedProfile: ServerProfile): Promise<void> {
+    await this.dbService.updateProfile(updatedProfile);
     this.profiles.update(profiles => 
       profiles.map(p => p.id === updatedProfile.id ? updatedProfile : p)
     );
   }
 
-  deleteProfile(id: string): void {
+  async deleteProfile(id: string): Promise<void> {
+    await this.dbService.deleteProfile(id);
     this.profiles.update(profiles => profiles.filter(p => p.id !== id));
     if (this.activeProfileId() === id) {
       // If the active profile was deleted, set the first one as active
