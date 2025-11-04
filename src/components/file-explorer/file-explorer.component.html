@@ -184,13 +184,20 @@
                     <td class="px-2 py-1.5">
                       @if (item.type === 'folder') {
                         <div class="relative h-5 w-5">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="absolute inset-0 h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="absolute inset-0 h-5 w-5 text-yellow-500" [class.opacity-50]="item.isServerRoot && !item.connected" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                           </svg>
                           @if (getIconUrl(item); as iconUrl) {
                             @if (!failedImageItems().has(item.name)) {
-                              <img [src]="iconUrl" [alt]="item.type" class="absolute inset-0 h-5 w-5 object-contain" (error)="onImageError(item.name)" />
+                              <img [src]="iconUrl" [alt]="item.type" class="absolute inset-0 h-5 w-5 object-contain" [class.opacity-50]="item.isServerRoot && !item.connected" (error)="onImageError(item.name)" />
                             }
+                          }
+                          @if (item.isServerRoot && !item.connected) {
+                            <div class="absolute -bottom-0.5 -right-0.5 bg-[rgb(var(--color-surface))] rounded-full flex items-center justify-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                              </svg>
+                            </div>
                           }
                         </div>
                       } @else {
@@ -670,5 +677,15 @@
       (confirm)="onConfirmDialogConfirm()"
       (close)="closeConfirmDialog()">
     </app-confirm-dialog>
+  }
+
+  <!-- Conflict Dialog -->
+  @if (conflictState(); as state) {
+    <app-conflict-dialog
+      [itemName]="state.conflictingItem.name"
+      [itemType]="state.conflictingItem.type"
+      (resolve)="state.callback($event)"
+      (close)="state.callback('cancel')">
+    </app-conflict-dialog>
   }
 </div>

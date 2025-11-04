@@ -16,6 +16,7 @@
           [alt]="item().type" 
           class="h-16 w-16 object-cover pointer-events-none transition-opacity duration-300 rounded-md"
           [class.opacity-0]="!imageIsLoaded()"
+          [class.opacity-50]="item().isServerRoot && !item().connected"
           (load)="onImageLoad()"
           (error)="onImageError()" />
       
@@ -28,9 +29,20 @@
       }
     } @else {
       <!-- Default Folder Icon -->
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-yellow-500 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+      <svg xmlns="http://www.w3.org/2000/svg" 
+           class="h-16 w-16 text-yellow-500 pointer-events-none"
+           [class.opacity-50]="item().isServerRoot && !item().connected"
+           viewBox="0 0 20 20" fill="currentColor">
         <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
       </svg>
+    }
+
+    @if (item().isServerRoot && !item().connected) {
+      <div class="absolute inset-0 bg-black/30 dark:bg-black/50 rounded-md flex items-center justify-center pointer-events-none">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+      </div>
     }
   </div>
   

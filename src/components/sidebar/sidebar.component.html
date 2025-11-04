@@ -152,6 +152,8 @@
            <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleEditProfile()">Edit Profile...</div>
         } @else if (cm.path.length === 0) {
             <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleSettings()">Settings...</div>
+        } @else if (cm.path.length === 1 && !cm.node.isServerRoot) {
+            <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleSettings()">Properties...</div>
         } @else {
             @if (isChildOfWritableRoot(cm.path)) {
               <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleNewFolder()">New Folder...</div>

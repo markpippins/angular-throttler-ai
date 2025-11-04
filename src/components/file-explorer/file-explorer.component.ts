@@ -36,6 +36,7 @@ import { AcademicResultListItemComponent } from '../stream-list-items/academic-r
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { FolderPropertiesService } from '../../services/folder-properties.service.js';
 import { FolderProperties } from '../../models/folder-properties.model.js';
+import { ConflictDialogComponent, ConflictResolution } from '../conflict-dialog/conflict-dialog.component.js';
 
 interface FileSystemState {
   status: 'loading' | 'success' | 'error';
@@ -70,7 +71,7 @@ const SPECIAL_FOLDERS = new Set(["libraries", "build", "dev", "source", "repo", 
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, DatePipe, FolderComponent, PropertiesDialogComponent, DestinationNodeComponent, InputDialogComponent, ConfirmDialogComponent, AutoFocusSelectDirective, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent],
+  imports: [CommonModule, DatePipe, FolderComponent, PropertiesDialogComponent, DestinationNodeComponent, InputDialogComponent, ConfirmDialogComponent, AutoFocusSelectDirective, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, ConflictDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileExplorerComponent implements OnDestroy, OnInit {
@@ -184,6 +185,9 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   ];
   
   bookmarkedLinks = this.bookmarkService.bookmarkedLinks;
+
+  // --- Conflict Dialog State ---
+  conflictState = signal<{ conflictingItem: FileSystemNode; callback: (res: ConflictResolution) => void } | null>(null);
 
   @ViewChild('mainContentWrapper') mainContentWrapperEl!: ElementRef<HTMLDivElement>;
   @ViewChild('topPane') topPaneEl!: ElementRef<HTMLDivElement>;
@@ -1027,28 +1031,85 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   
   async onInternalDropOnFolder(event: { dropOn: FileSystemNode }): Promise<void> {
     const payload = this.dragDropService.getPayload();
-    if (!payload || payload.type !== 'filesystem') return;
-    const { sourcePath, items } = payload.payload;
-
+    if (payload?.type !== 'filesystem') return;
+  
+    const { sourceProvider, sourcePath, items } = payload.payload;
     const destPath = [...this.path(), event.dropOn.name];
-    
-    if (sourcePath.join('/') === destPath.join('/')) return;
+  
+    // Prevent dropping a folder into itself or its own children
     if (items.some(item => destPath.join('/').startsWith([...sourcePath, item.name].join('/')))) {
       alert("Cannot move a folder into itself.");
       return;
     }
-
-    const itemRefs = items.map(this.getItemReference);
-    const sourceProviderPath = sourcePath.length > 0 ? sourcePath.slice(1) : [];
-
+  
     try {
-        await payload.payload.sourceProvider.move(sourceProviderPath, destPath.slice(1), itemRefs);
+      const destProvider = this.fileSystemProvider();
+      const destProviderPath = destPath.length > 1 ? destPath.slice(1) : [];
+      const destContents = await destProvider.getContents(destProviderPath);
+  
+      const nonConflicting: FileSystemNode[] = [];
+      const conflicting: FileSystemNode[] = [];
+  
+      for (const item of items) {
+        if (destContents.some(destItem => destItem.name === item.name)) {
+          conflicting.push(item);
+        } else {
+          nonConflicting.push(item);
+        }
+      }
+      
+      const sourceProviderPath = sourcePath.length > 1 ? sourcePath.slice(1) : [];
+  
+      // 1. Move all non-conflicting items immediately.
+      if (nonConflicting.length > 0) {
+        await sourceProvider.move(sourceProviderPath, destProviderPath, nonConflicting.map(this.getItemReference));
+      }
+  
+      // 2. Sequentially handle all conflicts.
+      for (const conflict of conflicting) {
+        const resolution = await this.promptForConflictResolution(conflict);
+        
+        if (resolution === 'cancel') return; // Abort entire operation
+        if (resolution === 'skip') continue; // Skip this item and move to the next conflict
+  
+        if (resolution === 'replace') {
+          if (conflict.type === 'folder') {
+            await destProvider.removeDirectory(destProviderPath, conflict.name);
+          } else {
+            await destProvider.deleteFile(destProviderPath, conflict.name);
+          }
+          await sourceProvider.move(sourceProviderPath, destProviderPath, [this.getItemReference(conflict)]);
+        } else if (resolution === 'merge' && conflict.type === 'folder') {
+          const sourceItemPath = [...sourcePath, conflict.name];
+          const destItemPath = [...destPath, conflict.name];
+          const sourceItemProviderPath = sourceItemPath.slice(1);
+          const destItemProviderPath = destItemPath.slice(1);
+          
+          const sourceChildren = await sourceProvider.getContents(sourceItemProviderPath);
+          
+          if (sourceChildren.length > 0) {
+            // This could have internal conflicts, which we'll let fail for now.
+            await sourceProvider.move(sourceItemProviderPath, destItemProviderPath, sourceChildren.map(this.getItemReference));
+          }
+          await sourceProvider.removeDirectory(sourceProviderPath, conflict.name);
+        }
+      }
     } catch (e) {
-        alert(`Move failed: ${(e as Error).message}`);
+      alert(`Operation failed: ${(e as Error).message}`);
     } finally {
-        await this.loadContents();
-        this.directoryChanged.emit();
+      this.loadContents();
+      this.directoryChanged.emit();
     }
+  }
+
+  private promptForConflictResolution(item: FileSystemNode): Promise<ConflictResolution> {
+    return new Promise(resolve => {
+      const callback = (res: ConflictResolution) => {
+        this.conflictState.set(null);
+        resolve(res);
+      };
+      this.conflictState.set({ conflictingItem: item, callback });
+    });
   }
 
   onBookmarkDropOnFolder(event: { bookmark: NewBookmark, dropOn: FileSystemNode }): void {
