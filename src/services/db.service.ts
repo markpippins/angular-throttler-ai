@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { openDB, DBSchema, IDBPDatabase } from 'https://next.esm.sh/idb@8';
+import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { ServerProfile } from '../models/server-profile.model.js';
 
 const DB_NAME = 'file-explorer-db';
