@@ -7,8 +7,8 @@ import { User } from '../models/user.model.js';
 
 export class RemoteFileSystemService implements FileSystemProvider {
   private fsService: FsService;
-  public profile: ServerProfile;
-  private user: User | null;
+  public readonly profile: ServerProfile;
+  private readonly user: User | null;
 
   constructor(profile: ServerProfile, fsService: FsService, user: User | null) {
     this.profile = profile;

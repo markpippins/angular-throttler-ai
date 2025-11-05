@@ -59,6 +59,10 @@ export class ServerProfileService {
     });
   }
 
+  private sortProfiles(profiles: ServerProfile[]): ServerProfile[] {
+    return profiles.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  }
+
   private async loadProfiles(): Promise<void> {
     try {
       let profiles = await this.dbService.getAllProfiles();
@@ -82,7 +86,7 @@ export class ServerProfileService {
         }
       }
 
-      this.profiles.set(profiles);
+      this.profiles.set(this.sortProfiles(profiles));
 
       const activeId = localStorage.getItem(ACTIVE_PROFILE_ID_STORAGE_KEY);
       if (activeId && this.profiles().some(p => p.id === activeId)) {
@@ -93,7 +97,7 @@ export class ServerProfileService {
       }
     } catch (e) {
       console.error('Failed to load profiles from IndexedDB', e);
-      this.profiles.set(DEFAULT_PROFILES);
+      this.profiles.set(this.sortProfiles([...DEFAULT_PROFILES]));
       this.activeProfileId.set(DEFAULT_PROFILES[0]?.id ?? null);
     }
   }
@@ -105,13 +109,13 @@ export class ServerProfileService {
   async addProfile(profileData: Omit<ServerProfile, 'id'>): Promise<void> {
     const newProfile: ServerProfile = { ...profileData, id: this.generateId() };
     await this.dbService.addProfile(newProfile);
-    this.profiles.update(profiles => [...profiles, newProfile]);
+    this.profiles.update(profiles => this.sortProfiles([...profiles, newProfile]));
   }
 
   async updateProfile(updatedProfile: ServerProfile): Promise<void> {
     await this.dbService.updateProfile(updatedProfile);
     this.profiles.update(profiles => 
-      profiles.map(p => p.id === updatedProfile.id ? updatedProfile : p)
+      this.sortProfiles(profiles.map(p => p.id === updatedProfile.id ? updatedProfile : p))
     );
   }
 

@@ -870,14 +870,16 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // 2. If the profile was mounted, update the provider maps and the mountedProfiles array.
     if (this.mountedProfileIds().includes(profile.id)) {
-      const provider = this.remoteProviders().get(oldName);
-      if (provider) {
-        // Update the profile object inside the service instance itself.
-        provider.profile = profile; 
-        // Re-key the map.
+      if (this.remoteProviders().has(oldName)) {
+        // Recreate the provider with the updated profile.
+        // We must fetch the user associated with this mounted profile.
+        const user = this.mountedProfileUsers().get(profile.id) ?? null;
+        const newProvider = new RemoteFileSystemService(profile, this.fsService, user);
+
+        // Re-key the map with the new provider instance.
         this.remoteProviders.update(map => {
           const newMap = new Map(map);
-          newMap.set(newName, provider);
+          newMap.set(newName, newProvider);
           newMap.delete(oldName);
           return newMap;
         });
