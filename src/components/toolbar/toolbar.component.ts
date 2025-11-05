@@ -45,7 +45,9 @@ export class ToolbarComponent {
   
   // Inputs for pane visibility status
   isSidebarVisible = input(true);
+  isTreeVisible = input(true);
   isChatVisible = input(true);
+  isNotesVisible = input(true);
   isSavedItemsVisible = input(true);
   isRssFeedVisible = input(true);
   isStreamVisible = input(true);
@@ -72,7 +74,9 @@ export class ToolbarComponent {
   
   // Outputs for pane visibility toggles
   toggleSidebar = output<void>();
+  toggleTree = output<void>();
   toggleChat = output<void>();
+  toggleNotes = output<void>();
   toggleSavedItems = output<void>();
   toggleRssFeed = output<void>();
   toggleStream = output<void>();

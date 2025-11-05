@@ -105,7 +105,9 @@ export class AppComponent implements OnInit, OnDestroy {
   
   // --- Pane Visibility State (from service) ---
   isSidebarVisible = this.uiPreferencesService.isSidebarVisible;
+  isTreeVisible = this.uiPreferencesService.isTreeVisible;
   isChatVisible = this.uiPreferencesService.isChatVisible;
+  isNotesVisible = this.uiPreferencesService.isNotesVisible;
   isDetailPaneOpen = this.uiPreferencesService.isDetailPaneOpen;
   isSavedItemsVisible = this.uiPreferencesService.isSavedItemsVisible;
   isRssFeedVisible = this.uiPreferencesService.isRssFeedVisible;
@@ -487,8 +489,16 @@ export class AppComponent implements OnInit, OnDestroy {
     this.uiPreferencesService.toggleSidebar();
   }
 
+  toggleTree(): void {
+    this.uiPreferencesService.toggleTree();
+  }
+
   toggleChat(): void {
     this.uiPreferencesService.toggleChat();
+  }
+
+  toggleNotes(): void {
+    this.uiPreferencesService.toggleNotes();
   }
 
   toggleDetailPane(): void {
@@ -938,17 +948,21 @@ export class AppComponent implements OnInit, OnDestroy {
   onKeyDown(event: KeyboardEvent): void {
     // Handle F-key pane toggles first, as they should work anywhere.
     switch(event.key) {
+      case 'F7':
+        event.preventDefault();
+        this.toggleTree();
+        return;
       case 'F8':
         event.preventDefault();
-        this.toggleStream();
+        this.toggleChat();
         return;
       case 'F9':
         event.preventDefault();
-        this.toggleSidebar();
+        this.toggleNotes();
         return;
       case 'F10':
         event.preventDefault();
-        this.toggleChat();
+        this.toggleStream();
         return;
       case 'F11':
         event.preventDefault();

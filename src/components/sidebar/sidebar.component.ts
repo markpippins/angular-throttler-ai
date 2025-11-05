@@ -12,11 +12,12 @@ import { FileSystemProvider } from '../../services/file-system-provider.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { ExportDialogComponent } from '../export-dialog/export-dialog.component.js';
 import { ImportDialogComponent } from '../import-dialog/import-dialog.component.js';
+import { NotesComponent } from '../notes/notes.component.js';
 
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.component.html',
-  imports: [CommonModule, ChatComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent, ExportDialogComponent, ImportDialogComponent],
+  imports: [CommonModule, ChatComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent, ExportDialogComponent, ImportDialogComponent, NotesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnDestroy {
@@ -28,7 +29,9 @@ export class SidebarComponent implements OnDestroy {
   currentPath = input.required<string[]>();
   getImageService = input.required<(path: string[]) => ImageService>();
   getProvider = input.required<(path: string[]) => FileSystemProvider>();
+  isTreeVisible = input(true);
   isChatVisible = input(true);
+  isNotesVisible = input(true);
   
   pathChange = output<string[]>();
   refreshTree = output<void>();
@@ -57,10 +60,18 @@ export class SidebarComponent implements OnDestroy {
 
   // --- Vertical Resizing State for internal panes ---
   treePaneHeight = signal(this.uiPreferencesService.sidebarTreeHeight() ?? 400);
-  isResizingVertical = signal(false);
-  private unlistenVerticalMouseMove: (() => void) | null = null;
-  private unlistenVerticalMouseUp: (() => void) | null = null;
+  chatPaneHeight = signal(this.uiPreferencesService.sidebarChatHeight() ?? 250);
+  
+  isResizingTree = signal(false);
+  isResizingChat = signal(false);
+
+  private unlistenTreeMouseMove: (() => void) | null = null;
+  private unlistenTreeMouseUp: (() => void) | null = null;
+  private unlistenChatMouseMove: (() => void) | null = null;
+  private unlistenChatMouseUp: (() => void) | null = null;
+  
   isChatPaneCollapsed = signal(false);
+  isNotesPaneCollapsed = signal(false);
 
   @ViewChild('contentContainer') contentContainerEl!: ElementRef<HTMLDivElement>;
 
@@ -122,48 +133,93 @@ export class SidebarComponent implements OnDestroy {
   }
 
   // --- Vertical resize methods ---
-  startVerticalResize(event: MouseEvent): void {
-    this.isResizingVertical.set(true);
+  startTreeResize(event: MouseEvent): void {
+    this.isResizingTree.set(true);
     const container = this.contentContainerEl.nativeElement;
     const containerRect = container.getBoundingClientRect();
-    const startY = event.clientY;
-    const startHeight = this.treePaneHeight();
 
     event.preventDefault();
 
-    this.unlistenVerticalMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
-      const dy = e.clientY - startY;
-      let newHeight = startHeight + dy;
+    this.unlistenTreeMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+      let newHeight = e.clientY - containerRect.top;
       
       const minHeight = 100;
-      const maxHeight = containerRect.height - 100; // Leave 100px for the bottom pane
+      // Ensure space for other panes (100px min for each)
+      const chatHeight = (this.isChatVisible() && !this.isChatPaneCollapsed()) ? this.chatPaneHeight() : 0;
+      const notesMinHeight = (this.isNotesVisible() && !this.isNotesPaneCollapsed()) ? 100 : 0;
+      
+      const maxHeight = containerRect.height - chatHeight - notesMinHeight;
+
       if (newHeight < minHeight) newHeight = minHeight;
       if (newHeight > maxHeight) newHeight = maxHeight;
       
       this.treePaneHeight.set(newHeight);
     });
 
-    this.unlistenVerticalMouseUp = this.renderer.listen('document', 'mouseup', () => {
-      this.stopVerticalResize();
+    this.unlistenTreeMouseUp = this.renderer.listen('document', 'mouseup', () => {
+      this.stopTreeResize();
     });
   }
 
-  private stopVerticalResize(): void {
-    if (!this.isResizingVertical()) return;
-    this.isResizingVertical.set(false);
-    if (this.unlistenVerticalMouseMove) {
-      this.unlistenVerticalMouseMove();
-      this.unlistenVerticalMouseMove = null;
+  private stopTreeResize(): void {
+    if (!this.isResizingTree()) return;
+    this.isResizingTree.set(false);
+    if (this.unlistenTreeMouseMove) {
+      this.unlistenTreeMouseMove();
+      this.unlistenTreeMouseMove = null;
     }
-    if (this.unlistenVerticalMouseUp) {
-      this.unlistenVerticalMouseUp();
-      this.unlistenVerticalMouseUp = null;
+    if (this.unlistenTreeMouseUp) {
+      this.unlistenTreeMouseUp();
+      this.unlistenTreeMouseUp = null;
     }
     this.uiPreferencesService.setSidebarTreeHeight(this.treePaneHeight());
   }
 
+  startChatResize(event: MouseEvent): void {
+    this.isResizingChat.set(true);
+    const container = this.contentContainerEl.nativeElement;
+    const containerRect = container.getBoundingClientRect();
+    event.preventDefault();
+
+    this.unlistenChatMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+      const totalHeightFromTop = e.clientY - containerRect.top;
+      let newHeight = totalHeightFromTop - this.treePaneHeight();
+
+      const minHeight = 100;
+      const notesMinHeight = (this.isNotesVisible() && !this.isNotesPaneCollapsed()) ? 100 : 0;
+      const maxHeight = containerRect.height - this.treePaneHeight() - notesMinHeight;
+
+      if (newHeight < minHeight) newHeight = minHeight;
+      if (newHeight > maxHeight) newHeight = maxHeight;
+      
+      this.chatPaneHeight.set(newHeight);
+    });
+
+    this.unlistenChatMouseUp = this.renderer.listen('document', 'mouseup', () => {
+      this.stopChatResize();
+    });
+  }
+
+  private stopChatResize(): void {
+    if (!this.isResizingChat()) return;
+    this.isResizingChat.set(false);
+    if (this.unlistenChatMouseMove) {
+      this.unlistenChatMouseMove();
+      this.unlistenChatMouseMove = null;
+    }
+    if (this.unlistenChatMouseUp) {
+      this.unlistenChatMouseUp();
+      this.unlistenChatMouseUp = null;
+    }
+    this.uiPreferencesService.setSidebarChatHeight(this.chatPaneHeight());
+  }
+
   toggleChatPaneCollapse(): void {
     this.isChatPaneCollapsed.update(v => !v);
+  }
+  
+  toggleNotesPaneCollapse(): void {
+    this.isNotesPaneCollapsed.update(v => !v);
   }
 
   onTreeViewPathChange(path: string[]): void {
@@ -367,6 +423,7 @@ export class SidebarComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stopResize();
-    this.stopVerticalResize();
+    this.stopTreeResize();
+    this.stopChatResize();
   }
 }

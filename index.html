@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
   <style>
     :root { /* Default Light Theme */
       --color-background: 243 244 246; /* gray-100 */
@@ -130,6 +132,88 @@
     }
     .animate-slide-in-right {
       animation: slide-in-right 0.2s ease-out;
+    }
+
+    /* Basic markdown styling */
+    .prose {
+        line-height: 1.6;
+    }
+    .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+        color: rgb(var(--color-text-base));
+        font-weight: 600;
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+    }
+    .prose h1 { font-size: 1.875rem; }
+    .prose h2 { font-size: 1.5rem; }
+    .prose h3 { font-size: 1.25rem; }
+    .prose p {
+        margin-bottom: 1em;
+        color: rgb(var(--color-text-muted));
+    }
+    .prose ul, .prose ol {
+        margin-left: 1.5em;
+        margin-bottom: 1em;
+        color: rgb(var(--color-text-muted));
+    }
+    .prose ul { list-style-type: disc; }
+    .prose ol { list-style-type: decimal; }
+    .prose li > p, .prose li > ul, .prose li > ol {
+        margin-bottom: 0.5em;
+    }
+    .prose a {
+        color: rgb(var(--color-accent-text));
+        text-decoration: underline;
+    }
+    .prose code {
+        background-color: rgb(var(--color-surface-muted));
+        padding: 0.2em 0.4em;
+        margin: 0;
+        font-size: 85%;
+        border-radius: 6px;
+        font-family: monospace;
+    }
+    .prose pre {
+        background-color: rgb(var(--color-surface-muted));
+        padding: 1em;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    .prose pre code {
+        background-color: transparent;
+        padding: 0;
+    }
+    .prose blockquote {
+        border-left: 4px solid rgb(var(--color-border-muted));
+        padding-left: 1em;
+        color: rgb(var(--color-text-subtle));
+        font-style: italic;
+    }
+    .prose hr {
+        border-top: 1px solid rgb(var(--color-border-base));
+        margin: 2em 0;
+    }
+    .prose strong {
+        color: rgb(var(--color-text-base));
+        font-weight: 600;
+    }
+
+    body.theme-steel .prose h1, body.theme-steel .prose h2, body.theme-steel .prose h3, body.theme-steel .prose h4, body.theme-steel .prose h5, body.theme-steel .prose h6, body.theme-steel .prose strong,
+    body.theme-dark .prose h1, body.theme-dark .prose h2, body.theme-dark .prose h3, body.theme-dark .prose h4, body.theme-dark .prose h5, body.theme-dark .prose h6, body.theme-dark .prose strong {
+        color: rgb(var(--color-text-base));
+    }
+    body.theme-steel .prose p, body.theme-steel .prose ul, body.theme-steel .prose ol,
+    body.theme-dark .prose p, body.theme-dark .prose ul, body.theme-dark .prose ol {
+        color: rgb(var(--color-text-muted));
+    }
+    body.theme-steel .prose blockquote,
+    body.theme-dark .prose blockquote {
+        border-left-color: rgb(var(--color-border-muted));
+        color: rgb(var(--color-text-subtle));
+    }
+    body.theme-steel .prose a,
+    body.theme-dark .prose a {
+        color: rgb(var(--color-accent-text));
     }
   </style>
 <script type="importmap">

@@ -238,26 +238,33 @@
           <div class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
               <div class="py-1">
                   <div class="px-4 py-2 text-xs font-semibold uppercase text-[rgb(var(--color-text-subtle))]">View</div>
-                  <div (click)="toggleSidebar.emit()" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer">
+                  <div (click)="toggleTree.emit()" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer">
                       <div class="flex items-center">
-                          <span class="w-5 mr-3 flex items-center justify-center">@if (isSidebarVisible()) { <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-accent-text))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> }</span>
-                          <span>Explorer Tree</span>
+                          <span class="w-5 mr-3 flex items-center justify-center">@if (isTreeVisible()) { <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-accent-text))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> }</span>
+                          <span>Tree Pane</span>
                       </div>
-                      <span class="text-[rgb(var(--color-text-subtle))]">F9</span>
+                      <span class="text-[rgb(var(--color-text-subtle))]">F7</span>
                   </div>
                    <div (click)="toggleChat.emit()" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer">
                       <div class="flex items-center">
                           <span class="w-5 mr-3 flex items-center justify-center">@if (isChatVisible()) { <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-accent-text))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> }</span>
                           <span>Chat Pane</span>
                       </div>
-                      <span class="text-[rgb(var(--color-text-subtle))]">F10</span>
+                      <span class="text-[rgb(var(--color-text-subtle))]">F8</span>
+                  </div>
+                  <div (click)="toggleNotes.emit()" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer">
+                      <div class="flex items-center">
+                          <span class="w-5 mr-3 flex items-center justify-center">@if (isNotesVisible()) { <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-accent-text))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> }</span>
+                          <span>Notes Pane</span>
+                      </div>
+                      <span class="text-[rgb(var(--color-text-subtle))]">F9</span>
                   </div>
                   <div (click)="toggleStream.emit()" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer">
                       <div class="flex items-center">
                            <span class="w-5 mr-3 flex items-center justify-center">@if (isStreamVisible()) { <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-accent-text))]" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> }</span>
                           <span>Idea Stream Pane</span>
                       </div>
-                      <span class="text-[rgb(var(--color-text-subtle))]">F8</span>
+                      <span class="text-[rgb(var(--color-text-subtle))]">F10</span>
                   </div>
                   <div (click)="toggleSavedItems.emit()" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer">
                       <div class="flex items-center">

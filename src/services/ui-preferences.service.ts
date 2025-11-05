@@ -6,13 +6,16 @@ export type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
 
 export interface UiPreferences {
   isSidebarVisible: boolean;
+  isTreeVisible: boolean;
   isChatVisible: boolean;
+  isNotesVisible: boolean;
   isDetailPaneOpen: boolean;
   isSavedItemsVisible: boolean;
   isRssFeedVisible: boolean;
   isStreamVisible: boolean;
   sidebarWidth: number | null;
   sidebarTreeHeight: number | null;
+  sidebarChatHeight: number | null;
   splitViewPaneWidth: number | null;
   explorerStreamHeight: number | null;
   detailPaneWidth: number | null;
@@ -22,13 +25,16 @@ export interface UiPreferences {
 
 const DEFAULT_PREFERENCES: UiPreferences = {
   isSidebarVisible: true,
+  isTreeVisible: true,
   isChatVisible: true,
+  isNotesVisible: true,
   isDetailPaneOpen: true,
   isSavedItemsVisible: true,
   isRssFeedVisible: true,
   isStreamVisible: true,
   sidebarWidth: null,
   sidebarTreeHeight: null,
+  sidebarChatHeight: null,
   splitViewPaneWidth: null,
   explorerStreamHeight: null,
   detailPaneWidth: null,
@@ -44,13 +50,16 @@ export class UiPreferencesService {
 
   // Public readonly signals for consumers
   public readonly isSidebarVisible = computed(() => this.preferences().isSidebarVisible);
+  public readonly isTreeVisible = computed(() => this.preferences().isTreeVisible);
   public readonly isChatVisible = computed(() => this.preferences().isChatVisible);
+  public readonly isNotesVisible = computed(() => this.preferences().isNotesVisible);
   public readonly isDetailPaneOpen = computed(() => this.preferences().isDetailPaneOpen);
   public readonly isSavedItemsVisible = computed(() => this.preferences().isSavedItemsVisible);
   public readonly isRssFeedVisible = computed(() => this.preferences().isRssFeedVisible);
   public readonly isStreamVisible = computed(() => this.preferences().isStreamVisible);
   public readonly sidebarWidth = computed(() => this.preferences().sidebarWidth);
   public readonly sidebarTreeHeight = computed(() => this.preferences().sidebarTreeHeight);
+  public readonly sidebarChatHeight = computed(() => this.preferences().sidebarChatHeight);
   public readonly splitViewPaneWidth = computed(() => this.preferences().splitViewPaneWidth);
   public readonly explorerStreamHeight = computed(() => this.preferences().explorerStreamHeight);
   public readonly detailPaneWidth = computed(() => this.preferences().detailPaneWidth);
@@ -94,8 +103,16 @@ export class UiPreferencesService {
     this.preferences.update(p => ({ ...p, isSidebarVisible: !p.isSidebarVisible }));
   }
 
+  toggleTree(): void {
+    this.preferences.update(p => ({ ...p, isTreeVisible: !p.isTreeVisible }));
+  }
+
   toggleChat(): void {
     this.preferences.update(p => ({ ...p, isChatVisible: !p.isChatVisible }));
+  }
+
+  toggleNotes(): void {
+    this.preferences.update(p => ({ ...p, isNotesVisible: !p.isNotesVisible }));
   }
 
   toggleDetailPane(): void {
@@ -121,6 +138,10 @@ export class UiPreferencesService {
 
   setSidebarTreeHeight(height: number): void {
     this.preferences.update(p => ({ ...p, sidebarTreeHeight: height }));
+  }
+
+  setSidebarChatHeight(height: number): void {
+    this.preferences.update(p => ({ ...p, sidebarChatHeight: height }));
   }
 
   setSplitViewPaneWidth(width: number): void {
