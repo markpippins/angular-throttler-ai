@@ -87,6 +87,8 @@ export class SidebarComponent implements OnDestroy {
   private confirmDialogCallback = signal<(() => void) | null>(null);
   confirmDialogConfig = signal<{ title: string; message: string; confirmText: string }>({ title: '', message: '', confirmText: 'OK' });
   
+  currentProvider = computed(() => this.getProvider()(this.currentPath()));
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event) {
     if (!this.elementRef.nativeElement.contains(event.target)) {

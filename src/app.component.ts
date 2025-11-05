@@ -57,9 +57,9 @@ const readOnlyProviderOps = {
   move: () => Promise.reject(new Error('Operation not supported.')),
   copy: () => Promise.reject(new Error('Operation not supported.')),
   importTree: () => Promise.reject(new Error('Operation not supported.')),
-  // FIX: Added missing `getFileContent` to satisfy the FileSystemProvider interface.
-  // The home provider is a virtual directory and has no files to get content from.
   getFileContent: () => Promise.reject(new Error('Operation not supported.')),
+  getNote: () => Promise.resolve(undefined),
+  saveNote: () => Promise.reject(new Error('Operation not supported.')),
 };
 
 @Component({
@@ -666,6 +666,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
     try {
       await sourceProvider.move(sourceProviderPath, destProviderPath, itemRefs);
+      for (const item of items) {
+        const oldPath = [...sourcePath, item.name];
+        const newPath = [...destPath, item.name];
+        this.updatePathsAfterRename(oldPath, newPath);
+      }
     } catch (e) {
       alert(`Move failed: ${(e as Error).message}`);
     } finally {
@@ -763,15 +768,15 @@ export class AppComponent implements OnInit, OnDestroy {
   }
   
   // --- Sidebar Context Menu Actions ---
-  private async performTreeAction(path: string[], action: (provider: FileSystemProvider, providerPath: string[]) => Promise<any>) {
+  private async performTreeAction(path: string[], action: (provider: FileSystemProvider, providerPath: string[]) => Promise<any>): Promise<boolean> {
     try {
       const provider = this.getProviderForPath(path);
       const providerPath = path.slice(1);
       await action(provider, providerPath);
+      return true;
     } catch(e) {
       alert(`Operation failed: ${(e as Error).message}`);
-    } finally {
-      this.refreshPanes.update(v => v + 1);
+      return false;
     }
   }
 
@@ -794,6 +799,22 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  private updatePathsAfterDelete(deletedPath: string[]): void {
+    const deletedPathString = deletedPath.join('/');
+    if (!deletedPathString) return;
+
+    this.panePaths.update(paths => {
+      return paths.map(panePath => {
+        const currentPathString = panePath.path.join('/');
+        if (currentPathString.startsWith(deletedPathString)) {
+          const newPath = deletedPath.slice(0, -1);
+          return { ...panePath, path: newPath };
+        }
+        return panePath;
+      });
+    });
+  }
+
   async onPaneItemRenamed({ oldName, newName }: { oldName: string, newName: string }, parentPath: string[]): Promise<void> {
     const oldFullPath = [...parentPath, oldName];
     const newFullPath = [...parentPath, newName];
@@ -803,43 +824,63 @@ export class AppComponent implements OnInit, OnDestroy {
     this.loadFolderTree();
   }
 
+  // Handler for items deleted from a file explorer pane
+  onItemsDeleted(paths: string[][]): void {
+    for (const path of paths) {
+      this.updatePathsAfterDelete(path);
+      this.folderPropertiesService.handleDelete(path);
+    }
+  }
+  
+  // Handler for items moved within or between file explorer panes
+  onItemsMoved({ sourcePath, destPath, items }: { sourcePath: string[]; destPath: string[]; items: ItemReference[] }): void {
+    for (const item of items) {
+      const oldPath = [...sourcePath, item.name];
+      const newPath = [...destPath, item.name];
+      this.updatePathsAfterRename(oldPath, newPath);
+      this.folderPropertiesService.handleRename(oldPath, newPath);
+    }
+  }
+
   async onSidebarRenameItem({ path, newName }: { path: string[]; newName: string }): Promise<void> {
     const oldName = path[path.length - 1];
     const parentPath = path.slice(0, -1);
-    try {
-      const provider = this.getProviderForPath(parentPath);
-      const providerPath = parentPath.slice(1);
-      await provider.rename(providerPath, oldName, newName);
-
+    const success = await this.performTreeAction(parentPath, (provider, providerPath) => 
+      provider.rename(providerPath, oldName, newName)
+    );
+    if (success) {
       const newFullPath = [...parentPath, newName];
       await this.folderPropertiesService.handleRename(path, newFullPath);
       this.updatePathsAfterRename(path, newFullPath);
-    } catch(e) {
-      alert(`Operation failed: ${(e as Error).message}`);
-    } finally {
-      // The panes will update reactively because their `path` input changes.
+      this.refreshPanes.update(v => v + 1);
     }
   }
 
   async onSidebarDeleteItem(path: string[]): Promise<void> {
     const name = path[path.length - 1];
     const parentPath = path.slice(0, -1);
-    await this.performTreeAction(parentPath, async (provider, providerPath) => {
-      await provider.removeDirectory(providerPath, name); // Tree only has directories
+    const success = await this.performTreeAction(parentPath, (provider, providerPath) => 
+      provider.removeDirectory(providerPath, name) // Tree only has directories
+    );
+    if (success) {
       await this.folderPropertiesService.handleDelete(path);
-    });
+      this.updatePathsAfterDelete(path);
+      this.refreshPanes.update(v => v + 1);
+    }
   }
 
   async onSidebarNewFolder({ path, name }: { path: string[]; name: string }): Promise<void> {
-    await this.performTreeAction(path, (provider, providerPath) => 
+    const success = await this.performTreeAction(path, (provider, providerPath) => 
       provider.createDirectory(providerPath, name)
     );
+    if (success) this.refreshPanes.update(v => v + 1);
   }
 
   async onSidebarNewFile({ path, name }: { path: string[]; name: string }): Promise<void> {
-     await this.performTreeAction(path, (provider, providerPath) => 
+     const success = await this.performTreeAction(path, (provider, providerPath) => 
       provider.createFile(providerPath, name)
     );
+    if (success) this.refreshPanes.update(v => v + 1);
   }
   
   onConnectToServer(profileId: string): void {

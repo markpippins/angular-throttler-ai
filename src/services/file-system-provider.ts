@@ -18,4 +18,8 @@ export abstract class FileSystemProvider {
   abstract move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void>;
   abstract copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void>;
   abstract importTree(destPath: string[], data: FileSystemNode): Promise<void>;
+
+  // Optional methods for note-taking functionality
+  getNote?(path: string[]): Promise<string | undefined>;
+  saveNote?(path: string[], content: string): Promise<void>;
 }

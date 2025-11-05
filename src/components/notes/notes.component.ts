@@ -1,10 +1,13 @@
-import { Component, ChangeDetectionStrategy, signal, computed, ViewChild, ElementRef, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, ViewChild, ElementRef, inject, input, effect, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NoteDialogService } from '../../services/note-dialog.service.js';
+import { FileSystemProvider } from '../../services/file-system-provider.js';
 
 // Declare the globals from the CDN scripts
 declare var marked: { parse(markdown: string): string; };
 declare var DOMPurify: { sanitize(dirty: string): string; };
+
+const DEFAULT_NOTE_TEXT = '# Notes\n\n- Select a folder to view or create a note.\n- Notes are saved automatically as you type.';
 
 @Component({
   selector: 'app-notes',
@@ -13,13 +16,23 @@ declare var DOMPurify: { sanitize(dirty: string): string; };
   templateUrl: './notes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class NotesComponent {
+export class NotesComponent implements OnDestroy {
   private noteDialogService = inject(NoteDialogService);
+
+  path = input.required<string[]>();
+  provider = input.required<FileSystemProvider>();
   
-  noteContent = signal<string>('# My Notes\n\n- Start typing here...\n- Use **Markdown** for formatting.');
+  noteContent = signal<string>(DEFAULT_NOTE_TEXT);
   mode = signal<'edit' | 'preview'>('edit');
+  isLoading = signal(false);
+  private saveTimeout: any;
 
   @ViewChild('editor') editorTextarea: ElementRef<HTMLTextAreaElement> | undefined;
+
+  isNoteAvailable = computed(() => {
+    // A note is available if we are not at the 'Home' root.
+    return this.path().length > 0;
+  });
 
   renderedHtml = computed(() => {
     if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
@@ -30,17 +43,81 @@ export class NotesComponent {
     return '<p>Error: Markdown parsing libraries not loaded.</p>';
   });
 
+  constructor() {
+    effect(() => {
+      // When path or provider changes, load the note.
+      this.path();
+      this.provider();
+      this.loadNote();
+    }, { allowSignalWrites: true });
+
+    effect(() => {
+      // When content changes, schedule a save.
+      const content = this.noteContent();
+      this.scheduleSave(content);
+    });
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.saveTimeout);
+  }
+
+  private async loadNote(): Promise<void> {
+    const p = this.path();
+    const provider = this.provider();
+
+    if (!this.isNoteAvailable() || !provider.getNote) {
+      this.noteContent.set(DEFAULT_NOTE_TEXT);
+      return;
+    }
+    
+    this.isLoading.set(true);
+    try {
+      const providerPath = p.length > 0 ? p.slice(1) : [];
+      const note = await provider.getNote(providerPath);
+      this.noteContent.set(note ?? `# Notes for ${p[p.length - 1]}\n\nThis note is empty. Start typing...`);
+    } catch(e) {
+      console.error('Failed to load note:', e);
+      this.noteContent.set(`# Error\n\nCould not load note for this folder.`);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  private scheduleSave(content: string): void {
+    clearTimeout(this.saveTimeout);
+    
+    if (!this.isNoteAvailable()) {
+      return;
+    }
+
+    this.saveTimeout = setTimeout(async () => {
+      const provider = this.provider();
+      const p = this.path();
+      if (provider.saveNote) {
+        try {
+          const providerPath = p.length > 0 ? p.slice(1) : [];
+          await provider.saveNote(providerPath, content);
+        } catch (e) {
+          console.error('Failed to save note:', e);
+          // Optionally, show a toast to the user.
+        }
+      }
+    }, 500); // Debounce saves by 500ms
+  }
+
   onInput(event: Event): void {
     this.noteContent.set((event.target as HTMLTextAreaElement).value);
   }
 
   openInDialog(): void {
-    const firstLine = this.noteContent().split('\n')[0].replace(/^#+\s*/, '').trim();
-    const title = firstLine || 'Note';
+    const path = this.path();
+    const title = path.length > 0 ? `Note for ${path[path.length - 1]}` : 'Note';
     this.noteDialogService.open(this.noteContent, title);
   }
 
   applyMarkdown(prefix: string, suffix: string = prefix, placeholder: string = 'text'): void {
+    if (!this.isNoteAvailable()) return;
     const textarea = this.editorTextarea?.nativeElement;
     if (!textarea) return;
 
@@ -72,6 +149,7 @@ export class NotesComponent {
   }
 
   addLink(): void {
+    if (!this.isNoteAvailable()) return;
     const url = prompt('Enter URL:');
     if (url) {
       this.applyMarkdown('[', `](${url})`, 'link text');
@@ -79,6 +157,7 @@ export class NotesComponent {
   }
 
   applyCode(): void {
+    if (!this.isNoteAvailable()) return;
     const textarea = this.editorTextarea?.nativeElement;
     if (!textarea) return;
 

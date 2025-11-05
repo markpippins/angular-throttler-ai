@@ -51,4 +51,12 @@ export class FsService {
   copy(brokerUrl: string, fromAlias: string, fromPath: string[], toAlias: string, toPath: string[]): Promise<void> {
     return this.brokerService.submitRequest(brokerUrl, SERVICE_NAME, 'copy', { fromAlias, fromPath, toAlias, toPath });
   }
+
+  async getNote(brokerUrl: string, alias: string, path: string[]): Promise<{ content: string }> {
+    return this.brokerService.submitRequest<{ content: string }>(brokerUrl, SERVICE_NAME, 'getNote', { alias, path });
+  }
+
+  saveNote(brokerUrl: string, alias: string, path: string[], content: string): Promise<void> {
+    return this.brokerService.submitRequest(brokerUrl, SERVICE_NAME, 'saveNote', { alias, path, content });
+  }
 }

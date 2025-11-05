@@ -135,7 +135,9 @@
               (sortChange)="onSortChange($event)"
               (saveBookmark)="onSaveBookmark($event)"
               (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
-              (itemRenamed)="onPaneItemRenamed($event, pane1Path())">
+              (itemRenamed)="onPaneItemRenamed($event, pane1Path())"
+              (itemsDeleted)="onItemsDeleted($event)"
+              (itemsMoved)="onItemsMoved($event)">
             </app-file-explorer>
           </div>
 
@@ -168,7 +170,9 @@
                 (sortChange)="onSortChange($event)"
                 (saveBookmark)="onSaveBookmark($event)"
                 (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
-                (itemRenamed)="onPaneItemRenamed($event, pane2Path())">
+                (itemRenamed)="onPaneItemRenamed($event, pane2Path())"
+                (itemsDeleted)="onItemsDeleted($event)"
+                (itemsMoved)="onItemsMoved($event)">
               </app-file-explorer>
             </div>
           }

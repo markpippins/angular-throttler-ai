@@ -5,10 +5,16 @@ import { RssFeed } from '../models/rss-feed.model.js';
 import { FolderProperties } from '../models/folder-properties.model.js';
 
 const DB_NAME = 'file-explorer-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4; // Incremented version
 const PROFILES_STORE = 'server-profiles';
 const FEEDS_STORE = 'rss-feeds';
 const FOLDER_PROPERTIES_STORE = 'folder-properties';
+const NOTES_STORE = 'notes'; // New store for notes
+
+export interface Note {
+  path: string; // The key, e.g., "Local Session/Documents"
+  content: string;
+}
 
 interface FileExplorerDB extends DBSchema {
   [PROFILES_STORE]: {
@@ -23,6 +29,10 @@ interface FileExplorerDB extends DBSchema {
     key: string;
     value: FolderProperties;
     indexes: { 'by-path': string };
+  };
+  [NOTES_STORE]: { // Schema for the new store
+    key: string;
+    value: Note;
   };
 }
 
@@ -46,6 +56,11 @@ export class DbService {
         if (oldVersion < 3) {
            if (!db.objectStoreNames.contains(FOLDER_PROPERTIES_STORE)) {
             db.createObjectStore(FOLDER_PROPERTIES_STORE, { keyPath: 'path' });
+          }
+        }
+        if (oldVersion < 4) {
+          if (!db.objectStoreNames.contains(NOTES_STORE)) {
+            db.createObjectStore(NOTES_STORE, { keyPath: 'path' });
           }
         }
       },
@@ -111,5 +126,27 @@ export class DbService {
   async deleteFolderProperties(path: string): Promise<void> {
     const db = await this.dbPromise;
     await db.delete(FOLDER_PROPERTIES_STORE, path);
+  }
+
+  // --- Note Methods ---
+
+  async getNote(path: string): Promise<Note | undefined> {
+    const db = await this.dbPromise;
+    return db.get(NOTES_STORE, path);
+  }
+
+  async saveNote(note: Note): Promise<void> {
+    const db = await this.dbPromise;
+    await db.put(NOTES_STORE, note);
+  }
+
+  async deleteNote(path: string): Promise<void> {
+    const db = await this.dbPromise;
+    await db.delete(NOTES_STORE, path);
+  }
+
+  async getAllNotes(): Promise<Note[]> {
+    const db = await this.dbPromise;
+    return db.getAll(NOTES_STORE);
   }
 }

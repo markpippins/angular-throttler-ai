@@ -127,4 +127,19 @@ export class RemoteFileSystemService implements FileSystemProvider {
   importTree(destPath: string[], data: FileSystemNode): Promise<void> {
     return Promise.reject(new Error('Import operation is not supported for remote file systems.'));
   }
+
+  async getNote(path: string[]): Promise<string | undefined> {
+    try {
+      const response = await this.fsService.getNote(this.profile.brokerUrl, this.alias, path);
+      return response.content;
+    } catch (e) {
+      // It's common for notes not to exist, so we swallow "not found" errors.
+      console.warn(`Could not retrieve note for ${[this.profile.name, ...path].join('/')}:`, e);
+      return undefined;
+    }
+  }
+
+  saveNote(path: string[], content: string): Promise<void> {
+    return this.fsService.saveNote(this.profile.brokerUrl, this.alias, path, content);
+  }
 }

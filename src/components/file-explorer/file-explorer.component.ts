@@ -107,6 +107,8 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   itemSelected = output<FileSystemNode | null>();
   itemRenamed = output<{ oldName: string, newName: string }>();
   directoryChanged = output<void>();
+  itemsDeleted = output<string[][]>();
+  itemsMoved = output<{ sourcePath: string[]; destPath: string[]; items: ItemReference[] }>();
   statusChanged = output<{
     selectedItemsCount: number;
     totalItemsCount: number;
@@ -454,10 +456,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     }
   }
 
-  async loadContents(): Promise<void> {
-    await this._loadContents();
-  }
-
   async loadThumbnailsForVisibleItems(): Promise<void> {
     const items = this.filteredItems();
     const imageItems = items.filter(item => this.isImageFile(item.name));
@@ -722,7 +720,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     if (name) {
       try {
         await this.fileSystemProvider().createDirectory(this.providerPath(), name);
-        await this.loadContents();
         this.directoryChanged.emit();
       } catch (e) {
         alert(`Error creating folder: ${(e as Error).message}`);
@@ -740,7 +737,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     if (name) {
       try {
         await this.fileSystemProvider().createFile(this.providerPath(), name);
-        await this.loadContents();
         this.directoryChanged.emit();
       } catch (e) {
         alert(`Error creating file: ${(e as Error).message}`);
@@ -755,7 +751,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     } catch (e) {
       alert(`Error uploading files: ${(e as Error).message}`);
     } finally {
-      await this.loadContents();
+      this.directoryChanged.emit();
     }
   }
   
@@ -779,6 +775,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
       const sourceProviderPath = clip.sourcePath.length > 0 ? clip.sourcePath.slice(1) : [];
       if (clip.operation === 'cut') {
         await clip.sourceProvider.move(sourceProviderPath, this.providerPath(), itemRefs);
+        this.itemsMoved.emit({ sourcePath: clip.sourcePath, destPath: this.path(), items: itemRefs });
         this.clipboardService.clear();
       } else {
         await clip.sourceProvider.copy(sourceProviderPath, this.providerPath(), itemRefs);
@@ -786,7 +783,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     } catch (e) {
       alert(`Paste failed: ${(e as Error).message}`);
     } finally {
-      await this.loadContents();
       this.directoryChanged.emit();
     }
   }
@@ -819,9 +815,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     try {
       await this.fileSystemProvider().rename(this.providerPath(), oldName, trimmedNewName);
       this.itemRenamed.emit({ oldName, newName: trimmedNewName });
-      await this.loadContents();
-      this.handleSingleSelection(trimmedNewName);
-      this.updateSingleSelectedItem();
       this.directoryChanged.emit();
     } catch (e) {
       alert(`Rename failed: ${(e as Error).message}`);
@@ -840,7 +833,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     const newName = `${oldName}.magnet`;
     try {
       await this.fileSystemProvider().rename(this.providerPath(), oldName, newName);
-      await this.loadContents();
       this.directoryChanged.emit();
     } catch (e) {
       alert(`Failed to magnetize folder: ${(e as Error).message}`);
@@ -857,11 +849,11 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
             await this.fileSystemProvider().copy(this.providerPath(), destProviderPath, items);
         } else {
             await this.fileSystemProvider().move(this.providerPath(), destProviderPath, items);
+            this.itemsMoved.emit({ sourcePath: this.path(), destPath, items });
         }
     } catch (e) {
         alert(`${operation} failed: ${(e as Error).message}`);
     } finally {
-        await this.loadContents();
         this.closeDestinationSubMenu();
         this.directoryChanged.emit();
     }
@@ -895,6 +887,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   
   private async executeDelete(): Promise<void> {
     const selectedNodes = this.getSelectedNodes();
+    const successfullyDeletedPaths: string[][] = [];
     try {
       for (const node of selectedNodes) {
         if (node.type === 'folder') {
@@ -902,14 +895,17 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
         } else {
           await this.fileSystemProvider().deleteFile(this.providerPath(), node.name);
         }
+        successfullyDeletedPaths.push([...this.path(), node.name]);
       }
     } catch (e) {
       alert(`Delete failed: ${(e as Error).message}`);
     } finally {
       this.selectedItems.set(new Set());
       this.updateSingleSelectedItem();
-      await this.loadContents();
-      this.directoryChanged.emit();
+      if (successfullyDeletedPaths.length > 0) {
+        this.itemsDeleted.emit(successfullyDeletedPaths);
+        this.directoryChanged.emit();
+      }
     }
   }
   
@@ -940,7 +936,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
       const fullPath = [...this.path(), item.name];
       await this.folderPropertiesService.updateProperties(fullPath, props);
       this.closePropertiesDialog();
-      await this.loadContents();
       this.directoryChanged.emit();
     }
   }
@@ -1049,6 +1044,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   
       const nonConflicting: FileSystemNode[] = [];
       const conflicting: FileSystemNode[] = [];
+      const successfullyMovedItems: ItemReference[] = [];
   
       for (const item of items) {
         if (destContents.some(destItem => destItem.name === item.name)) {
@@ -1063,6 +1059,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
       // 1. Move all non-conflicting items immediately.
       if (nonConflicting.length > 0) {
         await sourceProvider.move(sourceProviderPath, destProviderPath, nonConflicting.map(this.getItemReference));
+        successfullyMovedItems.push(...nonConflicting.map(this.getItemReference));
       }
   
       // 2. Sequentially handle all conflicts.
@@ -1079,6 +1076,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
             await destProvider.deleteFile(destProviderPath, conflict.name);
           }
           await sourceProvider.move(sourceProviderPath, destProviderPath, [this.getItemReference(conflict)]);
+          successfullyMovedItems.push(this.getItemReference(conflict));
         } else if (resolution === 'merge' && conflict.type === 'folder') {
           const sourceItemPath = [...sourcePath, conflict.name];
           const destItemPath = [...destPath, conflict.name];
@@ -1088,17 +1086,20 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
           const sourceChildren = await sourceProvider.getContents(sourceItemProviderPath);
           
           if (sourceChildren.length > 0) {
-            // This could have internal conflicts, which we'll let fail for now.
             await sourceProvider.move(sourceItemProviderPath, destItemProviderPath, sourceChildren.map(this.getItemReference));
           }
           await sourceProvider.removeDirectory(sourceProviderPath, conflict.name);
+          successfullyMovedItems.push(this.getItemReference(conflict));
         }
       }
+      
+      if (successfullyMovedItems.length > 0) {
+        this.itemsMoved.emit({ sourcePath, destPath, items: successfullyMovedItems });
+        this.directoryChanged.emit();
+      }
+
     } catch (e) {
       alert(`Operation failed: ${(e as Error).message}`);
-    } finally {
-      this.loadContents();
-      this.directoryChanged.emit();
     }
   }
 
