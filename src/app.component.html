@@ -264,6 +264,14 @@
     </app-webview-dialog>
   }
 
+  @if (noteDialogContent(); as content) {
+    <app-note-view-dialog
+      [htmlContent]="content.html"
+      [title]="content.title"
+      (close)="noteDialogService.close()">
+    </app-note-view-dialog>
+  }
+
   <!-- Theme Dropdown -->
   @if (isThemeDropdownOpen()) {
     <div 

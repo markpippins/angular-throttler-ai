@@ -33,6 +33,8 @@ import { RssFeedsDialogComponent } from './components/rss-feeds-dialog/rss-feeds
 import { ImportDialogComponent } from './components/import-dialog/import-dialog.component.js';
 import { ExportDialogComponent } from './components/export-dialog/export-dialog.component.js';
 import { FolderPropertiesService } from './services/folder-properties.service.js';
+import { NoteDialogService } from './services/note-dialog.service.js';
+import { NoteViewDialogComponent } from './components/note-view-dialog/note-view-dialog.component.js';
 
 interface PanePath {
   id: number;
@@ -64,7 +66,7 @@ const readOnlyProviderOps = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, NoteViewDialogComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -82,6 +84,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private bookmarkService = inject(BookmarkService);
   private toastService = inject(ToastService);
   private webviewService = inject(WebviewService);
+  private noteDialogService = inject(NoteDialogService);
   private folderPropertiesService = inject(FolderPropertiesService);
   private injector = inject(Injector);
   private document: Document = inject(DOCUMENT);
@@ -270,7 +273,10 @@ export class AppComponent implements OnInit, OnDestroy {
   canPaste = computed(() => !!this.clipboardService.clipboard());
 
   // --- Webview Dialog State ---
-  webviewContent = signal<{url: string, title: string} | null>(null);
+  webviewContent = this.webviewService.viewRequest;
+
+  // --- Note View Dialog State ---
+  noteDialogContent = this.noteDialogService.viewRequest;
 
   // --- Specific node for import/export dialogs ---
   localSessionNode = computed(() => {
@@ -320,10 +326,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
     effect(() => {
       this.document.body.className = this.currentTheme();
-    });
-
-    effect(() => {
-      this.webviewContent.set(this.webviewService.viewRequest());
     });
     
     // When profiles change, or local config name changes, reload the tree
@@ -1004,6 +1006,11 @@ export class AppComponent implements OnInit, OnDestroy {
       if (this.webviewContent()) {
         event.preventDefault();
         this.webviewService.close();
+        return;
+      }
+      if (this.noteDialogContent()) {
+        event.preventDefault();
+        this.noteDialogService.close();
         return;
       }
       if (this.isLocalConfigDialogOpen()) {
