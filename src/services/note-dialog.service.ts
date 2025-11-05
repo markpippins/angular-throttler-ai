@@ -1,13 +1,13 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, WritableSignal } from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
 })
 export class NoteDialogService {
-  viewRequest = signal<{ html: string; title: string } | null>(null);
+  viewRequest = signal<{ contentSignal: WritableSignal<string>; title: string } | null>(null);
 
-  open(html: string, title: string = 'Note Preview'): void {
-    this.viewRequest.set({ html, title });
+  open(contentSignal: WritableSignal<string>, title: string = 'Note'): void {
+    this.viewRequest.set({ contentSignal, title });
   }
 
   close(): void {

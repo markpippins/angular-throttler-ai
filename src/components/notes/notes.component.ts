@@ -37,7 +37,7 @@ export class NotesComponent {
   openInDialog(): void {
     const firstLine = this.noteContent().split('\n')[0].replace(/^#+\s*/, '').trim();
     const title = firstLine || 'Note';
-    this.noteDialogService.open(this.renderedHtml(), title);
+    this.noteDialogService.open(this.noteContent, title);
   }
 
   applyMarkdown(prefix: string, suffix: string = prefix, placeholder: string = 'text'): void {

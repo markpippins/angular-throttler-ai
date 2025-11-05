@@ -266,7 +266,7 @@
 
   @if (noteDialogContent(); as content) {
     <app-note-view-dialog
-      [htmlContent]="content.html"
+      [contentSignal]="content.contentSignal"
       [title]="content.title"
       (close)="noteDialogService.close()">
     </app-note-view-dialog>
