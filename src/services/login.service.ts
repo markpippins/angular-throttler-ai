@@ -18,8 +18,20 @@ interface LoginResponse {
 export class LoginService {
   private brokerService = inject(BrokerService);
 
+  private constructBrokerUrl(baseUrl: string): string {
+    let fullUrl = baseUrl.trim();
+    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        fullUrl = `http://${fullUrl}`;
+    }
+    if (fullUrl.endsWith('/')) {
+        fullUrl = fullUrl.slice(0, -1);
+    }
+    fullUrl += '/api/broker/submitRequest';
+    return fullUrl;
+  }
+
   async login(profile: ServerProfile, username: string, password: string): Promise<User> {
-    const response = await this.brokerService.submitRequest<LoginResponse>(profile.brokerUrl, SERVICE_NAME, 'login', {
+    const response = await this.brokerService.submitRequest<LoginResponse>(this.constructBrokerUrl(profile.brokerUrl), SERVICE_NAME, 'login', {
         alias: username,
         identifier: password
     });

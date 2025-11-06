@@ -63,9 +63,10 @@
             </div>
 
             <div>
-              <label for="brokerUrl" class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Broker URL</label>
-              <input type="text" id="brokerUrl" [value]="form.brokerUrl" (input)="onFormValueChange($event, 'brokerUrl')" placeholder="e.g., http://localhost:8080/api/broker/submitRequest"
+              <label for="brokerUrl" class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Broker Address</label>
+              <input type="text" id="brokerUrl" [value]="form.brokerUrl" (input)="onFormValueChange($event, 'brokerUrl')" placeholder="e.g., localhost:8080"
                     class="mt-1 block w-full px-3 py-2 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] sm:text-sm">
+              <p class="mt-1 text-xs text-[rgb(var(--color-text-subtle))]">The path "/api/broker/submitRequest" will be appended automatically.</p>
             </div>
 
             <div>
