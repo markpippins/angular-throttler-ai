@@ -507,19 +507,12 @@ export class SessionService implements FileSystemProvider {
 
   async getNote(providerPath: string[]): Promise<string | undefined> {
     const fullPath = this.getFullPath(providerPath);
-    if (fullPath.length === 1 && fullPath[0] === this.localConfigService.sessionName()) {
-        // This is the root of the session, not a specific folder. Notes are per-folder.
-        return undefined;
-    }
     const note = await this.dbService.getNote(fullPath.join('/'));
     return note?.content;
   }
 
   async saveNote(providerPath: string[], content: string): Promise<void> {
     const fullPath = this.getFullPath(providerPath);
-     if (fullPath.length === 1 && fullPath[0] === this.localConfigService.sessionName()) {
-        throw new Error("Cannot save a note on the root of the local session.");
-    }
     await this.dbService.saveNote({ path: fullPath.join('/'), content });
   }
 }

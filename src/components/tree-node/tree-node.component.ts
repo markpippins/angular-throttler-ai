@@ -81,8 +81,9 @@ export class TreeNodeComponent implements OnInit {
     
     const folderChildren = children.filter(c => c.type === 'folder');
 
-    // Special sorting for children of the root "Home" node
-    if (this.level() === 0) {
+    // Special sorting for children of the root "Home" node.
+    // The Home node is the only one that directly contains server roots.
+    if (folderChildren.some(c => c.isServerRoot)) {
       const localNode = folderChildren.find(item => !item.isServerRoot);
       const serverNodes = folderChildren.filter(item => item.isServerRoot);
       

@@ -30,8 +30,9 @@ export class NotesComponent implements OnDestroy {
   @ViewChild('editor') editorTextarea: ElementRef<HTMLTextAreaElement> | undefined;
 
   isNoteAvailable = computed(() => {
-    // A note is available if we are not at the 'Home' root.
-    return this.path().length > 0;
+    // A note is available if the current provider implements the note-taking methods.
+    const provider = this.provider();
+    return !!(provider.getNote && provider.saveNote);
   });
 
   renderedHtml = computed(() => {
@@ -75,7 +76,7 @@ export class NotesComponent implements OnDestroy {
     try {
       const providerPath = p.length > 0 ? p.slice(1) : [];
       const note = await provider.getNote(providerPath);
-      this.noteContent.set(note ?? `# Notes for ${p[p.length - 1]}\n\nThis note is empty. Start typing...`);
+      this.noteContent.set(note ?? `# Notes for ${p.length > 0 ? p[p.length - 1] : 'Home'}\n\nThis note is empty. Start typing...`);
     } catch(e) {
       console.error('Failed to load note:', e);
       this.noteContent.set(`# Error\n\nCould not load note for this folder.`);

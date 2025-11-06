@@ -476,6 +476,22 @@
     }
   </div>
 
+  <!-- New File Explorer Status Bar -->
+  <div class="h-7 p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface))] flex items-center">
+    @if (status(); as s) {
+      @if (s.selectedItemsCount > 0) {
+        <span class="mr-4">{{ s.selectedItemsCount }} item(s) selected</span>
+      }
+      @if (s.filteredItemsCount !== null) {
+        <span>{{ s.filteredItemsCount }} of {{ s.totalItemsCount }} items</span>
+      } @else {
+        <span>{{ s.totalItemsCount }} items</span>
+      }
+    } @else {
+      <span>&nbsp;</span>
+    }
+  </div>
+
   <!-- Context Menu -->
   @if (contextMenu(); as cm) {
     <div class="fixed w-52 bg-[rgb(var(--color-surface-dialog))] border border-[rgb(var(--color-border-base))] rounded-md shadow-lg py-1 text-sm text-[rgb(var(--color-text-muted))] z-50"

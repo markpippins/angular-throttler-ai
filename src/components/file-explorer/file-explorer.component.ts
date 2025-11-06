@@ -119,6 +119,11 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   bookmarkDropped = output<{ bookmark: NewBookmark, dropOn: FileSystemNode }>();
 
   state = signal<FileSystemState>({ status: 'loading', items: [] });
+  status = signal<{
+    selectedItemsCount: number;
+    totalItemsCount: number;
+    filteredItemsCount: number | null;
+  }>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
   contextMenu = signal<{ x: number; y: number; item: FileSystemNode | null } | null>(null);
   previewItem = signal<FileSystemNode | null>(null);
   failedImageItems = signal<Set<string>>(new Set());
@@ -371,14 +376,18 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
         const totalItems = this.state().items.length;
         const filteredItemsCount = this.filteredItems().length;
         const hasFilter = this.filterQuery().trim().length > 0;
+        
+        const newStatus = {
+            selectedItemsCount: selectionSize,
+            totalItemsCount: totalItems,
+            filteredItemsCount: hasFilter ? filteredItemsCount : null,
+        };
+
+        this.status.set(newStatus);
 
         // We emit the output in a microtask to prevent ExpressionChangedAfterItHasBeenCheckedError.
         Promise.resolve().then(() => {
-            this.statusChanged.emit({
-                selectedItemsCount: selectionSize,
-                totalItemsCount: totalItems,
-                filteredItemsCount: hasFilter ? filteredItemsCount : null,
-            });
+            this.statusChanged.emit(newStatus);
         });
     });
     

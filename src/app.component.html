@@ -192,19 +192,8 @@
   </main>
 
   <!-- Footer/Status Bar -->
-  <div class="p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface))]">
-    @if (activePaneStatus(); as status) {
-      @if (status.selectedItemsCount > 0) {
-        <span class="mr-4">{{ status.selectedItemsCount }} item(s) selected</span>
-      }
-      @if (status.filteredItemsCount !== null) {
-        <span>{{ status.filteredItemsCount }} of {{ status.totalItemsCount }} items</span>
-      } @else {
-        <span>{{ status.totalItemsCount }} items</span>
-      }
-    } @else {
-      <span>&nbsp;</span>
-    }
+  <div class="h-7 p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface))] flex items-center">
+    <span class="truncate">{{ statusBarSelectionInfo() }}</span>
   </div>
 
   @if(isServerProfilesDialogOpen()) {

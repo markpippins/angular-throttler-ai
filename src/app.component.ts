@@ -35,6 +35,7 @@ import { ExportDialogComponent } from './components/export-dialog/export-dialog.
 import { FolderPropertiesService } from './services/folder-properties.service.js';
 import { NoteDialogService } from './services/note-dialog.service.js';
 import { NoteViewDialogComponent } from './components/note-view-dialog/note-view-dialog.component.js';
+import { DbService } from './services/db.service.js';
 
 interface PanePath {
   id: number;
@@ -58,8 +59,6 @@ const readOnlyProviderOps = {
   copy: () => Promise.reject(new Error('Operation not supported.')),
   importTree: () => Promise.reject(new Error('Operation not supported.')),
   getFileContent: () => Promise.reject(new Error('Operation not supported.')),
-  getNote: () => Promise.resolve(undefined),
-  saveNote: () => Promise.reject(new Error('Operation not supported.')),
 };
 
 @Component({
@@ -90,6 +89,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private document: Document = inject(DOCUMENT);
   private renderer = inject(Renderer2);
   private elementRef = inject(ElementRef);
+  private dbService = inject(DbService);
   private uiPreferencesService = inject(UiPreferencesService);
   private homeProvider: FileSystemProvider;
 
@@ -142,6 +142,23 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.pane2Status();
   });
   
+  statusBarSelectionInfo = computed(() => {
+    const item = this.selectedDetailItem();
+    if (!item) {
+        return 'Ready';
+    }
+
+    if (item.isServerRoot) {
+        const profile = this.profileService.profiles().find(p => p.name === item.name);
+        if (profile) {
+            return `Server Profile: ${profile.name} | Broker: ${profile.brokerUrl}`;
+        }
+    }
+    
+    const itemType = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+    return `${itemType}: ${item.name}`;
+  });
+
   // --- Theme Management ---
   currentTheme = this.uiPreferencesService.theme;
   themes: {id: Theme, name: string}[] = [
@@ -288,6 +305,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.getProvider = this.getProviderForPath.bind(this);
     this.getImageService = this.getImageServiceForPath.bind(this);
 
+    const homeNotePath = '__HOME_NOTE__';
+
     this.homeProvider = {
       getContents: async (path: string[]) => {
         if (path.length > 0) return [];
@@ -309,7 +328,18 @@ export class AppComponent implements OnInit, OnDestroy {
         const children = await this.homeProvider.getContents([]);
         return { name: 'Home', type: 'folder', children };
       },
-      ...readOnlyProviderOps
+      ...readOnlyProviderOps,
+      getNote: async (path: string[]): Promise<string | undefined> => {
+        if (path.length > 0) return undefined; 
+        const note = await this.dbService.getNote(homeNotePath);
+        return note?.content;
+      },
+      saveNote: async (path: string[], content: string): Promise<void> => {
+        if (path.length > 0) {
+          throw new Error('Operation not supported.');
+        }
+        await this.dbService.saveNote({ path: homeNotePath, content });
+      }
     };
     
     effect(() => {
@@ -325,7 +355,10 @@ export class AppComponent implements OnInit, OnDestroy {
     }, { allowSignalWrites: true });
 
     effect(() => {
-      this.document.body.className = this.currentTheme();
+      const theme = this.currentTheme();
+      // This is more robust as it doesn't wipe out other potential body classes.
+      this.themes.forEach(t => this.renderer.removeClass(this.document.body, t.id));
+      this.renderer.addClass(this.document.body, theme);
     });
     
     // When profiles change, or local config name changes, reload the tree
@@ -343,7 +376,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.document.body.className = '';
+    this.renderer.removeClass(this.document.body, this.currentTheme());
     this.stopPaneResize();
   }
 
