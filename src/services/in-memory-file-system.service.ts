@@ -43,6 +43,7 @@ export class SessionService implements FileSystemProvider {
         name: 'Documents',
         type: 'folder',
         children: [
+          { name: 'README.md', type: 'file', content: '# Documents Folder\n\nThis folder contains project briefs and quarterly results.', modified: '2023-10-26T09:00:00Z' },
           { name: 'project-brief.docx', type: 'file', content: 'Project brief content.', modified: '2023-10-26T10:00:00Z' },
           { name: 'quarterly-results.xlsx', type: 'file', content: 'Spreadsheet data.', modified: '2023-10-25T14:30:00Z' },
         ],
@@ -61,6 +62,7 @@ export class SessionService implements FileSystemProvider {
         name: 'Work',
         type: 'folder',
         children: [
+          { name: 'README.md', type: 'file', content: '## Work Directory\n\nContains subdirectories for `Dev`, `Devops`, and `Resources`.', modified: '2023-10-26T10:59:00Z' },
           {
             name: 'Dev',
             type: 'folder',

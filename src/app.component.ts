@@ -55,6 +55,8 @@ import { ImageResultListItemComponent } from './components/stream-list-items/ima
 import { GeminiResultListItemComponent } from './components/stream-list-items/gemini-result-list-item.component.js';
 import { YoutubeResultListItemComponent } from './components/stream-list-items/youtube-result-list-item.component.js';
 import { AcademicResultListItemComponent } from './components/stream-list-items/academic-result-list-item.component.js';
+import { TabControlComponent } from './components/tabs/tab-control.component.js';
+import { TabComponent } from './components/tabs/tab.component.js';
 
 interface PanePath {
   id: number;
@@ -101,7 +103,7 @@ const readOnlyProviderOps = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, NoteViewDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, NoteViewDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, TabControlComponent, TabComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -156,6 +158,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isSavedItemsVisible = this.uiPreferencesService.isSavedItemsVisible;
   isRssFeedVisible = this.uiPreferencesService.isRssFeedVisible;
   isStreamVisible = this.uiPreferencesService.isStreamVisible;
+  isConsoleCollapsed = this.uiPreferencesService.isConsoleCollapsed;
   
   // Keep track of each pane's path
   private panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
@@ -349,6 +352,12 @@ export class AppComponent implements OnInit, OnDestroy {
   isBottomPaneCollapsed = signal(false);
   private unlistenBottomPaneMouseMove: (() => void) | null = null;
   private unlistenBottomPaneMouseUp: (() => void) | null = null;
+
+  // --- Console Pane State ---
+  consolePaneHeight = signal(this.uiPreferencesService.explorerConsoleHeight() ?? 20);
+  isResizingConsolePane = signal(false);
+  private unlistenConsolePaneMouseMove: (() => void) | null = null;
+  private unlistenConsolePaneMouseUp: (() => void) | null = null;
   
   private streamResults1 = signal<StreamItem[]>([]);
   private streamResults2 = signal<StreamItem[]>([]);
@@ -542,6 +551,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.renderer.removeClass(this.document.body, this.currentTheme());
     this.stopPaneResize();
     this.stopBottomPaneResize();
+    this.stopConsolePaneResize();
   }
 
   private async loadAllStreamResults(query1: string, query2: string): Promise<void> {
@@ -768,6 +778,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   toggleStream(): void {
     this.uiPreferencesService.toggleStream();
+  }
+
+  toggleConsole(): void {
+    this.uiPreferencesService.toggleConsole();
   }
 
   onItemSelectedInPane(item: FileSystemNode | null): void {
@@ -1357,6 +1371,13 @@ export class AppComponent implements OnInit, OnDestroy {
         this.toggleSplitView();
         return;
     }
+    
+    // Toggle Console View: Ctrl+` - should work anywhere
+    if (event.ctrlKey && event.key === '`') {
+        event.preventDefault();
+        this.toggleConsole();
+        return;
+    }
 
     // Toggle Details Pane: Ctrl+Shift+D - should work anywhere
     if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'd') {
@@ -1488,6 +1509,48 @@ export class AppComponent implements OnInit, OnDestroy {
           this.unlistenBottomPaneMouseUp = null;
       }
       this.uiPreferencesService.setExplorerStreamHeight(this.bottomPaneHeight());
+  }
+
+  // --- Console Pane Methods ---
+  startConsolePaneResize(event: MouseEvent): void {
+    this.isResizingConsolePane.set(true);
+    const container = this.mainContentWrapperEl.nativeElement;
+    const containerRect = container.getBoundingClientRect();
+
+    event.preventDefault();
+    this.renderer.setStyle(this.document.body, 'user-select', 'none');
+
+    this.unlistenConsolePaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+        const mouseY = e.clientY - containerRect.top;
+        const totalHeight = containerRect.height;
+        let newHeightPercent = ((totalHeight - mouseY) / totalHeight) * 100;
+
+        const minHeightPercent = 10;
+        const maxHeightPercent = 85;
+        if (newHeightPercent < minHeightPercent) newHeightPercent = minHeightPercent;
+        if (newHeightPercent > maxHeightPercent) newHeightPercent = maxHeightPercent;
+
+        this.consolePaneHeight.set(newHeightPercent);
+    });
+    
+    this.unlistenConsolePaneMouseUp = this.renderer.listen('document', 'mouseup', () => {
+        this.stopConsolePaneResize();
+    });
+  }
+
+  private stopConsolePaneResize(): void {
+      if (!this.isResizingConsolePane()) return;
+      this.isResizingConsolePane.set(false);
+      this.renderer.removeStyle(this.document.body, 'user-select');
+      if (this.unlistenConsolePaneMouseMove) {
+          this.unlistenConsolePaneMouseMove();
+          this.unlistenConsolePaneMouseMove = null;
+      }
+      if (this.unlistenConsolePaneMouseUp) {
+          this.unlistenConsolePaneMouseUp();
+          this.unlistenConsolePaneMouseUp = null;
+      }
+      this.uiPreferencesService.setExplorerConsoleHeight(this.consolePaneHeight());
   }
 
   toggleBottomPane(): void {

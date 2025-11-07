@@ -18,6 +18,10 @@ import { FolderPropertiesService } from '../../services/folder-properties.servic
 import { FolderProperties } from '../../models/folder-properties.model.js';
 import { ConflictDialogComponent, ConflictResolution } from '../conflict-dialog/conflict-dialog.component.js';
 
+// Declare the globals from the CDN scripts for Markdown parsing
+declare var marked: { parse(markdown: string): string; };
+declare var DOMPurify: { sanitize(dirty: string): string; };
+
 interface FileSystemState {
   status: 'loading' | 'success' | 'error';
   items: FileSystemNode[];
@@ -122,6 +126,19 @@ export class FileExplorerComponent implements OnDestroy {
   private readonly CLICK_DELAY = 300; // ms
 
   dragOverListItemName = signal<string | null>(null);
+
+  // --- README Banner State ---
+  readmeContent = signal<string | null>(null);
+  isReadmeLoading = signal(false);
+  renderedReadmeHtml = computed(() => {
+    const content = this.readmeContent();
+    if (!content) return null;
+    if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+        const rawHtml = marked.parse(content);
+        return DOMPurify.sanitize(rawHtml);
+    }
+    return '<p>Error: Markdown parsing libraries not loaded.</p>';
+  });
 
   // --- Conflict Dialog State ---
   conflictState = signal<{ conflictingItem: FileSystemNode; callback: (res: ConflictResolution) => void } | null>(null);
@@ -280,9 +297,29 @@ export class FileExplorerComponent implements OnDestroy {
   
   private async _loadContents(): Promise<void> {
     this.state.set({ status: 'loading', items: [] });
+    this.readmeContent.set(null); // Clear readme on navigation
+    this.isReadmeLoading.set(false);
     try {
       const items = await this.fileSystemProvider().getContents(this.providerPath());
       this.state.set({ status: 'success', items: items });
+
+      // Check for README.md
+      const readmeFile = items.find(item => item.name.toLowerCase() === 'readme.md' && item.type === 'file');
+      if (readmeFile) {
+        this.isReadmeLoading.set(true);
+        this.fileSystemProvider().getFileContent(this.providerPath(), readmeFile.name)
+          .then(content => {
+            this.readmeContent.set(content);
+          })
+          .catch(e => {
+            console.error('Failed to load README.md content', e);
+            this.readmeContent.set(null); // Ensure it's null on error
+          })
+          .finally(() => {
+            this.isReadmeLoading.set(false);
+          });
+      }
+
     } catch (e: unknown) {
       this.state.set({ status: 'error', items: [], error: (e as Error).message });
     }

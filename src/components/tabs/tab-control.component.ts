@@ -3,6 +3,7 @@ import { TabComponent } from './tab.component.js';
 
 @Component({
   selector: 'app-tab-control',
+  standalone: true,
   templateUrl: './tab-control.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -10,8 +11,8 @@ export class TabControlComponent {
   tabs = contentChildren(TabComponent);
 
   activeTabIndex = signal(0);
-  collapseClick = output<void>();
-  showCollapseButton = input(true);
+  isCollapsed = input(false);
+  toggleCollapse = output<void>();
 
   constructor() {
     effect(() => {

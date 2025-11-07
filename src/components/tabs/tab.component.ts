@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, input, signal } from '@angular/core
 
 @Component({
   selector: 'app-tab',
+  standalone: true,
   template: `
     @if (active()) {
       <div class="h-full">

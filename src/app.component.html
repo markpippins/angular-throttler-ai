@@ -188,7 +188,7 @@
 
         @if (isStreamVisible()) {
           @if (!isBottomPaneCollapsed()) {
-            <!-- Resizer -->
+            <!-- Resizer for Panes vs Stream -->
             <div (mousedown)="startBottomPaneResize($event)" class="h-1.5 w-full flex-shrink-0 cursor-row-resize group flex items-center justify-center bg-[rgb(var(--color-surface-muted))] border-y border-[rgb(var(--color-border-base))]">
               <div class="h-0.5 w-full bg-[rgb(var(--color-border-muted))] group-hover:bg-[rgb(var(--color-accent-ring))] transition-colors duration-200"></div>
             </div>
@@ -421,6 +421,39 @@
             }
           </div>
         }
+
+        @if (!isConsoleCollapsed()) {
+          <!-- Resizer for Stream vs Console -->
+          <div (mousedown)="startConsolePaneResize($event)" class="h-1.5 w-full flex-shrink-0 cursor-row-resize group flex items-center justify-center bg-[rgb(var(--color-surface-muted))] border-y border-[rgb(var(--color-border-base))]">
+            <div class="h-0.5 w-full bg-[rgb(var(--color-border-muted))] group-hover:bg-[rgb(var(--color-accent-ring))] transition-colors duration-200"></div>
+          </div>
+        }
+
+        <!-- Terminal/Output Tabs -->
+        <div 
+          class="flex-shrink-0 bg-[rgb(var(--color-surface))]"
+          [style.height.%]="!isConsoleCollapsed() ? consolePaneHeight() : undefined"
+          [class.h-12]="isConsoleCollapsed()"
+          [class.border-t]="isConsoleCollapsed()"
+          [class.border-[rgb(var(--color-border-base))]]="isConsoleCollapsed()">
+          <app-tab-control [isCollapsed]="isConsoleCollapsed()" (toggleCollapse)="toggleConsole()">
+            <app-tab title="Console">
+              <div class="p-4 h-full overflow-y-auto text-sm text-[rgb(var(--color-text-muted))] font-mono">
+                <p>&gt; Console ready.</p>
+              </div>
+            </app-tab>
+            <app-tab title="Problems">
+              <div class="p-4 h-full overflow-y-auto text-sm text-[rgb(var(--color-text-muted))]">
+                <p>No problems have been detected.</p>
+              </div>
+            </app-tab>
+            <app-tab title="Output">
+              <div class="p-4 h-full overflow-y-auto text-sm text-[rgb(var(--color-text-muted))]">
+                <p>Output stream is clear.</p>
+              </div>
+            </app-tab>
+          </app-tab-control>
+        </div>
       </div>
     </div>
   </main>

@@ -18,6 +18,17 @@
       (drop)="onMainAreaDrop($event)"
       (mousedown)="onMainAreaMouseDown($event)">
       
+      <!-- README Banner -->
+      @if (isReadmeLoading()) {
+        <div class="p-4 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface-muted))]">
+          <div class="h-24 bg-[rgb(var(--color-surface))] rounded animate-pulse"></div>
+        </div>
+      } @else if (renderedReadmeHtml(); as readmeHtml) {
+        <div class="p-4 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface-muted))]">
+            <div class="prose prose-sm max-w-none" [innerHTML]="readmeHtml"></div>
+        </div>
+      }
+
       @switch (state().status) {
         @case ('loading') {
           <div class="absolute inset-0 flex items-center justify-center bg-[rgb(var(--color-surface))]/50 z-30">

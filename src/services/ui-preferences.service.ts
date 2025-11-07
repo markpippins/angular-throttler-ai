@@ -13,11 +13,13 @@ export interface UiPreferences {
   isSavedItemsVisible: boolean;
   isRssFeedVisible: boolean;
   isStreamVisible: boolean;
+  isConsoleCollapsed: boolean;
   sidebarWidth: number | null;
   sidebarTreeHeight: number | null;
   sidebarChatHeight: number | null;
   splitViewPaneWidth: number | null;
   explorerStreamHeight: number | null;
+  explorerConsoleHeight: number | null;
   detailPaneWidth: number | null;
   detailPaneSavedHeight: number | null;
   theme: Theme;
@@ -32,11 +34,13 @@ const DEFAULT_PREFERENCES: UiPreferences = {
   isSavedItemsVisible: true,
   isRssFeedVisible: true,
   isStreamVisible: true,
+  isConsoleCollapsed: false,
   sidebarWidth: null,
   sidebarTreeHeight: null,
   sidebarChatHeight: null,
   splitViewPaneWidth: null,
   explorerStreamHeight: null,
+  explorerConsoleHeight: 20,
   detailPaneWidth: null,
   detailPaneSavedHeight: null,
   theme: 'theme-light',
@@ -57,11 +61,13 @@ export class UiPreferencesService {
   public readonly isSavedItemsVisible = computed(() => this.preferences().isSavedItemsVisible);
   public readonly isRssFeedVisible = computed(() => this.preferences().isRssFeedVisible);
   public readonly isStreamVisible = computed(() => this.preferences().isStreamVisible);
+  public readonly isConsoleCollapsed = computed(() => this.preferences().isConsoleCollapsed);
   public readonly sidebarWidth = computed(() => this.preferences().sidebarWidth);
   public readonly sidebarTreeHeight = computed(() => this.preferences().sidebarTreeHeight);
   public readonly sidebarChatHeight = computed(() => this.preferences().sidebarChatHeight);
   public readonly splitViewPaneWidth = computed(() => this.preferences().splitViewPaneWidth);
   public readonly explorerStreamHeight = computed(() => this.preferences().explorerStreamHeight);
+  public readonly explorerConsoleHeight = computed(() => this.preferences().explorerConsoleHeight);
   public readonly detailPaneWidth = computed(() => this.preferences().detailPaneWidth);
   public readonly detailPaneSavedHeight = computed(() => this.preferences().detailPaneSavedHeight);
   public readonly theme = computed(() => this.preferences().theme);
@@ -131,6 +137,10 @@ export class UiPreferencesService {
     this.preferences.update(p => ({ ...p, isStreamVisible: !p.isStreamVisible }));
   }
 
+  toggleConsole(): void {
+    this.preferences.update(p => ({ ...p, isConsoleCollapsed: !p.isConsoleCollapsed }));
+  }
+
   // --- Public methods to set pane dimensions ---
   setSidebarWidth(width: number): void {
     this.preferences.update(p => ({ ...p, sidebarWidth: width }));
@@ -152,6 +162,10 @@ export class UiPreferencesService {
     this.preferences.update(p => ({ ...p, explorerStreamHeight: height }));
   }
   
+  setExplorerConsoleHeight(height: number): void {
+    this.preferences.update(p => ({ ...p, explorerConsoleHeight: height }));
+  }
+
   setDetailPaneWidth(width: number): void {
     this.preferences.update(p => ({ ...p, detailPaneWidth: width }));
   }
