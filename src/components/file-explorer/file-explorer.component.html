@@ -248,6 +248,22 @@
       }
     </div>
 
+    <!-- File Explorer Status Bar -->
+    <div class="h-7 p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface-muted))] flex items-center">
+      @if (status(); as s) {
+        @if (s.selectedItemsCount > 0) {
+          <span class="mr-4">{{ s.selectedItemsCount }} item(s) selected</span>
+        }
+        @if (s.filteredItemsCount !== null) {
+          <span>{{ s.filteredItemsCount }} of {{ s.totalItemsCount }} items</span>
+        } @else {
+          <span>{{ s.totalItemsCount }} items</span>
+        }
+      } @else {
+        <span>&nbsp;</span>
+      }
+    </div>
+
     @if (isStreamVisible()) {
       @if (!isBottomPaneCollapsed()) {
         <!-- Resizer -->
@@ -473,22 +489,6 @@
           }
         }
       </div>
-    }
-  </div>
-
-  <!-- New File Explorer Status Bar -->
-  <div class="h-7 p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface))] flex items-center">
-    @if (status(); as s) {
-      @if (s.selectedItemsCount > 0) {
-        <span class="mr-4">{{ s.selectedItemsCount }} item(s) selected</span>
-      }
-      @if (s.filteredItemsCount !== null) {
-        <span>{{ s.filteredItemsCount }} of {{ s.totalItemsCount }} items</span>
-      } @else {
-        <span>{{ s.totalItemsCount }} items</span>
-      }
-    } @else {
-      <span>&nbsp;</span>
     }
   </div>
 
