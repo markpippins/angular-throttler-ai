@@ -14,6 +14,7 @@ export interface UiPreferences {
   isRssFeedVisible: boolean;
   isStreamVisible: boolean;
   isConsoleCollapsed: boolean;
+  isStreamPaneCollapsed: boolean;
   sidebarWidth: number | null;
   sidebarTreeHeight: number | null;
   sidebarChatHeight: number | null;
@@ -35,6 +36,7 @@ const DEFAULT_PREFERENCES: UiPreferences = {
   isRssFeedVisible: true,
   isStreamVisible: true,
   isConsoleCollapsed: false,
+  isStreamPaneCollapsed: false,
   sidebarWidth: null,
   sidebarTreeHeight: null,
   sidebarChatHeight: null,
@@ -62,6 +64,7 @@ export class UiPreferencesService {
   public readonly isRssFeedVisible = computed(() => this.preferences().isRssFeedVisible);
   public readonly isStreamVisible = computed(() => this.preferences().isStreamVisible);
   public readonly isConsoleCollapsed = computed(() => this.preferences().isConsoleCollapsed);
+  public readonly isStreamPaneCollapsed = computed(() => this.preferences().isStreamPaneCollapsed);
   public readonly sidebarWidth = computed(() => this.preferences().sidebarWidth);
   public readonly sidebarTreeHeight = computed(() => this.preferences().sidebarTreeHeight);
   public readonly sidebarChatHeight = computed(() => this.preferences().sidebarChatHeight);
@@ -139,6 +142,10 @@ export class UiPreferencesService {
 
   toggleConsole(): void {
     this.preferences.update(p => ({ ...p, isConsoleCollapsed: !p.isConsoleCollapsed }));
+  }
+
+  toggleStreamPaneCollapse(): void {
+    this.preferences.update(p => ({ ...p, isStreamPaneCollapsed: !p.isStreamPaneCollapsed }));
   }
 
   // --- Public methods to set pane dimensions ---

@@ -159,6 +159,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isRssFeedVisible = this.uiPreferencesService.isRssFeedVisible;
   isStreamVisible = this.uiPreferencesService.isStreamVisible;
   isConsoleCollapsed = this.uiPreferencesService.isConsoleCollapsed;
+  isStreamPaneCollapsed = this.uiPreferencesService.isStreamPaneCollapsed;
   
   // Keep track of each pane's path
   private panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
@@ -349,7 +350,6 @@ export class AppComponent implements OnInit, OnDestroy {
   // --- Idea Stream State ---
   bottomPaneHeight = signal(this.uiPreferencesService.explorerStreamHeight() ?? 40);
   isResizingBottomPane = signal(false);
-  isBottomPaneCollapsed = signal(false);
   private unlistenBottomPaneMouseMove: (() => void) | null = null;
   private unlistenBottomPaneMouseUp: (() => void) | null = null;
 
@@ -1553,8 +1553,8 @@ export class AppComponent implements OnInit, OnDestroy {
       this.uiPreferencesService.setExplorerConsoleHeight(this.consolePaneHeight());
   }
 
-  toggleBottomPane(): void {
-    this.isBottomPaneCollapsed.update(v => !v);
+  toggleStreamPaneCollapse(): void {
+    this.uiPreferencesService.toggleStreamPaneCollapse();
   }
 
   onStreamSearchChange(event: Event): void {

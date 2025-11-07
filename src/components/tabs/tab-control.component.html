@@ -1,7 +1,9 @@
 <div class="flex flex-col h-full">
   <!-- Tab Headers -->
   <div 
-    class="flex h-12 border-b border-[rgb(var(--color-border-base))] px-2"
+    class="flex border-b border-[rgb(var(--color-border-base))] px-2"
+    [class.h-12]="!isCollapsed()"
+    [class.h-7]="isCollapsed()"
     [class.items-end]="!isCollapsed()"
     [class.pb-1]="!isCollapsed()"
     [class.items-center]="isCollapsed()">
