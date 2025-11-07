@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from '../../services/file-system-provider.js';
@@ -14,26 +14,6 @@ import { AutoFocusSelectDirective } from '../../directives/auto-focus-select.dir
 import { DragDropService, DragDropPayload } from '../../services/drag-drop.service.js';
 import { BookmarkService } from '../../services/bookmark.service.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
-import { GoogleSearchService } from '../../services/google-search.service.js';
-import { UnsplashService } from '../../services/unsplash.service.js';
-import { GeminiService } from '../../services/gemini.service.js';
-import { YoutubeSearchService } from '../../services/youtube-search.service.js';
-import { AcademicSearchService } from '../../services/academic-search.service.js';
-import { GoogleSearchResult } from '../../models/google-search-result.model.js';
-import { ImageSearchResult } from '../../models/image-search-result.model.js';
-import { YoutubeSearchResult } from '../../models/youtube-search-result.model.js';
-import { AcademicSearchResult } from '../../models/academic-search-result.model.js';
-import { WebResultCardComponent } from '../stream-cards/web-result-card.component.js';
-import { ImageResultCardComponent } from '../stream-cards/image-result-card.component.js';
-import { GeminiResultCardComponent } from '../stream-cards/gemini-result-card.component.js';
-import { YoutubeResultCardComponent } from '../stream-cards/youtube-result-card.component.js';
-import { AcademicResultCardComponent } from '../stream-cards/academic-result-card.component.js';
-import { WebResultListItemComponent } from '../stream-list-items/web-result-list-item.component.js';
-import { ImageResultListItemComponent } from '../stream-list-items/image-result-list-item.component.js';
-import { GeminiResultListItemComponent } from '../stream-list-items/gemini-result-list-item.component.js';
-import { YoutubeResultListItemComponent } from '../stream-list-items/youtube-result-list-item.component.js';
-import { AcademicResultListItemComponent } from '../stream-list-items/academic-result-list-item.component.js';
-import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { FolderPropertiesService } from '../../services/folder-properties.service.js';
 import { FolderProperties } from '../../models/folder-properties.model.js';
 import { ConflictDialogComponent, ConflictResolution } from '../conflict-dialog/conflict-dialog.component.js';
@@ -49,42 +29,18 @@ interface Thumbnail {
   isLoading: boolean;
 }
 
-// Type definitions for items in the unified stream
-type GeminiResult = { query: string; text: string; publishedAt: string; };
-
-type StreamItem = 
-  | (GoogleSearchResult & { type: 'web' })
-  | (ImageSearchResult & { type: 'image' })
-  | (YoutubeSearchResult & { type: 'youtube' })
-  | (AcademicSearchResult & { type: 'academic' })
-  | (GeminiResult & { type: 'gemini' });
-
-type StreamItemType = 'web' | 'image' | 'youtube' | 'academic' | 'gemini';
-type StreamSortKey = 'relevance' | 'title' | 'source' | 'date';
-interface StreamSortCriteria {
-  key: StreamSortKey;
-  direction: 'asc' | 'desc';
-}
-
 const SPECIAL_FOLDERS = new Set(["libraries", "build", "dev", "source", "repo", "devops"]);
 
 @Component({
   selector: 'app-file-explorer',
   templateUrl: './file-explorer.component.html',
-  imports: [CommonModule, DatePipe, FolderComponent, PropertiesDialogComponent, DestinationNodeComponent, InputDialogComponent, ConfirmDialogComponent, AutoFocusSelectDirective, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, ConflictDialogComponent],
+  imports: [CommonModule, DatePipe, FolderComponent, PropertiesDialogComponent, DestinationNodeComponent, InputDialogComponent, ConfirmDialogComponent, AutoFocusSelectDirective, ConflictDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FileExplorerComponent implements OnDestroy, OnInit {
+export class FileExplorerComponent implements OnDestroy {
   private renderer = inject(Renderer2);
   private clipboardService = inject(ClipboardService);
   private dragDropService = inject(DragDropService);
-  private bookmarkService = inject(BookmarkService);
-  private googleSearchService = inject(GoogleSearchService);
-  private unsplashService = inject(UnsplashService);
-  private geminiService = inject(GeminiService);
-  private youtubeSearchService = inject(YoutubeSearchService);
-  private academicSearchService = inject(AcademicSearchService);
-  private uiPreferencesService = inject(UiPreferencesService);
   private folderPropertiesService = inject(FolderPropertiesService);
 
   // Inputs & Outputs for multi-pane communication
@@ -100,7 +56,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   sortCriteria = input<SortCriteria>({ key: 'name', direction: 'asc' });
   displayMode = input<'grid' | 'list'>('grid');
   filterQuery = input('');
-  isStreamVisible = input(true);
 
   activated = output<number>();
   pathChanged = output<string[]>();
@@ -115,7 +70,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     filteredItemsCount: number | null;
   }>();
   sortChange = output<SortCriteria>();
-  saveBookmark = output<NewBookmark>();
   bookmarkDropped = output<{ bookmark: NewBookmark, dropOn: FileSystemNode }>();
 
   state = signal<FileSystemState>({ status: 'loading', items: [] });
@@ -169,34 +123,9 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
 
   dragOverListItemName = signal<string | null>(null);
 
-  // --- Bottom Pane State ---
-  bottomPaneHeight = signal(this.uiPreferencesService.explorerStreamHeight() ?? 40);
-  isResizingBottomPane = signal(false);
-  isBottomPaneCollapsed = signal(false);
-  private unlistenBottomPaneMouseMove: (() => void) | null = null;
-  private unlistenBottomPaneMouseUp: (() => void) | null = null;
-  
-  streamResults = signal<StreamItem[]>([]);
-  streamSearchQuery = signal('');
-  streamSortCriteria = signal<StreamSortCriteria>({ key: 'relevance', direction: 'asc' });
-  activeStreamFilters = signal<Set<StreamItemType>>(new Set(['web', 'image', 'youtube', 'academic', 'gemini']));
-  isStreamSortDropdownOpen = signal(false);
-  streamDisplayMode = signal<'grid' | 'list'>('grid');
-
-  streamFilterTypes: { type: StreamItemType, label: string, iconPath: string }[] = [
-    { type: 'web', label: 'Web', iconPath: 'M10 2a8 8 0 100 16 8 8 0 000-16zM2 10a8 8 0 0113.167-5.321l-1.334.667A6 6 0 1010 16a6 6 0 005.321-3.167l.667-1.334A8.001 8.001 0 0110 18 8 8 0 012 10z' },
-    { type: 'image', label: 'Images', iconPath: 'M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 3a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H3zm13.5 11.5l-3-3a1 1 0 00-1.414 0l-1.586 1.586-1.086-1.086a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L8 14.414l1.086 1.086a1 1 0 001.414 0l1.586-1.586 2.586 2.586a1 1 0 001.414-1.414zM8 8a1 1 0 100-2 1 1 0 000 2z' },
-    { type: 'youtube', label: 'Videos', iconPath: 'M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z' },
-    { type: 'academic', label: 'Academic', iconPath: 'M9 4h6a2 2 0 012 2v12l-8-4-8 4V6a2 2 0 012-2h6zM9 4v12l6-3V6a1 1 0 00-1-1H9z' },
-    { type: 'gemini', label: 'Gemini', iconPath: 'M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z' }
-  ];
-  
-  bookmarkedLinks = this.bookmarkService.bookmarkedLinks;
-
   // --- Conflict Dialog State ---
   conflictState = signal<{ conflictingItem: FileSystemNode; callback: (res: ConflictResolution) => void } | null>(null);
 
-  @ViewChild('mainContentWrapper') mainContentWrapperEl!: ElementRef<HTMLDivElement>;
   @ViewChild('topPane') topPaneEl!: ElementRef<HTMLDivElement>;
   @ViewChildren('selectableItem', { read: ElementRef }) selectableItemElements!: QueryList<ElementRef>;
 
@@ -294,72 +223,7 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     return items.filter(item => item.name.toLowerCase().includes(query));
   });
 
-  processedStreamResults = computed(() => {
-    let items = [...this.streamResults()];
-    const query = this.streamSearchQuery().toLowerCase().trim();
-    const filters = this.activeStreamFilters();
-    const { key: sortKey, direction } = this.streamSortCriteria();
-
-    // 1. Filter by type
-    if (filters.size < this.streamFilterTypes.length) {
-      items = items.filter(item => filters.has(item.type));
-    }
-    
-    // 2. Filter by search query
-    if (query) {
-      items = items.filter(item => {
-        const title = 'title' in item ? item.title : ('query' in item ? item.query : '');
-        const content = 'snippet' in item ? item.snippet : ('description' in item ? item.description : ('text' in item ? item.text : ''));
-        return title.toLowerCase().includes(query) || (content && content.toLowerCase().includes(query));
-      });
-    }
-
-    // 3. Sort
-    if (sortKey !== 'relevance') {
-      const sortDirection = direction === 'asc' ? 1 : -1;
-      items.sort((a, b) => {
-        if (sortKey === 'date') {
-          const dateA = new Date('publishedAt' in a && a.publishedAt ? a.publishedAt : 0).getTime();
-          const dateB = new Date('publishedAt' in b && b.publishedAt ? b.publishedAt : 0).getTime();
-          // For date, asc is oldest first, desc is newest first
-          return (dateA - dateB) * sortDirection;
-        } else {
-          const valA = this.getSortableValue(a, sortKey);
-          const valB = this.getSortableValue(b, sortKey);
-          if (valA < valB) return -1 * sortDirection;
-          if (valA > valB) return 1 * sortDirection;
-          return 0;
-        }
-      });
-    }
-    
-    return items;
-  });
-
-  private getSortableValue(item: StreamItem, key: 'title' | 'source'): string {
-    const lowerKey = key.toLowerCase();
-    switch (lowerKey) {
-        case 'title':
-            if ('title' in item) return item.title.toLowerCase();
-            if ('query' in item) return `Gemini: ${item.query}`.toLowerCase();
-            if ('description' in item) return item.description.toLowerCase();
-            return '';
-        case 'source':
-            if ('source' in item) return item.source.toLowerCase();
-            if ('channelTitle' in item) return item.channelTitle.toLowerCase();
-            if ('publication' in item) return item.publication.toLowerCase();
-            return 'gemini';
-        default:
-            return '';
-    }
-  }
-
   constructor() {
-    effect(() => {
-      // Sync the stream's display mode with the main display mode from the toolbar.
-      this.streamDisplayMode.set(this.displayMode());
-    }, { allowSignalWrites: true });
-
     effect(() => {
       this.refresh();
       this.path();
@@ -408,49 +272,8 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     }, { allowSignalWrites: true });
   }
 
-  ngOnInit(): void {
-    this.loadStreamResults();
-  }
-
-  private async loadStreamResults(): Promise<void> {
-    const hardcodedQuery = 'Angular';
-    const imageQuery = 'Technology';
-
-    const [google, images, gemini, youtube, academic] = await Promise.all([
-      this.googleSearchService.search(hardcodedQuery),
-      this.unsplashService.search(imageQuery),
-      this.geminiService.search(hardcodedQuery),
-      this.youtubeSearchService.search(hardcodedQuery),
-      this.academicSearchService.search(hardcodedQuery)
-    ]);
-
-    const webResults: StreamItem[] = google.map(r => ({ ...r, type: 'web' }));
-    const imageResults: StreamItem[] = images.map(r => ({ ...r, type: 'image' }));
-    const youtubeResults: StreamItem[] = youtube.map(r => ({ ...r, type: 'youtube' }));
-    const academicResults: StreamItem[] = academic.map(r => ({ ...r, type: 'academic' }));
-    const geminiResult: StreamItem = { query: hardcodedQuery, text: gemini, type: 'gemini', publishedAt: new Date().toISOString() };
-
-    // Interleave results for a mixed stream
-    const allResults = [geminiResult, ...webResults, ...imageResults, ...youtubeResults, ...academicResults];
-    const interleaved: StreamItem[] = [];
-    const maxLength = Math.max(webResults.length, imageResults.length, youtubeResults.length, academicResults.length);
-
-    // Start with Gemini as a hero item
-    interleaved.push(geminiResult);
-    
-    for (let i = 0; i < maxLength; i++) {
-        if (webResults[i]) interleaved.push(webResults[i]);
-        if (imageResults[i]) interleaved.push(imageResults[i]);
-        if (youtubeResults[i]) interleaved.push(youtubeResults[i]);
-        if (academicResults[i]) interleaved.push(academicResults[i]);
-    }
-    
-    this.streamResults.set(interleaved);
-  }
-
   ngOnDestroy(): void {
     this.stopLassoing();
-    this.stopBottomPaneResize();
     this.renderer.removeStyle(document.body, 'user-select');
     if (this.clickTimer) clearTimeout(this.clickTimer);
   }
@@ -1265,51 +1088,6 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
     }
   }
 
-  startBottomPaneResize(event: MouseEvent): void {
-    this.isResizingBottomPane.set(true);
-    const container = this.mainContentWrapperEl.nativeElement;
-    const containerRect = container.getBoundingClientRect();
-
-    event.preventDefault();
-    this.renderer.setStyle(document.body, 'user-select', 'none');
-
-    this.unlistenBottomPaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
-        const mouseY = e.clientY - containerRect.top;
-        const totalHeight = containerRect.height;
-        let newHeightPercent = ((totalHeight - mouseY) / totalHeight) * 100;
-
-        const minHeightPercent = 15;
-        const maxHeightPercent = 85;
-        if (newHeightPercent < minHeightPercent) newHeightPercent = minHeightPercent;
-        if (newHeightPercent > maxHeightPercent) newHeightPercent = maxHeightPercent;
-
-        this.bottomPaneHeight.set(newHeightPercent);
-    });
-    
-    this.unlistenBottomPaneMouseUp = this.renderer.listen('document', 'mouseup', () => {
-        this.stopBottomPaneResize();
-    });
-  }
-
-  private stopBottomPaneResize(): void {
-      if (!this.isResizingBottomPane()) return;
-      this.isResizingBottomPane.set(false);
-      this.renderer.removeStyle(document.body, 'user-select');
-      if (this.unlistenBottomPaneMouseMove) {
-          this.unlistenBottomPaneMouseMove();
-          this.unlistenBottomPaneMouseMove = null;
-      }
-      if (this.unlistenBottomPaneMouseUp) {
-          this.unlistenBottomPaneMouseUp();
-          this.unlistenBottomPaneMouseUp = null;
-      }
-      this.uiPreferencesService.setExplorerStreamHeight(this.bottomPaneHeight());
-  }
-
-  toggleBottomPane(): void {
-    this.isBottomPaneCollapsed.update(v => !v);
-  }
-
   private selectAllItems(): void {
     const allItemNames = this.filteredItems().map(item => item.name);
     this.selectedItems.set(new Set(allItemNames));
@@ -1324,101 +1102,5 @@ export class FileExplorerComponent implements OnDestroy, OnInit {
   closeAllMenus(): void {
     this.closeContextMenu();
     this.closeDestinationSubMenu();
-    this.isStreamSortDropdownOpen.set(false);
-  }
-
-  // --- Stream Toolbar Methods ---
-  onStreamSearchChange(event: Event): void {
-    this.streamSearchQuery.set((event.target as HTMLInputElement).value);
-  }
-
-  onStreamSortChange(key: StreamSortKey): void {
-    const current = this.streamSortCriteria();
-    if (key === 'relevance') {
-      this.streamSortCriteria.set({ key: 'relevance', direction: 'asc' });
-    } else if (current.key === key) {
-      this.streamSortCriteria.update(c => ({ ...c, direction: c.direction === 'asc' ? 'desc' : 'asc' }));
-    } else {
-      // Newest date first is more intuitive default
-      const direction = key === 'date' ? 'desc' : 'asc';
-      this.streamSortCriteria.set({ key, direction });
-    }
-    this.isStreamSortDropdownOpen.set(false);
-  }
-
-  toggleStreamFilter(type: StreamItemType): void {
-    this.activeStreamFilters.update(filters => {
-      const newFilters = new Set(filters);
-      if (newFilters.has(type)) {
-        newFilters.delete(type);
-      } else {
-        newFilters.add(type);
-      }
-      return newFilters;
-    });
-  }
-
-  toggleAllStreamFilters(): void {
-    if (this.activeStreamFilters().size === this.streamFilterTypes.length) {
-      this.activeStreamFilters.set(new Set());
-    } else {
-      this.activeStreamFilters.set(new Set(this.streamFilterTypes.map(t => t.type)));
-    }
-  }
-
-  toggleStreamSortDropdown(event: MouseEvent): void {
-    event.stopPropagation();
-    this.isStreamSortDropdownOpen.update(v => !v);
-  }
-
-  getStreamItemLink(item: StreamItem): string {
-    if ('link' in item && item.link) return item.link;
-    if ('url' in item && item.url) return item.url;
-    // For Gemini results which lack a URL, create a unique-enough identifier
-    if (item.type === 'gemini') return `#gemini-${item.publishedAt}`;
-    return '#';
-  }
-
-  private streamItemToNewBookmark(item: StreamItem): NewBookmark {
-    
-    const link = this.getStreamItemLink(item);
-    
-    let title: string;
-    if ('title' in item) title = item.title;
-    else if ('query' in item) title = `Gemini response for: ${item.query}`;
-    else title = item.description;
-
-    let snippet: string | undefined;
-    if ('snippet' in item) snippet = item.snippet;
-    else if ('text' in item) snippet = item.text;
-    else if ('photographer' in item) snippet = `Photo by ${item.photographer}`;
-    else snippet = item.description;
-
-    let source: string;
-    if ('source' in item) source = item.source;
-    else if ('channelTitle' in item) source = item.channelTitle;
-    else if ('publication' in item) source = item.publication;
-    else source = 'Gemini Search';
-
-    return {
-        type: item.type,
-        title,
-        link,
-        snippet,
-        source,
-        thumbnailUrl: 'thumbnailUrl' in item ? item.thumbnailUrl : undefined,
-    };
-  }
-
-  onBookmarkToggled(item: StreamItem): void {
-    const link = this.getStreamItemLink(item);
-    const existingBookmark = this.bookmarkService.findBookmarkByLink(link);
-
-    if (existingBookmark) {
-        this.bookmarkService.deleteBookmark(existingBookmark._id);
-    } else {
-        const newBookmark = this.streamItemToNewBookmark(item);
-        this.saveBookmark.emit(newBookmark);
-    }
   }
 }
