@@ -1,10 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { ServerProfileService } from './server-profile.service.js';
+import { LocalConfigService } from './local-config.service.js';
 
 @Injectable({
   providedIn: 'root',
 })
 export class BrokerService {
+  private localConfigService = inject(LocalConfigService);
+  
   private generateUUID(): string {
     var d = new Date().getTime();
     var d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now()*1000)) || 0;
@@ -29,28 +32,53 @@ export class BrokerService {
         requestId: this.generateUUID()
     };
 
-const response = await fetch(brokerUrl, {
-        method: 'POST',
-        mode: 'cors',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-    });
+    const shouldLog = this.localConfigService.currentConfig().logBrokerMessages;
 
-    if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`Broker request failed with status ${response.status}: ${errorBody}`);
+    if (shouldLog) {
+      console.groupCollapsed(`[Broker Request] ${service}/${operation} (ID: ${request.requestId})`);
+      console.log('Request Payload:', request);
+      console.time(`[Broker Response] ${request.requestId}`);
     }
 
-    const serviceResponse = await response.json();
+    try {
+      const response = await fetch(brokerUrl, {
+          method: 'POST',
+          mode: 'cors',
+          credentials: 'include',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+      });
 
-    if (serviceResponse.ok) {
-        return serviceResponse.data as T;
-    } else {
-        const errorDetails = serviceResponse.errors.map((e: any) => e.message || `${e.code}: ${e.path}`).join(', ');
-        throw new Error(`Service operation ${service}/${operation} failed: ${errorDetails}`);
+      if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(`Broker request failed with status ${response.status}: ${errorBody}`);
+      }
+
+      const serviceResponse = await response.json();
+
+      if (shouldLog) {
+          console.timeEnd(`[Broker Response] ${request.requestId}`);
+          console.log('Response Payload:', serviceResponse);
+      }
+
+      if (serviceResponse.ok) {
+          if (shouldLog) {
+            console.groupEnd();
+          }
+          return serviceResponse.data as T;
+      } else {
+          const errorDetails = serviceResponse.errors.map((e: any) => e.message || `${e.code}: ${e.path}`).join(', ');
+          throw new Error(`Service operation ${service}/${operation} failed: ${errorDetails}`);
+      }
+    } catch (error) {
+      if (shouldLog) {
+        console.timeEnd(`[Broker Response] ${request.requestId}`);
+        console.error('Request Failed:', error);
+        console.groupEnd();
+      }
+      throw error;
     }
   }
 }
