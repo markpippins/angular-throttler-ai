@@ -31,6 +31,8 @@ export class BrokerService {
 
     const response = await fetch(brokerUrl, {
         method: 'POST',
+        mode: 'cors',
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
         },
