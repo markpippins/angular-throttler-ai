@@ -8,6 +8,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+  <!-- Xterm.js -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
   <style>
     :root { /* Default Light Theme */
       --color-background: 243 244 246; /* gray-100 */
@@ -236,7 +240,7 @@
 }
 </script>
 </head>
-<body>
+<body class="font-sans">
   <app-root></app-root>
   <script type="module" src="./index.js"></script>
 </body>

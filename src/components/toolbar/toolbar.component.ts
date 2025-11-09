@@ -71,6 +71,7 @@ export class ToolbarComponent {
   detailPaneClick = output<void>();
   themeMenuClick = output<MouseEvent>();
   rssFeedsMenuClick = output<void>();
+  preferencesMenuClick = output<void>();
   
   // Outputs for pane visibility toggles
   toggleSidebar = output<void>();
@@ -117,6 +118,11 @@ export class ToolbarComponent {
 
   onRssFeedsMenuItemClick(): void {
     this.rssFeedsMenuClick.emit();
+    this.isHamburgerMenuOpen.set(false);
+  }
+
+  onPreferencesMenuItemClick(): void {
+    this.preferencesMenuClick.emit();
     this.isHamburgerMenuOpen.set(false);
   }
 

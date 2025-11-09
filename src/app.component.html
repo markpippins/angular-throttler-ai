@@ -1,4 +1,4 @@
-<div class="flex flex-col h-screen font-sans antialiased text-[rgb(var(--color-text-base))] bg-[rgb(var(--color-background))]">
+<div class="flex flex-col h-screen antialiased text-[rgb(var(--color-text-base))] bg-[rgb(var(--color-background))]">
   <!-- Main Content -->
   <main class="flex-1 flex flex-row overflow-hidden">
     @if (isSidebarVisible()) {
@@ -97,6 +97,7 @@
         (detailPaneClick)="toggleDetailPane()"
         (themeMenuClick)="openThemeMenu($event)"
         (rssFeedsMenuClick)="openRssFeedsDialog()"
+        (preferencesMenuClick)="openPreferencesDialog()"
         (toggleSidebar)="toggleSidebar()"
         (toggleTree)="toggleTree()"
         (toggleChat)="toggleChat()"
@@ -422,26 +423,27 @@
 
           @if (!isConsoleCollapsed()) {
             <!-- Resizer for Stream vs Console -->
-            <div (mousedown)="startConsolePaneResize($event)" class="h-1.5 w-full flex-shrink-0 cursor-row-resize group flex items-center justify-center bg-[rgb(var(--color-surface-muted))] border-y border-[rgb(var(--color-border-base))]">
+            <div data-console-resizer (mousedown)="startConsolePaneResize($event)" class="h-1.5 w-full flex-shrink-0 cursor-row-resize group flex items-center justify-center bg-[rgb(var(--color-surface-muted))] border-y border-[rgb(var(--color-border-base))]">
               <div class="h-0.5 w-full bg-[rgb(var(--color-border-muted))] group-hover:bg-[rgb(var(--color-accent-ring))] transition-colors duration-200"></div>
             </div>
           }
 
           <!-- Console Pane -->
           <div
+            data-console-pane
             class="flex flex-col flex-shrink-0 bg-[rgb(var(--color-surface-muted))]"
             [style.height.%]="!isConsoleCollapsed() ? consolePaneHeight() : undefined"
             [class.h-7]="isConsoleCollapsed()"
             [class.border-t]="isConsoleCollapsed()"
             [class.border-[rgb(var(--color-border-base))]]="isConsoleCollapsed()">
             <!-- Console Header -->
-            <div class="flex items-center border-b border-[rgb(var(--color-border-base))] px-4"
+            <div class="flex items-center justify-between border-b border-[rgb(var(--color-border-base))] px-4"
                  [class.h-12]="!isConsoleCollapsed()"
-                 [class.h-7]="isConsoleCollapsed()"
-                 [class.justify-between]="!isConsoleCollapsed()"
-                 [class.justify-end]="isConsoleCollapsed()">
+                 [class.h-7]="isConsoleCollapsed()">
               @if (!isConsoleCollapsed()) {
                 <span class="text-sm font-medium text-[rgb(var(--color-text-muted))]">Console</span>
+              } @else {
+                <span class="text-xs text-[rgb(var(--color-text-muted))]">Console</span>
               }
               <button (click)="toggleConsole()" [title]="isConsoleCollapsed() ? 'Expand Console' : 'Collapse Console (Ctrl + `)'" class="p-2 -mr-2 rounded-md text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] transition-colors">
                 @if (isConsoleCollapsed()) {
@@ -457,8 +459,8 @@
             </div>
             <!-- Console Content -->
             @if (!isConsoleCollapsed()) {
-              <div class="flex-1 overflow-y-auto text-sm text-[rgb(var(--color-text-muted))] font-mono p-4 bg-[rgb(var(--color-surface))]">
-                <p>&gt; Console ready.</p>
+              <div class="flex-1 overflow-hidden p-2">
+                <app-terminal></app-terminal>
               </div>
             }
           </div>
@@ -532,6 +534,13 @@
       (submitLogin)="onLoginSubmittedFromSidebar($event)">
     </app-login-dialog>
   }
+  
+  @if (isPreferencesDialogOpen()) {
+    <app-preferences-dialog
+      (close)="closePreferencesDialog()"
+      (save)="onPreferencesSaved($event)">
+    </app-preferences-dialog>
+  }
 
   <app-toasts></app-toasts>
 
@@ -543,12 +552,13 @@
     </app-webview-dialog>
   }
 
-  @if (noteDialogContent(); as content) {
-    <app-note-view-dialog
+  @if (textEditorContent(); as content) {
+    <app-text-editor-dialog
       [contentSignal]="content.contentSignal"
       [title]="content.title"
-      (close)="noteDialogService.close()">
-    </app-note-view-dialog>
+      [fileName]="content.fileName"
+      (close)="textEditorService.close()">
+    </app-text-editor-dialog>
   }
 
   <!-- Theme Dropdown -->

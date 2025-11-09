@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output, WritableSignal, Injector, EffectRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from '../../services/file-system-provider.js';
@@ -17,6 +17,7 @@ import { NewBookmark } from '../../models/bookmark.model.js';
 import { FolderPropertiesService } from '../../services/folder-properties.service.js';
 import { FolderProperties } from '../../models/folder-properties.model.js';
 import { ConflictDialogComponent, ConflictResolution } from '../conflict-dialog/conflict-dialog.component.js';
+import { TextEditorService } from '../../services/note-dialog.service.js';
 
 // Declare the globals from the CDN scripts for Markdown parsing
 declare var marked: { parse(markdown: string): string; };
@@ -46,6 +47,8 @@ export class FileExplorerComponent implements OnDestroy {
   private clipboardService = inject(ClipboardService);
   private dragDropService = inject(DragDropService);
   private folderPropertiesService = inject(FolderPropertiesService);
+  private textEditorService = inject(TextEditorService);
+  private injector = inject(Injector);
 
   // Inputs & Outputs for multi-pane communication
   id = input.required<number>();
@@ -90,6 +93,7 @@ export class FileExplorerComponent implements OnDestroy {
   destinationSubMenu = signal<{ operation: 'copy' | 'move', x: number, y: number } | null>(null);
   private destinationSubMenuTimer: any;
 
+  isLoading = signal(false);
   isPreviewLoading = signal(false);
 
   selectedItems = signal<Set<string>>(new Set());
@@ -359,12 +363,67 @@ export class FileExplorerComponent implements OnDestroy {
     }
   }
 
+  isEditableTextFile(filename: string): boolean {
+    const extension = this.getFileExtension(filename);
+    if (!extension) return false;
+    // A good list of common text file extensions
+    const editableExtensions = [
+      'txt', 'md', 'json', 'xml', 'html', 'css', 'js', 'ts', 'py', 'java',
+      'c', 'cpp', 'h', 'hpp', 'cs', 'sh', 'yml', 'yaml', 'log', 'ini', 'cfg', 'conf'
+    ];
+    return editableExtensions.includes(extension.toLowerCase());
+  }
+
   async openItem(item: FileSystemNode): Promise<void> {
     if (item.type === 'folder') {
       this.pathChanged.emit([...this.path(), item.name]);
       return;
     }
 
+    if (this.isEditableTextFile(item.name)) {
+        this.isLoading.set(true);
+        let savingEffect: EffectRef | null = null;
+        let cleanupEffect: EffectRef | null = null;
+        try {
+            const initialContent = await this.fileSystemProvider().getFileContent(this.providerPath(), item.name);
+            const contentSignal = signal(initialContent);
+
+            this.textEditorService.open(contentSignal, item.name, item.name);
+
+            let saveTimeout: any;
+            savingEffect = effect(() => {
+                const newContent = contentSignal();
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(async () => {
+                    if (newContent !== initialContent) {
+                        try {
+                            await this.fileSystemProvider().saveFileContent(this.providerPath(), item.name, newContent);
+                        } catch (e) {
+                            console.error(`Failed to auto-save ${item.name}`, e);
+                        }
+                    }
+                }, 500);
+            }, { injector: this.injector });
+
+            cleanupEffect = effect(() => {
+                if (!this.textEditorService.viewRequest()) {
+                    savingEffect?.destroy();
+                    cleanupEffect?.destroy();
+                    clearTimeout(saveTimeout);
+                }
+            }, { injector: this.injector });
+
+        } catch (e) {
+            savingEffect?.destroy();
+            cleanupEffect?.destroy();
+            alert(`Failed to open file: ${(e as Error).message}`);
+        } finally {
+            this.isLoading.set(false);
+        }
+        return;
+    }
+
+    // Fallback for non-text files like images
     this.previewItem.set(item);
     if (item.content) return;
 
@@ -665,18 +724,9 @@ export class FileExplorerComponent implements OnDestroy {
 
   async commitRename(newName: string): Promise<void> {
     const oldName = this.editingItemName();
-    let trimmedNewName = newName.trim();
+    const trimmedNewName = newName.trim();
     
-    if (!oldName) {
-      this.cancelRename();
-      return;
-    }
-
-    if (oldName.endsWith('.magnet') && !trimmedNewName.endsWith('.magnet')) {
-      trimmedNewName += '.magnet';
-    }
-
-    if (!trimmedNewName || oldName === trimmedNewName) {
+    if (!oldName || !trimmedNewName || oldName === trimmedNewName) {
       this.cancelRename();
       return;
     }
@@ -697,11 +747,11 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   async onMagnetize(item: FileSystemNode): Promise<void> {
-    if (item.type !== 'folder' || item.name.endsWith('.magnet')) return;
-    const oldName = item.name;
-    const newName = `${oldName}.magnet`;
+    if (item.type !== 'folder' || item.isMagnet) return;
+    
+    const magnetFileName = `${item.name}.magnet`;
     try {
-      await this.fileSystemProvider().rename(this.providerPath(), oldName, newName);
+      await this.fileSystemProvider().createFile(this.providerPath(), magnetFileName);
       this.directoryChanged.emit();
     } catch (e) {
       alert(`Failed to magnetize folder: ${(e as Error).message}`);
@@ -780,7 +830,7 @@ export class FileExplorerComponent implements OnDestroy {
   
   onMagnetizeFromContextMenu(): void {
     const item = this.contextMenu()?.item;
-    if (item?.type === 'folder' && !item.name.endsWith('.magnet')) {
+    if (item?.type === 'folder' && !item.isMagnet) {
       this.onMagnetize(item);
     }
     this.closeContextMenu();
@@ -819,9 +869,6 @@ export class FileExplorerComponent implements OnDestroy {
     const props = this.folderPropertiesService.getProperties(fullPath);
     if (props?.displayName) {
       return props.displayName;
-    }
-    if (item.name.endsWith('.magnet')) {
-      return item.name.slice(0, -7);
     }
     return item.name;
   }

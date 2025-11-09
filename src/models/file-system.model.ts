@@ -11,6 +11,9 @@ export interface FileSystemNode {
   isServerRoot?: boolean;
   profileId?: string;
   connected?: boolean;
+  // Properties for magnet folders
+  isMagnet?: boolean;
+  magnetFile?: string;
 }
 
 // FIX: Add missing SearchResultNode interface.

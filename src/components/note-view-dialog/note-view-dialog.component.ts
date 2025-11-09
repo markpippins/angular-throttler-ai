@@ -6,20 +6,25 @@ declare var marked: { parse(markdown: string): string; };
 declare var DOMPurify: { sanitize(dirty: string): string; };
 
 @Component({
-  selector: 'app-note-view-dialog',
+  selector: 'app-text-editor-dialog',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './note-view-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class NoteViewDialogComponent {
+export class TextEditorDialogComponent {
   contentSignal = input.required<WritableSignal<string>>();
   title = input.required<string>();
+  fileName = input.required<string>();
   close = output<void>();
   
   mode = signal<'edit' | 'preview'>('edit');
 
   @ViewChild('editor') editorTextarea: ElementRef<HTMLTextAreaElement> | undefined;
+
+  isMarkdown = computed(() => {
+    return this.fileName().toLowerCase().endsWith('.md');
+  });
 
   renderedHtml = computed(() => {
     const content = this.contentSignal()();

@@ -18,7 +18,9 @@ function cloneNode(node: FileSystemNode): FileSystemNode {
     modified: node.modified,
     // FIX: For an in-memory provider, if the children array exists, its contents are loaded.
     // This prevents the tree view from trying to lazy-load nodes that are already present.
-    childrenLoaded: !!node.children
+    childrenLoaded: !!node.children,
+    isMagnet: node.isMagnet,
+    magnetFile: node.magnetFile,
   };
   if (node.content !== undefined) {
     newNode.content = node.content;
@@ -71,8 +73,10 @@ export class SessionService implements FileSystemProvider {
                 name: 'Projects',
                 type: 'folder',
                 children: [
-                  { name: 'Throttler.magnet', type: 'folder', children: [], modified: '2023-10-20T09:00:00Z' },
-                  { name: 'Atomix.magnet', type: 'folder', children: [], modified: '2023-10-18T16:20:00Z' },
+                  { name: 'Throttler', type: 'folder', children: [], modified: '2023-10-20T09:00:00Z' },
+                  { name: 'Throttler.magnet', type: 'file', content: '', modified: '2023-10-20T09:00:00Z' },
+                  { name: 'Atomix', type: 'folder', children: [], modified: '2023-10-18T16:20:00Z' },
+                  { name: 'Atomix.magnet', type: 'file', content: '', modified: '2023-10-18T16:20:00Z' },
                 ],
                 modified: '2023-10-20T09:00:00Z'
               },
@@ -198,10 +202,36 @@ export class SessionService implements FileSystemProvider {
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {
     const node = this.findNodeInTree(this.rootNode(), path);
-    if (node && node.type === 'folder') {
-      return (node.children ?? []).map(cloneNode);
+    if (!node || node.type !== 'folder' || !node.children) {
+      throw new Error('Path not found or is not a folder.');
     }
-    throw new Error('Path not found or is not a folder.');
+
+    const magnetFiles = new Set(
+      node.children
+        .filter(item => item.name.endsWith('.magnet') && item.type === 'file')
+        .map(item => item.name)
+    );
+
+    const processedItems: FileSystemNode[] = [];
+
+    for (const item of node.children) {
+      if (item.name.endsWith('.magnet') && item.type === 'file') {
+        continue; // Skip magnet files themselves
+      }
+      
+      const nodeClone = cloneNode(item);
+
+      if (nodeClone.type === 'folder') {
+        const magnetFileName = `${nodeClone.name}.magnet`;
+        if (magnetFiles.has(magnetFileName)) {
+          nodeClone.isMagnet = true;
+          nodeClone.magnetFile = magnetFileName;
+        }
+      }
+      
+      processedItems.push(nodeClone);
+    }
+    return processedItems;
   }
 
   async getFileContent(path: string[], name: string): Promise<string> {
@@ -213,63 +243,108 @@ export class SessionService implements FileSystemProvider {
     throw new Error('File not found in Session file system.');
   }
 
+  async saveFileContent(path: string[], name: string, content: string): Promise<void> {
+    this.rootNode.update(root => {
+      const newRoot = cloneNode(root);
+      const parentNode = this.findNodeInTree(newRoot, path);
+      if (!parentNode?.children) throw new Error('Path not found.');
+
+      const fileIndex = parentNode.children.findIndex(c => c.name === name && c.type === 'file');
+      if (fileIndex === -1) throw new Error(`File '${name}' not found.`);
+
+      const updatedFile = {
+        ...parentNode.children[fileIndex],
+        content: content,
+        modified: new Date().toISOString()
+      };
+
+      parentNode.children[fileIndex] = updatedFile;
+      parentNode.modified = new Date().toISOString();
+      
+      return newRoot;
+    });
+  }
+
+  async hasFile(path: string[], fileName: string): Promise<boolean> {
+    const parentNode = this.findNodeInTree(this.rootNode(), path);
+    if (!parentNode || !parentNode.children) {
+      return false;
+    }
+    return parentNode.children.some(child => child.name === fileName && child.type === 'file');
+  }
+
+  async hasFolder(path: string[], folderName: string): Promise<boolean> {
+    const parentNode = this.findNodeInTree(this.rootNode(), path);
+    if (!parentNode || !parentNode.children) {
+      return false;
+    }
+    return parentNode.children.some(child => child.name === folderName && child.type === 'folder');
+  }
+
   async createDirectory(path: string[], name: string): Promise<void> {
-    const newRoot = cloneNode(this.rootNode());
-    const parentNode = this.findNodeInTree(newRoot, path);
+    this.rootNode.update(root => {
+      const newRoot = cloneNode(root);
+      const parentNode = this.findNodeInTree(newRoot, path);
 
-    if (!parentNode || parentNode.type !== 'folder') {
-      throw new Error('Path not found or is not a folder.');
-    }
+      if (!parentNode || parentNode.type !== 'folder') {
+        throw new Error('Path not found or is not a folder.');
+      }
 
-    const currentChildren = parentNode.children ?? [];
-    if (currentChildren.some(c => c.name === name)) {
-      throw new Error(`An item named '${name}' already exists.`);
-    }
+      const currentChildren = parentNode.children ?? [];
+      if (currentChildren.some(c => c.name === name)) {
+        throw new Error(`An item named '${name}' already exists.`);
+      }
 
-    const newFolder: FileSystemNode = { name, type: 'folder', children: [], modified: new Date().toISOString() };
-    parentNode.children = [...currentChildren, newFolder];
-    parentNode.modified = new Date().toISOString();
-    
-    this.rootNode.set(newRoot);
+      const newFolder: FileSystemNode = { name, type: 'folder', children: [], modified: new Date().toISOString() };
+      parentNode.children = [...currentChildren, newFolder];
+      parentNode.modified = new Date().toISOString();
+      
+      return newRoot;
+    });
   }
 
   async createFile(path: string[], name: string): Promise<void> {
-    const newRoot = cloneNode(this.rootNode());
-    const parentNode = this.findNodeInTree(newRoot, path);
+    this.rootNode.update(root => {
+      const newRoot = cloneNode(root);
+      const parentNode = this.findNodeInTree(newRoot, path);
 
-    if (!parentNode || parentNode.type !== 'folder') {
-      throw new Error('Path not found or is not a folder.');
-    }
-    
-    const currentChildren = parentNode.children ?? [];
-    if (currentChildren.some(c => c.name === name)) {
-      throw new Error(`An item named '${name}' already exists.`);
-    }
+      if (!parentNode || parentNode.type !== 'folder') {
+        throw new Error('Path not found or is not a folder.');
+      }
+      
+      const currentChildren = parentNode.children ?? [];
+      if (currentChildren.some(c => c.name === name)) {
+        throw new Error(`An item named '${name}' already exists.`);
+      }
 
-    const newFile: FileSystemNode = { name, type: 'file', content: '', modified: new Date().toISOString() };
-    parentNode.children = [...currentChildren, newFile];
-    parentNode.modified = new Date().toISOString();
-    
-    this.rootNode.set(newRoot);
+      const newFile: FileSystemNode = { name, type: 'file', content: '', modified: new Date().toISOString() };
+      parentNode.children = [...currentChildren, newFile];
+      parentNode.modified = new Date().toISOString();
+      
+      return newRoot;
+    });
   }
 
   async removeDirectory(path: string[], name: string): Promise<void> {
-    const fullPath = this.getFullPath([...path, name]);
-    const pathStr = fullPath.join('/');
+    this.rootNode.update(root => {
+      const newRoot = cloneNode(root);
+      const parentNode = this.findNodeInTree(newRoot, path);
+      if (!parentNode?.children) throw new Error('Path not found.');
 
-    const newRoot = cloneNode(this.rootNode());
-    const parentNode = this.findNodeInTree(newRoot, path);
-    if (!parentNode?.children) throw new Error('Path not found.');
-
-    const childExists = parentNode.children.some(c => c.name === name && c.type === 'folder');
-    if (!childExists) throw new Error(`Directory '${name}' not found.`);
-    
-    parentNode.children = parentNode.children.filter(c => c.name !== name);
-    parentNode.modified = new Date().toISOString();
-    
-    this.rootNode.set(newRoot);
+      const childExists = parentNode.children.some(c => c.name === name && c.type === 'folder');
+      if (!childExists) throw new Error(`Directory '${name}' not found.`);
+      
+      // Also remove the associated .magnet file if it exists
+      const magnetFileName = `${name}.magnet`;
+      parentNode.children = parentNode.children.filter(c => c.name !== name && c.name !== magnetFileName);
+      parentNode.modified = new Date().toISOString();
+      
+      return newRoot;
+    });
 
     // Also remove notes for this directory and its children
+    const fullPath = this.getFullPath([...path, name]);
+    const pathStr = fullPath.join('/');
     const allNotes = await this.dbService.getAllNotes();
     for (const note of allNotes) {
       if (note.path === pathStr || note.path.startsWith(pathStr + '/')) {
@@ -279,39 +354,52 @@ export class SessionService implements FileSystemProvider {
   }
 
   async deleteFile(path: string[], name: string): Promise<void> {
-    const newRoot = cloneNode(this.rootNode());
-    const parentNode = this.findNodeInTree(newRoot, path);
-    if (!parentNode?.children) throw new Error('Path not found.');
+    this.rootNode.update(root => {
+      const newRoot = cloneNode(root);
+      const parentNode = this.findNodeInTree(newRoot, path);
+      if (!parentNode?.children) throw new Error('Path not found.');
 
-    const childExists = parentNode.children.some(c => c.name === name && c.type === 'file');
-    if (!childExists) throw new Error(`File '${name}' not found.`);
-    
-    parentNode.children = parentNode.children.filter(c => c.name !== name);
-    parentNode.modified = new Date().toISOString();
-    
-    this.rootNode.set(newRoot);
+      const childExists = parentNode.children.some(c => c.name === name && c.type === 'file');
+      if (!childExists) throw new Error(`File '${name}' not found.`);
+      
+      parentNode.children = parentNode.children.filter(c => c.name !== name);
+      parentNode.modified = new Date().toISOString();
+      
+      return newRoot;
+    });
   }
 
   async rename(path: string[], oldName: string, newName: string): Promise<void> {
-    const newRoot = cloneNode(this.rootNode());
-    const parentNode = this.findNodeInTree(newRoot, path);
-    if (!parentNode?.children) throw new Error('Path not found.');
+    this.rootNode.update(root => {
+      const newRoot = cloneNode(root);
+      const parentNode = this.findNodeInTree(newRoot, path);
+      if (!parentNode?.children) throw new Error('Path not found.');
 
-    if (oldName !== newName && parentNode.children.some(c => c.name === newName)) {
-      throw new Error(`An item named '${newName}' already exists.`);
-    }
-    
-    const childToRename = parentNode.children.find(c => c.name === oldName);
-    if (!childToRename) throw new Error(`Item '${oldName}' not found.`);
+      if (oldName !== newName && parentNode.children.some(c => c.name === newName)) {
+        throw new Error(`An item named '${newName}' already exists.`);
+      }
+      
+      const childToRename = parentNode.children.find(c => c.name === oldName);
+      if (!childToRename) throw new Error(`Item '${oldName}' not found.`);
 
-    parentNode.children = parentNode.children.map(c => 
-      c.name === oldName 
-        ? { ...c, name: newName, modified: new Date().toISOString() } 
-        : c
-    );
-    parentNode.modified = new Date().toISOString();
+      const newChildren = [...parentNode.children];
+      const childIndex = newChildren.findIndex(c => c.name === oldName);
+      if (childIndex > -1) {
+          newChildren[childIndex] = { ...newChildren[childIndex], name: newName, modified: new Date().toISOString() };
+      }
 
-    this.rootNode.set(newRoot);
+      // If the renamed item was a folder, rename its .magnet file too
+      if (childToRename.type === 'folder') {
+          const magnetFileIndex = newChildren.findIndex(c => c.name === `${oldName}.magnet`);
+          if (magnetFileIndex > -1) {
+              newChildren[magnetFileIndex] = { ...newChildren[magnetFileIndex], name: `${newName}.magnet`, modified: new Date().toISOString() };
+          }
+      }
+
+      parentNode.children = newChildren;
+      parentNode.modified = new Date().toISOString();
+      return newRoot;
+    });
 
     // Rename notes
     const oldFullPath = this.getFullPath([...path, oldName]);
@@ -359,6 +447,11 @@ export class SessionService implements FileSystemProvider {
               oldPath: this.getFullPath([...sourcePath, child.name]),
               newPath: this.getFullPath([...destPath, child.name]),
             });
+            // Also look for and move the associated .magnet file
+            const magnetFile = sourceParent.children.find(c => c.name === `${child.name}.magnet`);
+            if (magnetFile) {
+              itemsToMove.push(magnetFile);
+            }
           }
         } else {
           newSourceChildren.push(child);
@@ -415,7 +508,6 @@ export class SessionService implements FileSystemProvider {
   
   async copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
     this.rootNode.update(root => {
-        // Start with a fresh clone of the entire state for this operation.
         const newRoot = cloneNode(root);
 
         const sourceParent = this.findNodeInTree(newRoot, sourcePath);
@@ -428,31 +520,37 @@ export class SessionService implements FileSystemProvider {
             throw new Error('Copy failed: Destination path is not a valid folder.');
         }
 
-        const nodesToCopy = sourceParent.children.filter(child => 
+        const nodesToProcess = sourceParent.children.filter(child => 
             items.some(itemRef => itemRef.name === child.name && itemRef.type === child.type)
         );
 
-        if (nodesToCopy.length === 0) {
-            return root; // No change needed, return original state.
+        if (nodesToProcess.length === 0) {
+            return root; // No change needed
+        }
+        
+        const nodesToCopy: FileSystemNode[] = [];
+        for (const node of nodesToProcess) {
+          nodesToCopy.push(node);
+          // If it's a folder, also grab its .magnet file
+          if (node.type === 'folder') {
+            const magnetFile = sourceParent.children.find(c => c.name === `${node.name}.magnet`);
+            if (magnetFile) {
+              nodesToCopy.push(magnetFile);
+            }
+          }
         }
 
         const existingDestChildren = [...(destParent.children || [])];
         const newClonesToAdd: FileSystemNode[] = [];
 
-        // Phase 1: Calculate all new nodes and their names first.
-        // This avoids reading from the destination array while we are conceptually adding to it.
         for (const item of nodesToCopy) {
             const itemCopy = cloneNode(item);
-            
-            // Check for name clashes against both the original destination children AND
-            // any new clones we've already prepared in this same operation.
             const combinedChildrenCheck = [...existingDestChildren, ...newClonesToAdd];
             itemCopy.name = this.getUniqueCopyName(item.name, combinedChildrenCheck);
             itemCopy.modified = new Date().toISOString();
             newClonesToAdd.push(itemCopy);
         }
         
-        // Phase 2: Mutate the state once with the prepared nodes.
         if (!destParent.children) {
             destParent.children = [];
         }

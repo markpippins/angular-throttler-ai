@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, signal, computed, ViewChild, ElementRef, inject, input, effect, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NoteDialogService } from '../../services/note-dialog.service.js';
+import { TextEditorService } from '../../services/note-dialog.service.js';
 import { FileSystemProvider } from '../../services/file-system-provider.js';
 
 // Declare the globals from the CDN scripts
@@ -17,7 +17,7 @@ const DEFAULT_NOTE_TEXT = '# Notes\n\n- Select a folder to view or create a note
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NotesComponent implements OnDestroy {
-  private noteDialogService = inject(NoteDialogService);
+  private textEditorService = inject(TextEditorService);
 
   path = input.required<string[]>();
   provider = input.required<FileSystemProvider>();
@@ -114,7 +114,7 @@ export class NotesComponent implements OnDestroy {
   openInDialog(): void {
     const path = this.path();
     const title = path.length > 0 ? `Note for ${path[path.length - 1]}` : 'Note';
-    this.noteDialogService.open(this.noteContent, title);
+    this.textEditorService.open(this.noteContent, title, 'note.md');
   }
 
   applyMarkdown(prefix: string, suffix: string = prefix, placeholder: string = 'text'): void {
