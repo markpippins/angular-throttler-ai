@@ -24,6 +24,19 @@
         <input type="text" id="defaultImageUrl" [value]="formState().defaultImageUrl" (input)="onValueChange($event, 'defaultImageUrl')" placeholder="http://..."
               class="mt-2 block w-full px-3 py-2 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] sm:text-sm">
       </div>
+
+      <div class="pt-2">
+        <div class="relative flex items-start">
+          <div class="flex h-6 items-center">
+            <input id="logBrokerMessages" type="checkbox" [checked]="formState().logBrokerMessages" (change)="onCheckboxChange($event, 'logBrokerMessages')"
+                  class="h-4 w-4 rounded border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-accent-text))] focus:ring-[rgb(var(--color-accent-ring))] bg-[rgb(var(--color-surface))]">
+          </div>
+          <div class="ml-3 text-sm leading-6">
+            <label for="logBrokerMessages" class="font-medium text-[rgb(var(--color-text-muted))]">Enable Broker Logging</label>
+            <p class="text-xs text-[rgb(var(--color-text-subtle))]">Log all service broker requests and responses to the developer console.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="px-6 py-3 bg-[rgb(var(--color-surface-muted))] flex justify-end items-center space-x-2 rounded-b-lg">

@@ -28,8 +28,12 @@ export class FsService {
   }
 
   async getFileContent(brokerUrl: string, alias: string, path: string[], filename: string): Promise<string> {
-    const response = await this.brokerService.submitRequest<{ content: string }>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'getFileContent', { alias, path, filename });
+    const response = await this.brokerService.submitRequest<{ content: string }>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'readFile', { alias, path, filename });
     return response.content;
+  }
+
+  saveFileContent(brokerUrl: string, alias: string, path: string[], filename: string, content: string): Promise<void> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'saveFile', { alias, path, filename, content });
   }
 
   changeDirectory(brokerUrl: string, alias: string, path: string[]): Promise<any> {
@@ -56,8 +60,16 @@ export class FsService {
     return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'rename', { alias, fromPath, toPath });
   }
 
+  hasFile(brokerUrl: string, alias: string, path: string[], fileName: string): Promise<boolean> {
+    return this.brokerService.submitRequest<boolean>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'hasFile', { alias, path, fileName });
+  }
+
+  hasFolder(brokerUrl: string, alias: string, path: string[], folderName: string): Promise<boolean> {
+    return this.brokerService.submitRequest<boolean>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'hasFolder', { alias, path, folderName });
+  }
+
   move(brokerUrl: string, alias: string, sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'move', { alias, sourcePath, destPath, items });
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'moveItems', { alias, sourcePath, destPath, items });
   }
 
   copy(brokerUrl: string, fromAlias: string, fromPath: string[], toAlias: string, toPath: string[]): Promise<void> {

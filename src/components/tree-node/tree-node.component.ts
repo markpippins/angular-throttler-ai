@@ -66,11 +66,7 @@ export class TreeNodeComponent implements OnInit {
     if (props?.displayName) {
         return props.displayName;
     }
-    const name = this.node().name;
-    if (name.endsWith('.magnet')) {
-      return name.slice(0, -7);
-    }
-    return name;
+    return this.node().name;
   });
 
   folderChildren = computed(() => {

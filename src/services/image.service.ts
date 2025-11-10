@@ -19,9 +19,14 @@ export class ImageService {
       return null;
     }
 
-    let folderName = customImageName || item.name;
-    if (folderName.endsWith('.magnet')) {
-      folderName = folderName.slice(0, -7);
+    let folderName: string;
+
+    if (customImageName) {
+      folderName = customImageName;
+    } else if (item.isMagnet && item.magnetFile) {
+      folderName = item.magnetFile.slice(0, -7);
+    } else {
+      folderName = item.name;
     }
     
     // If the folder name resembles a JavaScript library (e.g., ends with .js),

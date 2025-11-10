@@ -31,6 +31,8 @@ The `AppComponent` is the top-level component that acts as the central controlle
     -   It handles the `(loginAndMount)` event from the `ServerProfilesDialogComponent`, initiating the authentication flow and creating a new user-specific file system provider upon success.
     -   It manages bookmarking events (`onSaveBookmark`, `onBookmarkDropped...`) by interacting with the `BookmarkService` and passing the relevant data.
 
+5.  **Layout & Pane Management:** It manages the overall application layout, including the visibility and size of major UI sections like the main sidebar, the details pane, the **Idea Stream**, and the **Console**. The Idea Stream and Console are rendered as resizable panes at the bottom of the main content area, providing contextual information and a command-line interface, respectively.
+
 ### API and Interactions
 
 -   **Inputs:** None (as it's the root component).

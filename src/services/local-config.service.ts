@@ -5,11 +5,13 @@ const CONFIG_STORAGE_KEY = 'file-explorer-local-config';
 export interface LocalConfig {
   sessionName: string;
   defaultImageUrl: string;
+  logBrokerMessages: boolean;
 }
 
 const DEFAULT_CONFIG: LocalConfig = {
   sessionName: 'Local Session',
-  defaultImageUrl: 'http://localhost:8081' // A sensible default
+  defaultImageUrl: 'http://localhost:8081', // A sensible default
+  logBrokerMessages: true,
 };
 
 @Injectable({
@@ -34,11 +36,10 @@ export class LocalConfigService {
       const stored = localStorage.getItem(CONFIG_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Basic validation
-        if (typeof parsed.sessionName === 'string' && typeof parsed.defaultImageUrl === 'string') {
-          this.config.set(parsed);
-          return;
-        }
+        // Merge with defaults to handle missing properties from older versions
+        const mergedConfig = { ...DEFAULT_CONFIG, ...parsed };
+        this.config.set(mergedConfig);
+        return;
       }
     } catch (e) {
       console.error('Failed to load local config from localStorage', e);

@@ -28,13 +28,13 @@ import { WebviewService } from './services/webview.service.js';
 import { LocalConfigDialogComponent } from './components/local-config-dialog/local-config-dialog.component.js';
 import { LocalConfig, LocalConfigService } from './services/local-config.service.js';
 import { LoginDialogComponent } from './components/login-dialog/login-dialog.component.js';
-import { Theme, UiPreferencesService } from './services/ui-preferences.service.js';
+import { Theme, UiPreferences, UiPreferencesService } from './services/ui-preferences.service.js';
 import { RssFeedsDialogComponent } from './components/rss-feeds-dialog/rss-feeds-dialog.component.js';
 import { ImportDialogComponent } from './components/import-dialog/import-dialog.component.js';
 import { ExportDialogComponent } from './components/export-dialog/export-dialog.component.js';
 import { FolderPropertiesService } from './services/folder-properties.service.js';
-import { NoteDialogService } from './services/note-dialog.service.js';
-import { NoteViewDialogComponent } from './components/note-view-dialog/note-view-dialog.component.js';
+import { TextEditorService } from './services/note-dialog.service.js';
+import { TextEditorDialogComponent } from './components/note-view-dialog/note-view-dialog.component.js';
 import { DbService } from './services/db.service.js';
 import { GoogleSearchService } from './services/google-search.service.js';
 import { UnsplashService } from './services/unsplash.service.js';
@@ -55,8 +55,8 @@ import { ImageResultListItemComponent } from './components/stream-list-items/ima
 import { GeminiResultListItemComponent } from './components/stream-list-items/gemini-result-list-item.component.js';
 import { YoutubeResultListItemComponent } from './components/stream-list-items/youtube-result-list-item.component.js';
 import { AcademicResultListItemComponent } from './components/stream-list-items/academic-result-list-item.component.js';
-import { TabControlComponent } from './components/tabs/tab-control.component.js';
-import { TabComponent } from './components/tabs/tab.component.js';
+import { PreferencesDialogComponent } from './components/preferences-dialog/preferences-dialog.component.js';
+import { TerminalComponent } from './components/terminal/terminal.component.js';
 
 interface PanePath {
   id: number;
@@ -97,13 +97,16 @@ const readOnlyProviderOps = {
   copy: () => Promise.reject(new Error('Operation not supported.')),
   importTree: () => Promise.reject(new Error('Operation not supported.')),
   getFileContent: () => Promise.reject(new Error('Operation not supported.')),
+  saveFileContent: () => Promise.reject(new Error('Operation not supported.')),
+  hasFile: () => Promise.resolve(false),
+  hasFolder: () => Promise.resolve(false),
 };
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, NoteViewDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, TabControlComponent, TabComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -121,7 +124,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private bookmarkService = inject(BookmarkService);
   private toastService = inject(ToastService);
   private webviewService = inject(WebviewService);
-  private noteDialogService = inject(NoteDialogService);
+  private textEditorService = inject(TextEditorService);
   private folderPropertiesService = inject(FolderPropertiesService);
   private injector = inject(Injector);
   private document: Document = inject(DOCUMENT);
@@ -145,6 +148,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isRssFeedsDialogOpen = signal(false);
   isImportDialogOpen = signal(false);
   isExportDialogOpen = signal(false);
+  isPreferencesDialogOpen = signal(false);
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
   refreshPanes = signal(0);
@@ -338,8 +342,8 @@ export class AppComponent implements OnInit, OnDestroy {
   // --- Webview Dialog State ---
   webviewContent = this.webviewService.viewRequest;
 
-  // --- Note View Dialog State ---
-  noteDialogContent = this.noteDialogService.viewRequest;
+  // --- Text Editor Dialog State ---
+  textEditorContent = this.textEditorService.viewRequest;
 
   // --- Specific node for import/export dialogs ---
   localSessionNode = computed(() => {
@@ -350,6 +354,7 @@ export class AppComponent implements OnInit, OnDestroy {
   // --- Idea Stream State ---
   bottomPaneHeight = signal(this.uiPreferencesService.explorerStreamHeight() ?? 40);
   isResizingBottomPane = signal(false);
+  private streamResizeInitialConsoleHeight = 0;
   private unlistenBottomPaneMouseMove: (() => void) | null = null;
   private unlistenBottomPaneMouseUp: (() => void) | null = null;
 
@@ -495,6 +500,15 @@ export class AppComponent implements OnInit, OnDestroy {
         return { name: 'Home', type: 'folder', children };
       },
       ...readOnlyProviderOps,
+      hasFile: (path: string[], fileName: string) => Promise.resolve(false),
+      hasFolder: async (path: string[], folderName: string) => {
+        if (path.length > 0) return false;
+        const localRoot = await this.sessionFs.getFolderTree();
+        if (localRoot.name === folderName) return true;
+        
+        const serverProfileExists = this.profileService.profiles().some(p => p.name === folderName);
+        return serverProfileExists;
+      },
       getNote: async (path: string[]): Promise<string | undefined> => {
         if (path.length > 0) return undefined; 
         const note = await this.dbService.getNote(homeNotePath);
@@ -525,6 +539,16 @@ export class AppComponent implements OnInit, OnDestroy {
       // This is more robust as it doesn't wipe out other potential body classes.
       this.themes.forEach(t => this.renderer.removeClass(this.document.body, t.id));
       this.renderer.addClass(this.document.body, theme);
+    });
+
+    effect(() => {
+      const fontSize = this.uiPreferencesService.fontSize();
+      // Remove any existing font size classes
+      this.renderer.removeClass(this.document.body, 'text-sm');
+      this.renderer.removeClass(this.document.body, 'text-base');
+      this.renderer.removeClass(this.document.body, 'text-lg');
+      // Add the new one
+      this.renderer.addClass(this.document.body, `text-${fontSize}`);
     });
     
     // When profiles change, or local config name changes, reload the tree
@@ -865,6 +889,20 @@ export class AppComponent implements OnInit, OnDestroy {
 
   closeRssFeedsDialog(): void {
     this.isRssFeedsDialogOpen.set(false);
+  }
+
+  openPreferencesDialog(): void {
+    this.isPreferencesDialogOpen.set(true);
+  }
+
+  closePreferencesDialog(): void {
+    this.isPreferencesDialogOpen.set(false);
+  }
+  
+  onPreferencesSaved(prefs: Partial<UiPreferences>): void {
+    this.uiPreferencesService.saveAllPreferences(prefs);
+    this.closePreferencesDialog();
+    this.toastService.show('Preferences saved.');
   }
   
   onLocalConfigSaved(config: LocalConfig): void {
@@ -1309,14 +1347,19 @@ export class AppComponent implements OnInit, OnDestroy {
         this.closeRssFeedsDialog();
         return;
       }
+       if (this.isPreferencesDialogOpen()) {
+        event.preventDefault();
+        this.closePreferencesDialog();
+        return;
+      }
       if (this.webviewContent()) {
         event.preventDefault();
         this.webviewService.close();
         return;
       }
-      if (this.noteDialogContent()) {
+      if (this.textEditorContent()) {
         event.preventDefault();
-        this.noteDialogService.close();
+        this.textEditorService.close();
         return;
       }
       if (this.isLocalConfigDialogOpen()) {
@@ -1475,16 +1518,33 @@ export class AppComponent implements OnInit, OnDestroy {
     const container = this.mainContentWrapperEl.nativeElement;
     const containerRect = container.getBoundingClientRect();
 
+    // CAPTURE the console area height ONCE on mousedown
+    const consolePaneEl = container.querySelector<HTMLElement>('[data-console-pane]');
+    const consoleResizerEl = container.querySelector<HTMLElement>('[data-console-resizer]');
+    this.streamResizeInitialConsoleHeight = 0;
+    if (consolePaneEl) {
+      this.streamResizeInitialConsoleHeight += consolePaneEl.offsetHeight;
+    }
+    if (consoleResizerEl) {
+      this.streamResizeInitialConsoleHeight += consoleResizerEl.offsetHeight;
+    }
+
     event.preventDefault();
     this.renderer.setStyle(this.document.body, 'user-select', 'none');
 
     this.unlistenBottomPaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
         const mouseY = e.clientY - containerRect.top;
         const totalHeight = containerRect.height;
-        let newHeightPercent = ((totalHeight - mouseY) / totalHeight) * 100;
+        const heightBelowStreamResizerPx = totalHeight - mouseY;
+        
+        const newStreamHeightPx = heightBelowStreamResizerPx - this.streamResizeInitialConsoleHeight;
+        let newHeightPercent = (newStreamHeightPx / totalHeight) * 100;
 
         const minHeightPercent = 15;
-        const maxHeightPercent = 85;
+        // Max height should leave at least 15% for the top file explorer pane
+        const consoleHeightPercent = (this.streamResizeInitialConsoleHeight / totalHeight) * 100;
+        const maxHeightPercent = 85 - consoleHeightPercent;
+
         if (newHeightPercent < minHeightPercent) newHeightPercent = minHeightPercent;
         if (newHeightPercent > maxHeightPercent) newHeightPercent = maxHeightPercent;
 

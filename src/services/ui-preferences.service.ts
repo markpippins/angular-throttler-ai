@@ -3,6 +3,7 @@ import { Injectable, signal, effect, computed } from '@angular/core';
 const PREFERENCES_STORAGE_KEY = 'file-explorer-ui-preferences';
 
 export type Theme = 'theme-light' | 'theme-steel' | 'theme-dark';
+export type FontSize = 'sm' | 'base' | 'lg';
 
 export interface UiPreferences {
   isSidebarVisible: boolean;
@@ -24,6 +25,7 @@ export interface UiPreferences {
   detailPaneWidth: number | null;
   detailPaneSavedHeight: number | null;
   theme: Theme;
+  fontSize: FontSize;
 }
 
 const DEFAULT_PREFERENCES: UiPreferences = {
@@ -46,6 +48,7 @@ const DEFAULT_PREFERENCES: UiPreferences = {
   detailPaneWidth: null,
   detailPaneSavedHeight: null,
   theme: 'theme-light',
+  fontSize: 'base',
 };
 
 @Injectable({
@@ -74,6 +77,8 @@ export class UiPreferencesService {
   public readonly detailPaneWidth = computed(() => this.preferences().detailPaneWidth);
   public readonly detailPaneSavedHeight = computed(() => this.preferences().detailPaneSavedHeight);
   public readonly theme = computed(() => this.preferences().theme);
+  public readonly fontSize = computed(() => this.preferences().fontSize);
+  public readonly currentPreferences = this.preferences.asReadonly();
 
   constructor() {
     this.loadPreferences();
@@ -183,5 +188,10 @@ export class UiPreferencesService {
 
   setTheme(theme: Theme): void {
     this.preferences.update(p => ({ ...p, theme }));
+  }
+
+  // --- Bulk update method for preferences dialog ---
+  saveAllPreferences(newPrefs: Partial<UiPreferences>): void {
+    this.preferences.update(current => ({ ...current, ...newPrefs }));
   }
 }

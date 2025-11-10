@@ -42,21 +42,48 @@ export class RemoteFileSystemService implements FileSystemProvider {
       }
     }
 
-    return rawItems.map((item: any): FileSystemNode => {
+    const magnetFiles = new Set(
+      rawItems
+        .filter(item => item.name && item.name.endsWith('.magnet'))
+        .map(item => item.name)
+    );
+
+    const processedItems: FileSystemNode[] = [];
+
+    for (const item of rawItems) {
+      if (item.name && item.name.endsWith('.magnet')) {
+        continue; // Skip magnet files themselves
+      }
+      
       const itemType = (item.type || '').toLowerCase();
       const isFolder = itemType === 'folder' || itemType === 'directory';
 
-      return {
+      const node: FileSystemNode = {
         name: item.name,
         type: isFolder ? 'folder' : 'file',
         modified: item.modified,
         content: item.content,
       };
-    });
+
+      if (isFolder) {
+        const magnetFileName = `${item.name}.magnet`;
+        if (magnetFiles.has(magnetFileName)) {
+          node.isMagnet = true;
+          node.magnetFile = magnetFileName;
+        }
+      }
+      
+      processedItems.push(node);
+    }
+    return processedItems;
   }
 
   getFileContent(path: string[], name: string): Promise<string> {
     return this.fsService.getFileContent(this.profile.brokerUrl, this.alias, path, name);
+  }
+
+  saveFileContent(path: string[], name: string, content: string): Promise<void> {
+    return this.fsService.saveFileContent(this.profile.brokerUrl, this.alias, path, name, content);
   }
 
   async getFolderTree(): Promise<FileSystemNode> {
@@ -80,12 +107,28 @@ export class RemoteFileSystemService implements FileSystemProvider {
     };
   }
 
+  hasFile(path: string[], fileName: string): Promise<boolean> {
+    return this.fsService.hasFile(this.profile.brokerUrl, this.alias, path, fileName);
+  }
+
+  hasFolder(path: string[], folderName: string): Promise<boolean> {
+    return this.fsService.hasFolder(this.profile.brokerUrl, this.alias, path, folderName);
+  }
+
   createDirectory(path: string[], name: string): Promise<void> {
     return this.fsService.createDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
   }
 
-  removeDirectory(path: string[], name: string): Promise<void> {
-    return this.fsService.removeDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
+  async removeDirectory(path: string[], name: string): Promise<void> {
+    // First, remove the directory
+    await this.fsService.removeDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
+  
+    // Now, check for and remove the associated .magnet file
+    const magnetFileName = `${name}.magnet`;
+    const fileExists = await this.hasFile(path, magnetFileName);
+    if (fileExists) {
+      await this.fsService.deleteFile(this.profile.brokerUrl, this.alias, path, magnetFileName);
+    }
   }
 
   createFile(path: string[], name: string): Promise<void> {
@@ -96,10 +139,21 @@ export class RemoteFileSystemService implements FileSystemProvider {
     return this.fsService.deleteFile(this.profile.brokerUrl, this.alias, path, name);
   }
 
-  rename(path: string[], oldName: string, newName: string): Promise<void> {
+  async rename(path: string[], oldName: string, newName: string): Promise<void> {
     const fromPath = [...path, oldName];
     const toPath = [...path, newName];
-    return this.fsService.rename(this.profile.brokerUrl, this.alias, fromPath, toPath);
+    
+    // First, rename the primary item
+    await this.fsService.rename(this.profile.brokerUrl, this.alias, fromPath, toPath);
+    
+    // Now, check for and rename the associated .magnet file
+    const magnetFileName = `${oldName}.magnet`;
+    const fileExists = await this.hasFile(path, magnetFileName);
+    if (fileExists) {
+      const newMagnetFileName = `${newName}.magnet`;
+      // The rename operation in fs.service takes full paths for 'from' and 'to'
+      await this.fsService.rename(this.profile.brokerUrl, this.alias, [...path, magnetFileName], [...path, newMagnetFileName]);
+    }
   }
 
   uploadFile(path: string[], file: File): Promise<void> {
@@ -124,22 +178,16 @@ export class RemoteFileSystemService implements FileSystemProvider {
     await Promise.all(copyPromises);
   }
 
-  importTree(destPath: string[], data: FileSystemNode): Promise<void> {
-    return Promise.reject(new Error('Import operation is not supported for remote file systems.'));
-  }
-
   async getNote(path: string[]): Promise<string | undefined> {
-    try {
-      const response = await this.fsService.getNote(this.profile.brokerUrl, this.alias, path);
-      return response.content;
-    } catch (e) {
-      // It's common for notes not to exist, so we swallow "not found" errors.
-      console.warn(`Could not retrieve note for ${[this.profile.name, ...path].join('/')}:`, e);
-      return undefined;
-    }
+    const response = await this.fsService.getNote(this.profile.brokerUrl, this.alias, path);
+    return response.content;
   }
 
   saveNote(path: string[], content: string): Promise<void> {
     return this.fsService.saveNote(this.profile.brokerUrl, this.alias, path, content);
+  }
+
+  importTree(destPath: string[], data: FileSystemNode): Promise<void> {
+    return Promise.reject(new Error('Import operation is not supported for remote file systems.'));
   }
 }
