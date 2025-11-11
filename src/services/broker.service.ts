@@ -32,17 +32,6 @@ export class BrokerService {
         requestId: this.generateUUID()
     };
 
-
-    const response = await fetch(brokerUrl, {
-        method: 'POST',
-        mode: 'cors',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-    });
-
     const shouldLog = this.localConfigService.currentConfig().logBrokerMessages;
 
     if (shouldLog) {

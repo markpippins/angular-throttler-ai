@@ -52,6 +52,7 @@
            (blur)="rename.emit($event.target.value)"
            (keydown.enter)="$event.target.blur()"
            (keydown.escape)="cancelRename.emit()"
+           (mousedown)="$event.stopPropagation()"
            (click)="$event.stopPropagation()"
            class="mt-2 text-center text-xs w-full bg-[rgb(var(--color-surface))] text-[rgb(var(--color-text-base))] border border-[rgb(var(--color-accent-ring))] rounded p-0.5 focus:outline-none rename-input">
   } @else {

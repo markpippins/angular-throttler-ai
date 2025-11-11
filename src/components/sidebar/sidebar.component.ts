@@ -74,6 +74,12 @@ export class SidebarComponent implements OnDestroy {
   isNotesPaneCollapsed = signal(false);
 
   @ViewChild('contentContainer') contentContainerEl!: ElementRef<HTMLDivElement>;
+  
+  isTreeFlex = computed(() => {
+    const chatIsEffectivelyHidden = !this.isChatVisible() || this.isChatPaneCollapsed();
+    const notesIsEffectivelyHidden = !this.isNotesVisible() || this.isNotesPaneCollapsed();
+    return chatIsEffectivelyHidden && notesIsEffectivelyHidden;
+  });
 
   // --- Context Menu State ---
   contextMenu = signal<{ x: number; y: number; path: string[]; node: FileSystemNode } | null>(null);
@@ -139,23 +145,34 @@ export class SidebarComponent implements OnDestroy {
     this.isResizingTree.set(true);
     const container = this.contentContainerEl.nativeElement;
     const containerRect = container.getBoundingClientRect();
-
     event.preventDefault();
 
     this.unlistenTreeMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
-      let newHeight = e.clientY - containerRect.top;
+      let newTreeHeight = e.clientY - containerRect.top;
       
       const minHeight = 100;
-      // Ensure space for other panes (100px min for each)
-      const chatHeight = (this.isChatVisible() && !this.isChatPaneCollapsed()) ? this.chatPaneHeight() : 0;
-      const notesMinHeight = (this.isNotesVisible() && !this.isNotesPaneCollapsed()) ? 100 : 0;
       
-      const maxHeight = containerRect.height - chatHeight - notesMinHeight;
+      let occupiedByOtherPanes = 0;
+      if (this.isChatVisible()) {
+        if (this.isChatPaneCollapsed()) {
+          // Collapsed chat pane is just its header height (h-12 = 3rem = 48px)
+          occupiedByOtherPanes += 48;
+        } else {
+          occupiedByOtherPanes += this.chatPaneHeight();
+        }
+      }
 
-      if (newHeight < minHeight) newHeight = minHeight;
-      if (newHeight > maxHeight) newHeight = maxHeight;
+      if (this.isNotesVisible() && !this.isNotesPaneCollapsed()) {
+        // Leave at least 100px for the notes pane
+        occupiedByOtherPanes += 100;
+      }
       
-      this.treePaneHeight.set(newHeight);
+      const maxHeight = containerRect.height - occupiedByOtherPanes;
+
+      if (newTreeHeight < minHeight) newTreeHeight = minHeight;
+      if (newTreeHeight > maxHeight) newTreeHeight = maxHeight;
+      
+      this.treePaneHeight.set(newTreeHeight);
     });
 
     this.unlistenTreeMouseUp = this.renderer.listen('document', 'mouseup', () => {
