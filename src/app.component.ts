@@ -667,6 +667,7 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       const homeRoot = await this.homeProvider.getFolderTree();
       this.folderTree.set(homeRoot);
+      this.triggerRefresh();
     } catch (e) {
       console.error('Failed to load a complete folder tree', e);
     }
@@ -1133,7 +1134,7 @@ export class AppComponent implements OnInit, OnDestroy {
     await this.folderPropertiesService.handleRename(oldFullPath, newFullPath);
     this.updatePathsAfterRename(oldFullPath, newFullPath);
     // Refresh the tree to reflect the change.
-    this.loadFolderTree();
+    await this.loadFolderTree();
   }
 
   // Handler for items deleted from a file explorer pane
@@ -1164,7 +1165,7 @@ export class AppComponent implements OnInit, OnDestroy {
       const newFullPath = [...parentPath, newName];
       await this.folderPropertiesService.handleRename(path, newFullPath);
       this.updatePathsAfterRename(path, newFullPath);
-      this.refreshPanes.update(v => v + 1);
+      await this.loadFolderTree();
     }
   }
 
@@ -1177,7 +1178,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (success) {
       await this.folderPropertiesService.handleDelete(path);
       this.updatePathsAfterDelete(path);
-      this.refreshPanes.update(v => v + 1);
+      await this.loadFolderTree();
     }
   }
 
@@ -1185,14 +1186,14 @@ export class AppComponent implements OnInit, OnDestroy {
     const success = await this.performTreeAction(path, (provider, providerPath) => 
       provider.createDirectory(providerPath, name)
     );
-    if (success) this.refreshPanes.update(v => v + 1);
+    if (success) await this.loadFolderTree();
   }
 
   async onSidebarNewFile({ path, name }: { path: string[]; name: string }): Promise<void> {
      const success = await this.performTreeAction(path, (provider, providerPath) => 
       provider.createFile(providerPath, name)
     );
-    if (success) this.refreshPanes.update(v => v + 1);
+    if (success) await this.loadFolderTree();
   }
   
   onConnectToServer(profileId: string): void {
@@ -1294,7 +1295,6 @@ export class AppComponent implements OnInit, OnDestroy {
       // FIX: Replace `Array.prototype.at()` with `array[array.length - 1]` for compatibility with older TypeScript targets.
       this.toastService.show(`Successfully imported into "${destPath.length > 0 ? destPath[destPath.length - 1] : await this.sessionFs.getFolderTree().then(t => t.name)}".`);
       await this.loadFolderTree();
-      this.refreshPanes.update(v => v + 1);
     } catch (e) {
       this.toastService.show(`Import failed: ${(e as Error).message}`, 'error');
     }
