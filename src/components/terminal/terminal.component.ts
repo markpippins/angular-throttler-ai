@@ -1,5 +1,6 @@
-import { Component, ChangeDetectionStrategy, ViewChild, ElementRef, AfterViewInit, OnDestroy, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ViewChild, ElementRef, AfterViewInit, OnDestroy, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 
 declare var Terminal: any;
 declare var FitAddon: any;
@@ -18,23 +19,30 @@ export class TerminalComponent implements AfterViewInit, OnDestroy {
   private fitAddon: any;
   private resizeObserver!: ResizeObserver;
   private hostEl = inject(ElementRef);
+  private uiPreferencesService = inject(UiPreferencesService);
+
+  constructor() {
+    effect(() => {
+      // Rerun this logic whenever the theme signal changes.
+      this.uiPreferencesService.theme();
+
+      // The app.component effect which applies the class to the body will have already run.
+      // So we can now apply the new theme to the terminal if it exists.
+      if (this.term) {
+        this.applyTheme();
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
-    const computedStyle = getComputedStyle(document.body);
-
     this.term = new Terminal({
       cursorBlink: true,
       convertEol: true,
       fontFamily: `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`,
       fontSize: 13,
-      theme: {
-        background: `rgb(${computedStyle.getPropertyValue('--color-surface-muted').trim()})`,
-        foreground: `rgb(${computedStyle.getPropertyValue('--color-text-muted').trim()})`,
-        cursor: `rgb(${computedStyle.getPropertyValue('--color-accent-text').trim()})`,
-        selectionBackground: `rgba(${computedStyle.getPropertyValue('--color-accent-bg').trim()}, 0.5)`,
-        selectionForeground: `rgb(${computedStyle.getPropertyValue('--color-text-base').trim()})`,
-      }
     });
+    
+    this.applyTheme(); // Apply initial theme
 
     this.fitAddon = new FitAddon.FitAddon();
     this.term.loadAddon(this.fitAddon);
@@ -70,6 +78,20 @@ export class TerminalComponent implements AfterViewInit, OnDestroy {
     });
 
     this.resizeObserver.observe(this.hostEl.nativeElement);
+  }
+
+  private applyTheme(): void {
+    const computedStyle = getComputedStyle(document.body);
+    const newTheme = {
+      background: `rgb(${computedStyle.getPropertyValue('--color-surface-muted').trim()})`,
+      foreground: `rgb(${computedStyle.getPropertyValue('--color-text-muted').trim()})`,
+      cursor: `rgb(${computedStyle.getPropertyValue('--color-accent-text').trim()})`,
+      selectionBackground: `rgba(${computedStyle.getPropertyValue('--color-accent-bg').trim()}, 0.5)`,
+      selectionForeground: `rgb(${computedStyle.getPropertyValue('--color-text-base').trim()})`,
+    };
+    if (this.term) {
+      this.term.options.theme = newTheme;
+    }
   }
 
   ngOnDestroy(): void {

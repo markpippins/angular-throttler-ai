@@ -241,11 +241,15 @@ export class AppComponent implements OnInit, OnDestroy {
   // --- Pane Resizing State ---
   pane1Width = signal(this.uiPreferencesService.splitViewPaneWidth() ?? 50);
   isResizingPanes = signal(false);
-  private unlistenPaneMouseMove: (() => void) | null = null;
-  private unlistenPaneMouseUp: (() => void) | null = null;
   
   @ViewChild('paneContainer') paneContainerEl!: ElementRef<HTMLDivElement>;
   @ViewChild('mainContentWrapper') mainContentWrapperEl!: ElementRef<HTMLDivElement>;
+
+  // --- Resizer Event Listeners ---
+  private unlistenPaneMouseMove: (() => void) | null = null;
+  private unlistenBottomPaneMouseMove: (() => void) | null = null;
+  private unlistenConsolePaneMouseMove: (() => void) | null = null;
+  private unlistenGlobalMouseUp: (() => void) | null = null;
 
   // --- Computed Per-Pane Services ---
   public getProviderForPath(path: string[]): FileSystemProvider {
@@ -355,14 +359,10 @@ export class AppComponent implements OnInit, OnDestroy {
   bottomPaneHeight = signal(this.uiPreferencesService.explorerStreamHeight() ?? 40);
   isResizingBottomPane = signal(false);
   private streamResizeInitialConsoleHeight = 0;
-  private unlistenBottomPaneMouseMove: (() => void) | null = null;
-  private unlistenBottomPaneMouseUp: (() => void) | null = null;
 
   // --- Console Pane State ---
   consolePaneHeight = signal(this.uiPreferencesService.explorerConsoleHeight() ?? 20);
   isResizingConsolePane = signal(false);
-  private unlistenConsolePaneMouseMove: (() => void) | null = null;
-  private unlistenConsolePaneMouseUp: (() => void) | null = null;
   
   private streamResults1 = signal<StreamItem[]>([]);
   private streamResults2 = signal<StreamItem[]>([]);
@@ -563,6 +563,9 @@ export class AppComponent implements OnInit, OnDestroy {
       // Sync the stream's display mode with the main display mode from the toolbar.
       this.streamDisplayMode.set(this.activeDisplayMode());
     }, { allowSignalWrites: true });
+
+    // Set up a single, global mouseup listener to handle all resize cleanup.
+    this.unlistenGlobalMouseUp = this.renderer.listen('document', 'mouseup', this.stopAllResizing.bind(this));
   }
   
   ngOnInit(): void {
@@ -573,9 +576,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.renderer.removeClass(this.document.body, this.currentTheme());
-    this.stopPaneResize();
-    this.stopBottomPaneResize();
-    this.stopConsolePaneResize();
+    this.stopAllResizing();
+    if (this.unlistenGlobalMouseUp) {
+      this.unlistenGlobalMouseUp();
+    }
   }
 
   private async loadAllStreamResults(query1: string, query2: string): Promise<void> {
@@ -981,6 +985,18 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  private stopAllResizing(): void {
+    const wasResizing = this.isResizingPanes() || this.isResizingBottomPane() || this.isResizingConsolePane();
+
+    this.stopPaneResize();
+    this.stopBottomPaneResize();
+    this.stopConsolePaneResize();
+
+    if (wasResizing) {
+      this.renderer.removeStyle(this.document.body, 'user-select');
+    }
+  }
+
   startPaneResize(event: MouseEvent): void {
     if (!this.isSplitView()) return;
     
@@ -1002,24 +1018,17 @@ export class AppComponent implements OnInit, OnDestroy {
 
         this.pane1Width.set(newWidthPercent);
     });
-    
-    this.unlistenPaneMouseUp = this.renderer.listen('document', 'mouseup', () => {
-        this.stopPaneResize();
-    });
   }
 
   private stopPaneResize(): void {
     if (!this.isResizingPanes()) return;
     this.isResizingPanes.set(false);
-    this.renderer.removeStyle(this.document.body, 'user-select');
+    
     if (this.unlistenPaneMouseMove) {
         this.unlistenPaneMouseMove();
         this.unlistenPaneMouseMove = null;
     }
-    if (this.unlistenPaneMouseUp) {
-        this.unlistenPaneMouseUp();
-        this.unlistenPaneMouseUp = null;
-    }
+    
     this.uiPreferencesService.setSplitViewPaneWidth(this.pane1Width());
   }
   
@@ -1550,24 +1559,17 @@ export class AppComponent implements OnInit, OnDestroy {
 
         this.bottomPaneHeight.set(newHeightPercent);
     });
-    
-    this.unlistenBottomPaneMouseUp = this.renderer.listen('document', 'mouseup', () => {
-        this.stopBottomPaneResize();
-    });
   }
 
   private stopBottomPaneResize(): void {
       if (!this.isResizingBottomPane()) return;
       this.isResizingBottomPane.set(false);
-      this.renderer.removeStyle(this.document.body, 'user-select');
+      
       if (this.unlistenBottomPaneMouseMove) {
           this.unlistenBottomPaneMouseMove();
           this.unlistenBottomPaneMouseMove = null;
       }
-      if (this.unlistenBottomPaneMouseUp) {
-          this.unlistenBottomPaneMouseUp();
-          this.unlistenBottomPaneMouseUp = null;
-      }
+      
       this.uiPreferencesService.setExplorerStreamHeight(this.bottomPaneHeight());
   }
 
@@ -1592,24 +1594,17 @@ export class AppComponent implements OnInit, OnDestroy {
 
         this.consolePaneHeight.set(newHeightPercent);
     });
-    
-    this.unlistenConsolePaneMouseUp = this.renderer.listen('document', 'mouseup', () => {
-        this.stopConsolePaneResize();
-    });
   }
 
   private stopConsolePaneResize(): void {
       if (!this.isResizingConsolePane()) return;
       this.isResizingConsolePane.set(false);
-      this.renderer.removeStyle(this.document.body, 'user-select');
+      
       if (this.unlistenConsolePaneMouseMove) {
           this.unlistenConsolePaneMouseMove();
           this.unlistenConsolePaneMouseMove = null;
       }
-      if (this.unlistenConsolePaneMouseUp) {
-          this.unlistenConsolePaneMouseUp();
-          this.unlistenConsolePaneMouseUp = null;
-      }
+      
       this.uiPreferencesService.setExplorerConsoleHeight(this.consolePaneHeight());
   }
 
@@ -1667,6 +1662,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (item.type === 'gemini') return `#gemini-${item.publishedAt}`;
     return '#';
   }
+
 
   private streamItemToNewBookmark(item: StreamItem): NewBookmark {
     
