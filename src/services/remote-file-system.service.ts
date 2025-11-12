@@ -1,27 +1,21 @@
-import { inject } from '@angular/core';
 import { FileSystemProvider, ItemReference } from './file-system-provider.js';
 import { FileSystemNode } from '../models/file-system.model.js';
 import { FsService } from './fs.service.js';
 import { ServerProfile } from '../models/server-profile.model.js';
-import { User } from '../models/user.model.js';
 
 export class RemoteFileSystemService implements FileSystemProvider {
-  private fsService: FsService;
-  public readonly profile: ServerProfile;
-  private readonly user: User | null;
-
-  constructor(profile: ServerProfile, fsService: FsService, user: User | null) {
-    this.profile = profile;
-    this.fsService = fsService;
-    this.user = user;
-  }
-
-  private get alias(): string {
-    return this.user?.alias ?? this.profile.name;
-  }
+  constructor(
+    public readonly profile: ServerProfile,
+    private fsService: FsService,
+    private token: string
+  ) {}
 
   async getContents(path: string[]): Promise<FileSystemNode[]> {
-    const response: any = await this.fsService.listFiles(this.profile.brokerUrl, this.alias, path);
+    const response: any = await this.fsService.listFiles(
+      this.profile.brokerUrl,
+      this.token,
+      path
+    );
 
     let rawItems: any[] = [];
 
@@ -79,11 +73,11 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   getFileContent(path: string[], name: string): Promise<string> {
-    return this.fsService.getFileContent(this.profile.brokerUrl, this.alias, path, name);
+    return this.fsService.getFileContent(this.profile.brokerUrl, this.token, path, name);
   }
 
   saveFileContent(path: string[], name: string, content: string): Promise<void> {
-    return this.fsService.saveFileContent(this.profile.brokerUrl, this.alias, path, name, content);
+    return this.fsService.saveFileContent(this.profile.brokerUrl, this.token, path, name, content);
   }
 
   async getFolderTree(): Promise<FileSystemNode> {
@@ -108,35 +102,35 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   hasFile(path: string[], fileName: string): Promise<boolean> {
-    return this.fsService.hasFile(this.profile.brokerUrl, this.alias, path, fileName);
+    return this.fsService.hasFile(this.profile.brokerUrl, this.token, path, fileName);
   }
 
   hasFolder(path: string[], folderName: string): Promise<boolean> {
-    return this.fsService.hasFolder(this.profile.brokerUrl, this.alias, path, folderName);
+    return this.fsService.hasFolder(this.profile.brokerUrl, this.token, path, folderName);
   }
 
   createDirectory(path: string[], name: string): Promise<void> {
-    return this.fsService.createDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
+    return this.fsService.createDirectory(this.profile.brokerUrl, this.token, [...path, name]);
   }
 
   async removeDirectory(path: string[], name: string): Promise<void> {
     // First, remove the directory
-    await this.fsService.removeDirectory(this.profile.brokerUrl, this.alias, [...path, name]);
+    await this.fsService.removeDirectory(this.profile.brokerUrl, this.token, [...path, name]);
   
     // Now, check for and remove the associated .magnet file
     const magnetFileName = `${name}.magnet`;
     const fileExists = await this.hasFile(path, magnetFileName);
     if (fileExists) {
-      await this.fsService.deleteFile(this.profile.brokerUrl, this.alias, path, magnetFileName);
+      await this.fsService.deleteFile(this.profile.brokerUrl, this.token, path, magnetFileName);
     }
   }
 
   createFile(path: string[], name: string): Promise<void> {
-    return this.fsService.createFile(this.profile.brokerUrl, this.alias, path, name);
+    return this.fsService.createFile(this.profile.brokerUrl, this.token, path, name);
   }
 
   deleteFile(path: string[], name: string): Promise<void> {
-    return this.fsService.deleteFile(this.profile.brokerUrl, this.alias, path, name);
+    return this.fsService.deleteFile(this.profile.brokerUrl, this.token, path, name);
   }
 
   async rename(path: string[], oldName: string, newName: string): Promise<void> {
@@ -144,7 +138,7 @@ export class RemoteFileSystemService implements FileSystemProvider {
     const toPath = [...path, newName];
     
     // First, rename the primary item
-    await this.fsService.rename(this.profile.brokerUrl, this.alias, fromPath, toPath);
+    await this.fsService.rename(this.profile.brokerUrl, this.token, fromPath, toPath);
     
     // Now, check for and rename the associated .magnet file
     const magnetFileName = `${oldName}.magnet`;
@@ -152,7 +146,7 @@ export class RemoteFileSystemService implements FileSystemProvider {
     if (fileExists) {
       const newMagnetFileName = `${newName}.magnet`;
       // The rename operation in fs.service takes full paths for 'from' and 'to'
-      await this.fsService.rename(this.profile.brokerUrl, this.alias, [...path, magnetFileName], [...path, newMagnetFileName]);
+      await this.fsService.rename(this.profile.brokerUrl, this.token, [...path, magnetFileName], [...path, newMagnetFileName]);
     }
   }
 
@@ -162,29 +156,26 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.fsService.move(this.profile.brokerUrl, this.alias, sourcePath, destPath, items);
+    return this.fsService.move(this.profile.brokerUrl, this.token, sourcePath, destPath, items);
   }
 
   async copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    const fromAlias = this.alias;
-    const toAlias = this.alias;
-
     const copyPromises = items.map(item => {
         const fromPath = [...sourcePath, item.name];
         const toPath = [...destPath, item.name];
-        return this.fsService.copy(this.profile.brokerUrl, fromAlias, fromPath, toAlias, toPath);
+        return this.fsService.copy(this.profile.brokerUrl, this.token, fromPath, toPath);
     });
     
     await Promise.all(copyPromises);
   }
 
   async getNote(path: string[]): Promise<string | undefined> {
-    const response = await this.fsService.getNote(this.profile.brokerUrl, this.alias, path);
+    const response = await this.fsService.getNote(this.profile.brokerUrl, this.token, path);
     return response.content;
   }
 
   saveNote(path: string[], content: string): Promise<void> {
-    return this.fsService.saveNote(this.profile.brokerUrl, this.alias, path, content);
+    return this.fsService.saveNote(this.profile.brokerUrl, this.token, path, content);
   }
 
   importTree(destPath: string[], data: FileSystemNode): Promise<void> {

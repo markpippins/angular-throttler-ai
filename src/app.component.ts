@@ -175,6 +175,7 @@ export class AppComponent implements OnInit, OnDestroy {
   // --- Mounted Profile State ---
   mountedProfiles = signal<ServerProfile[]>([]);
   mountedProfileUsers = signal<Map<string, User>>(new Map());
+  mountedProfileTokens = signal<Map<string, string>>(new Map());
   mountedProfileIds = computed(() => this.mountedProfiles().map(p => p.id));
   private remoteProviders = signal<Map<string, RemoteFileSystemService>>(new Map());
   private remoteImageServices = signal<Map<string, ImageService>>(new Map());
@@ -674,48 +675,32 @@ export class AppComponent implements OnInit, OnDestroy {
   }
   
   private async autoMountProfiles(): Promise<void> {
-    const profilesToMount = this.profileService.profiles().filter(p => p.autoConnect);
-    if (profilesToMount.length === 0) return;
-
-    this.connectionStatus.set('connecting');
-    const mountPromises = profilesToMount.map(p => this.mountProfile(p));
-    const results = await Promise.allSettled(mountPromises);
-    const hasSuccessfulMount = results.some(r => r.status === 'fulfilled');
-
-    if (hasSuccessfulMount) {
-      this.connectionStatus.set('connected');
-    } else {
-      this.connectionStatus.set('disconnected');
-    }
-  }
-  
-  private async mountProfile(profile: ServerProfile, user: User | null = null): Promise<void> {
-    if (this.mountedProfiles().some(p => p.id === profile.id)) return;
-
-    try {
-      const provider = new RemoteFileSystemService(profile, this.fsService, user);
-      const imageUrl = profile.imageUrl || this.localConfigService.defaultImageUrl();
-      const profileForImageService = { ...profile, imageUrl };
-      const imageService = new ImageService(profileForImageService, this.imageClientService, this.preferencesService);
-
-      await provider.getFolderTree();
-
-      this.remoteProviders.update(map => new Map(map).set(profile.name, provider));
-      this.remoteImageServices.update(map => new Map(map).set(profile.name, imageService));
-      this.mountedProfiles.update(profiles => [...profiles, profile]);
-      this.profileService.setActiveProfile(profile.id);
-    } catch (e) {
-      console.error(`Failed to mount profile "${profile.name}":`, e);
-      throw e;
-    }
+    // Auto-mount is disabled because it cannot securely obtain an authentication token without user interaction.
+    // Users must now manually connect to each server profile.
   }
   
   async onLoginAndMount({ profile, username, password }: { profile: ServerProfile, username: string, password: string }): Promise<void> {
     this.connectionStatus.set('connecting');
     try {
-      const user = await this.loginService.login(profile, username, password);
-      await this.mountProfile(profile, user);
+      const { user, token } = await this.loginService.login(profile, username, password);
+      
+      if (this.mountedProfiles().some(p => p.id === profile.id)) return;
+
+      const provider = new RemoteFileSystemService(profile, this.fsService, token);
+      const imageUrl = profile.imageUrl || this.localConfigService.defaultImageUrl();
+      const profileForImageService = { ...profile, imageUrl };
+      const imageService = new ImageService(profileForImageService, this.imageClientService, this.preferencesService);
+
+      await provider.getFolderTree(); // Test connection
+
+      this.remoteProviders.update(map => new Map(map).set(profile.name, provider));
+      this.remoteImageServices.update(map => new Map(map).set(profile.name, imageService));
+      this.mountedProfiles.update(profiles => [...profiles, profile]);
+      this.profileService.setActiveProfile(profile.id);
+
       this.mountedProfileUsers.update(map => new Map(map).set(profile.id, user));
+      this.mountedProfileTokens.update(map => new Map(map).set(profile.id, token));
+      
       this.connectionStatus.set('connected');
     } catch (e) {
       const errorMessage = `Login failed for "${profile.name}": ${(e as Error).message}`;
@@ -755,6 +740,11 @@ export class AppComponent implements OnInit, OnDestroy {
       return remainingProfiles;
     });
     this.mountedProfileUsers.update(map => {
+      const newMap = new Map(map);
+      newMap.delete(profile.id);
+      return newMap;
+    });
+    this.mountedProfileTokens.update(map => {
       const newMap = new Map(map);
       newMap.delete(profile.id);
       return newMap;
@@ -1236,11 +1226,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // 2. If the profile was mounted, update the provider maps and the mountedProfiles array.
     if (this.mountedProfileIds().includes(profile.id)) {
+      const token = this.mountedProfileTokens().get(profile.id);
+      if (!token) return; // Should not happen if mounted
+
       if (this.remoteProviders().has(oldName)) {
         // Recreate the provider with the updated profile.
-        // We must fetch the user associated with this mounted profile.
-        const user = this.mountedProfileUsers().get(profile.id) ?? null;
-        const newProvider = new RemoteFileSystemService(profile, this.fsService, user);
+        const newProvider = new RemoteFileSystemService(profile, this.fsService, token);
 
         // Re-key the map with the new provider instance.
         this.remoteProviders.update(map => {

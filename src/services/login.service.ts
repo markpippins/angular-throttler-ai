@@ -30,25 +30,27 @@ export class LoginService {
     return fullUrl;
   }
 
-  async login(profile: ServerProfile, username: string, password: string): Promise<User> {
+  async login(profile: ServerProfile, username: string, password: string): Promise<{ user: User; token: string }> {
     const response = await this.brokerService.submitRequest<LoginResponse>(this.constructBrokerUrl(profile.brokerUrl), SERVICE_NAME, 'login', {
         alias: username,
         identifier: password
     });
     
-    if (!response || !response.ok) {
-        const errorMessage = response?.errors?.map(e => e.message).join(', ') || response?.message || 'Login failed due to an unknown error.';
+    if (!response || !response.ok || !response.token) {
+        const errorMessage = response?.errors?.map(e => e.message).join(', ') || response?.message || 'Login failed: No token received.';
         throw new Error(errorMessage);
     }
     
     // Since the user object is no longer returned, we construct a partial user object
     // for display purposes. The username is the key piece of information we have.
-    return {
+    const user: User = {
       id: username,
       profileId: profile.id,
       alias: username,
       email: `${username}@mock.com`, // No email info from this response
       avatarUrl: '' // No avatar info from this response
     };
+
+    return { user, token: response.token };
   }
 }

@@ -23,64 +23,64 @@ export class FsService {
     return fullUrl;
   }
 
-  listFiles(brokerUrl: string, alias: string, path: string[]): Promise<FileSystemNode[]> {
-    return this.brokerService.submitRequest<FileSystemNode[]>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'listFiles', { alias, path });
+  listFiles(brokerUrl: string, token: string, path: string[]): Promise<FileSystemNode[]> {
+    return this.brokerService.submitRequest<FileSystemNode[]>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'listFiles', { path, token });
   }
 
-  async getFileContent(brokerUrl: string, alias: string, path: string[], filename: string): Promise<string> {
-    const response = await this.brokerService.submitRequest<{ content: string }>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'readFile', { alias, path, filename });
+  async getFileContent(brokerUrl: string, token: string, path: string[], filename: string): Promise<string> {
+    const response = await this.brokerService.submitRequest<{ content: string }>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'readFile', { path, filename, token });
     return response.content;
   }
 
-  saveFileContent(brokerUrl: string, alias: string, path: string[], filename: string, content: string): Promise<void> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'saveFile', { alias, path, filename, content });
+  saveFileContent(brokerUrl: string, token: string, path: string[], filename: string, content: string): Promise<void> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'saveFile', { path, filename, content, token });
   }
 
-  changeDirectory(brokerUrl: string, alias: string, path: string[]): Promise<any> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'changeDirectory', { alias, path });
+  changeDirectory(brokerUrl: string, token: string, path: string[]): Promise<any> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'changeDirectory', { path, token });
   }
 
-  createDirectory(brokerUrl: string, alias: string, path: string[]): Promise<any> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'createDirectory', { alias, path });
+  createDirectory(brokerUrl: string, token: string, path: string[]): Promise<any> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'createDirectory', { path, token });
   }
 
-  removeDirectory(brokerUrl: string, alias: string, path: string[]): Promise<any> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'removeDirectory', { alias, path });
+  removeDirectory(brokerUrl: string, token: string, path: string[]): Promise<any> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'removeDirectory', { path, token });
   }
 
-  createFile(brokerUrl: string, alias: string, path: string[], filename: string): Promise<any> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'createFile', { alias, path, filename });
+  createFile(brokerUrl: string, token: string, path: string[], filename: string): Promise<any> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'createFile', { path, filename, token });
   }
 
-  deleteFile(brokerUrl: string, alias: string, path: string[], filename: string): Promise<any> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'deleteFile', { alias, path, filename });
+  deleteFile(brokerUrl: string, token: string, path: string[], filename: string): Promise<any> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'deleteFile', { path, filename, token });
   }
 
-  rename(brokerUrl: string, alias: string, fromPath: string[], toPath: string[]): Promise<any> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'rename', { alias, fromPath, toPath });
+  rename(brokerUrl: string, token: string, fromPath: string[], toPath: string[]): Promise<any> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'rename', { fromPath, toPath, token });
   }
 
-  hasFile(brokerUrl: string, alias: string, path: string[], fileName: string): Promise<boolean> {
-    return this.brokerService.submitRequest<boolean>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'hasFile', { alias, path, fileName });
+  hasFile(brokerUrl: string, token: string, path: string[], fileName: string): Promise<boolean> {
+    return this.brokerService.submitRequest<boolean>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'hasFile', { path, fileName, token });
   }
 
-  hasFolder(brokerUrl: string, alias: string, path: string[], folderName: string): Promise<boolean> {
-    return this.brokerService.submitRequest<boolean>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'hasFolder', { alias, path, folderName });
+  hasFolder(brokerUrl: string, token: string, path: string[], folderName: string): Promise<boolean> {
+    return this.brokerService.submitRequest<boolean>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'hasFolder', { path, folderName, token });
   }
 
-  move(brokerUrl: string, alias: string, sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'moveItems', { alias, sourcePath, destPath, items });
+  move(brokerUrl: string, token: string, sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'moveItems', { sourcePath, destPath, items, token });
   }
 
-  copy(brokerUrl: string, fromAlias: string, fromPath: string[], toAlias: string, toPath: string[]): Promise<void> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'copy', { fromAlias, fromPath, toAlias, toPath });
+  copy(brokerUrl: string, token: string, fromPath: string[], toPath: string[]): Promise<void> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'copy', { fromPath, toPath, token });
   }
 
-  async getNote(brokerUrl: string, alias: string, path: string[]): Promise<{ content: string }> {
-    return this.brokerService.submitRequest<{ content: string }>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'getNote', { alias, path });
+  async getNote(brokerUrl: string, token: string, path: string[]): Promise<{ content: string }> {
+    return this.brokerService.submitRequest<{ content: string }>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'getNote', { path, token });
   }
 
-  saveNote(brokerUrl: string, alias: string, path: string[], content: string): Promise<void> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'saveNote', { alias, path, content });
+  saveNote(brokerUrl: string, token: string, path: string[], content: string): Promise<void> {
+    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'saveNote', { path, content, token });
   }
 }
