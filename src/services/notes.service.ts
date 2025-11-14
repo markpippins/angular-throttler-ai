@@ -7,25 +7,45 @@ import { Note } from '../models/note.model.js';
 })
 export class NotesService {
   private dbService = inject(DbService);
+  // Cache notes to avoid repeated DB lookups within a session.
+  // The value can be a Note or `null` if a note was looked up and not found.
+  private noteCache = new Map<string, Note | null>();
 
-  private getNoteId(source: string, key: string): string {
-    return `${source}::${key}`;
+  private getNoteInfoFromPath(path: string[]): { id: string; source: string; key: string } {
+    const source = path[0] ?? 'Home';
+    let key: string;
+    if (path.length === 0) {
+      key = '__HOME_NOTE__';
+    } else {
+      key = path.slice(1).join('/');
+    }
+    const id = `${source}::${key}`;
+    return { id, source, key };
   }
 
-  getNote(source: string, key: string): Promise<Note | undefined> {
-    const id = this.getNoteId(source, key);
-    return this.dbService.getNote(id);
+  async getNote(path: string[]): Promise<Note | undefined> {
+    const { id } = this.getNoteInfoFromPath(path);
+    if (this.noteCache.has(id)) {
+      const cached = this.noteCache.get(id);
+      return cached ? cached : undefined;
+    }
+
+    const note = await this.dbService.getNote(id);
+    this.noteCache.set(id, note ?? null); // Cache the result, even if it's not found (null)
+    return note;
   }
 
-  saveNote(source: string, key: string, content: string): Promise<void> {
-    const id = this.getNoteId(source, key);
+  async saveNote(path: string[], content: string): Promise<void> {
+    const { id, source, key } = this.getNoteInfoFromPath(path);
     const note: Note = { id, source, key, content };
-    return this.dbService.saveNote(note);
+    this.noteCache.set(id, note); // Update cache
+    await this.dbService.saveNote(note);
   }
 
-  deleteNote(source: string, key: string): Promise<void> {
-    const id = this.getNoteId(source, key);
-    return this.dbService.deleteNote(id);
+  async deleteNote(path: string[]): Promise<void> {
+    const { id } = this.getNoteInfoFromPath(path);
+    this.noteCache.delete(id); // Invalidate cache
+    await this.dbService.deleteNote(id);
   }
 
   getAllNotes(): Promise<Note[]> {
@@ -41,6 +61,9 @@ export class NotesService {
   }
 
   async renameNotesForPrefix(oldPathPrefix: string, newPathPrefix: string): Promise<void> {
+    // This is a complex bulk operation. The simplest and safest approach is to clear the cache.
+    this.noteCache.clear();
+    
     if (oldPathPrefix === newPathPrefix) return;
     
     const allNotes = await this.getAllNotes();
@@ -50,23 +73,26 @@ export class NotesService {
       const notePath = this.getNoteFullPath(note);
 
       if (notePath === oldPathPrefix) {
-        const [newSource, ...newKeyParts] = newPathPrefix.split('/');
-        const newKey = newKeyParts.join('/');
+        const newPath = newPathPrefix.split('/');
+        // We delete from DB directly and then use the service's saveNote to repopulate.
+        // `saveNote` doesn't need to be async awaited inside the loop for performance.
         updates.push(this.dbService.deleteNote(note.id));
-        updates.push(this.saveNote(newSource || 'Home', newKey, note.content));
+        updates.push(this.saveNote(newPath, note.content));
       } else if (notePath.startsWith(oldPathPrefix + '/')) {
         const subPath = notePath.substring(oldPathPrefix.length); // e.g., /subfolder
         const newFullPath = newPathPrefix + subPath;
-        const [newSource, ...newKeyParts] = newFullPath.split('/');
-        const newKey = newKeyParts.join('/');
+        const newPath = newFullPath.split('/');
         updates.push(this.dbService.deleteNote(note.id));
-        updates.push(this.saveNote(newSource || 'Home', newKey, note.content));
+        updates.push(this.saveNote(newPath, note.content));
       }
     }
     await Promise.all(updates);
   }
 
   async deleteNotesForPrefix(pathPrefix: string): Promise<void> {
+    // This is a complex bulk operation. The simplest and safest approach is to clear the cache.
+    this.noteCache.clear();
+    
     const allNotes = await this.getAllNotes();
     const deletes: Promise<any>[] = [];
     for (const note of allNotes) {

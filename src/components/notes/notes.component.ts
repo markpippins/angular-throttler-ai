@@ -31,15 +31,6 @@ export class NotesComponent implements OnDestroy {
 
   isNoteAvailable = true; // Notes are now available for any path.
 
-  source = computed(() => this.path()?.[0] ?? 'Home');
-  key = computed(() => {
-    const p = this.path();
-    // Special key for the root "Home" view to distinguish from a server named "Home"
-    if (p.length === 0) return '__HOME_NOTE__';
-    // The key is the path relative to the source
-    return p.slice(1).join('/');
-  });
-
   renderedHtml = computed(() => {
     if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
         const rawHtml = marked.parse(this.noteContent());
@@ -51,9 +42,8 @@ export class NotesComponent implements OnDestroy {
 
   constructor() {
     effect(() => {
-      // When path changes, load the note for the new source/key.
-      this.source();
-      this.key();
+      // When path changes, load the note for the new path.
+      this.path();
       this.loadNote();
     }, { allowSignalWrites: true });
 
@@ -69,12 +59,9 @@ export class NotesComponent implements OnDestroy {
   }
 
   private async loadNote(): Promise<void> {
-    const source = this.source();
-    const key = this.key();
-    
     this.isLoading.set(true);
     try {
-      const note = await this.notesService.getNote(source, key);
+      const note = await this.notesService.getNote(this.path());
       const folderName = this.path().length > 0 ? this.path()[this.path().length - 1] : 'Home';
       this.noteContent.set(note?.content ?? `# Notes for ${folderName}\n\nThis note is empty. Start typing...`);
     } catch(e) {
@@ -90,7 +77,7 @@ export class NotesComponent implements OnDestroy {
 
     this.saveTimeout = setTimeout(async () => {
       try {
-        await this.notesService.saveNote(this.source(), this.key(), content);
+        await this.notesService.saveNote(this.path(), content);
       } catch (e) {
         console.error('Failed to save note:', e);
         // Optionally, show a toast to the user.
