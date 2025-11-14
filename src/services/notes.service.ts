@@ -72,11 +72,12 @@ export class NotesService {
 
     const remotePath = path.slice(1);
     try {
+        const params = { path: remotePath, token };
         const note = await this.brokerService.submitRequest<Note | null>(
             this.constructBrokerUrl(profile.brokerUrl),
             'notesService',
             'getNote',
-            { path: remotePath, token }
+            params
         );
         return note ?? undefined;
     } catch (e) {
@@ -112,11 +113,12 @@ export class NotesService {
 
     const remotePath = path.slice(1);
     try {
+        const params = { path: remotePath, content, token };
         await this.brokerService.submitRequest(
             this.constructBrokerUrl(profile.brokerUrl),
             'notesService',
             'saveNote',
-            { path: remotePath, content, token }
+            params
         );
     } catch (e) {
         console.error(`Failed to save remote note for path ${path.join('/')}`, e);
@@ -149,11 +151,12 @@ export class NotesService {
 
     const remotePath = path.slice(1);
     try {
+      const params = { path: remotePath, token };
       await this.brokerService.submitRequest(
         this.constructBrokerUrl(profile.brokerUrl),
         'notesService',
         'deleteNote',
-        { path: remotePath, token }
+        params
       );
     } catch (e) {
       console.error(`Failed to delete remote note for path ${path.join('/')}`, e);
