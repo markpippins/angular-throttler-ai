@@ -75,7 +75,7 @@ export class NotesService {
         const params = { path: remotePath, token };
         const note = await this.brokerService.submitRequest<Note | null>(
             this.constructBrokerUrl(profile.brokerUrl),
-            'notesService',
+            'noteService',
             'getNote',
             params
         );
@@ -116,7 +116,7 @@ export class NotesService {
         const params = { path: remotePath, content, token };
         await this.brokerService.submitRequest(
             this.constructBrokerUrl(profile.brokerUrl),
-            'notesService',
+            'noteService',
             'saveNote',
             params
         );
@@ -154,7 +154,7 @@ export class NotesService {
       const params = { path: remotePath, token };
       await this.brokerService.submitRequest(
         this.constructBrokerUrl(profile.brokerUrl),
-        'notesService',
+        'noteService',
         'deleteNote',
         params
       );
