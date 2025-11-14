@@ -248,7 +248,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // --- Resizer Event Listeners ---
   private unlistenPaneMouseMove: (() => void) | null = null;
-  private unlistenBottomPaneMouseMove: (() => void) | null = null;
+  private unlistenStreamPaneMouseMove: (() => void) | null = null;
   private unlistenConsolePaneMouseMove: (() => void) | null = null;
   private unlistenGlobalMouseUp: (() => void) | null = null;
 
@@ -357,9 +357,8 @@ export class AppComponent implements OnInit, OnDestroy {
   });
 
   // --- Idea Stream State ---
-  bottomPaneHeight = signal(this.uiPreferencesService.explorerStreamHeight() ?? 40);
-  isResizingBottomPane = signal(false);
-  private streamResizeInitialConsoleHeight = 0;
+  streamPaneHeight = signal(this.uiPreferencesService.explorerStreamHeight() ?? 40);
+  isResizingStreamPane = signal(false);
 
   // --- Console Pane State ---
   consolePaneHeight = signal(this.uiPreferencesService.explorerConsoleHeight() ?? 20);
@@ -964,10 +963,10 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private stopAllResizing(): void {
-    const wasResizing = this.isResizingPanes() || this.isResizingBottomPane() || this.isResizingConsolePane();
+    const wasResizing = this.isResizingPanes() || this.isResizingStreamPane() || this.isResizingConsolePane();
 
     this.stopPaneResize();
-    this.stopBottomPaneResize();
+    this.stopStreamResize();
     this.stopConsolePaneResize();
 
     if (wasResizing) {
@@ -1499,78 +1498,92 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  // --- Idea Stream Methods ---
-  startBottomPaneResize(event: MouseEvent): void {
-    this.isResizingBottomPane.set(true);
+  // --- Main Content Pane Resize Methods ---
+  startStreamResize(event: MouseEvent): void {
+    this.isResizingStreamPane.set(true);
     const container = this.mainContentWrapperEl.nativeElement;
     const containerRect = container.getBoundingClientRect();
-
-    // CAPTURE the console area height ONCE on mousedown
-    const consolePaneEl = container.querySelector<HTMLElement>('[data-console-pane]');
-    const consoleResizerEl = container.querySelector<HTMLElement>('[data-console-resizer]');
-    this.streamResizeInitialConsoleHeight = 0;
-    if (consolePaneEl) {
-      this.streamResizeInitialConsoleHeight += consolePaneEl.offsetHeight;
-    }
-    if (consoleResizerEl) {
-      this.streamResizeInitialConsoleHeight += consoleResizerEl.offsetHeight;
-    }
-
+    const totalHeight = containerRect.height;
     event.preventDefault();
+
+    // Calculate the fixed height of panes below the stream pane (i.e., console and its resizer)
+    let fixedBottomHeightPx = 0;
+    if (!this.isConsoleCollapsed()) {
+      fixedBottomHeightPx += (this.consolePaneHeight() / 100) * totalHeight;
+      const consoleResizerEl = container.querySelector<HTMLElement>('[data-console-resizer]');
+      if (consoleResizerEl) {
+        fixedBottomHeightPx += consoleResizerEl.offsetHeight;
+      }
+    }
+
     this.renderer.setStyle(this.document.body, 'user-select', 'none');
 
-    this.unlistenBottomPaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+    this.unlistenStreamPaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
         const mouseY = e.clientY - containerRect.top;
-        const totalHeight = containerRect.height;
-        const heightBelowStreamResizerPx = totalHeight - mouseY;
-        
-        const newStreamHeightPx = heightBelowStreamResizerPx - this.streamResizeInitialConsoleHeight;
-        let newHeightPercent = (newStreamHeightPx / totalHeight) * 100;
+        const heightBelowCursorPx = totalHeight - mouseY;
+        const newStreamHeightPx = heightBelowCursorPx - fixedBottomHeightPx;
+        let newStreamHeightPercent = (newStreamHeightPx / totalHeight) * 100;
 
-        const minHeightPercent = 15;
-        // Max height should leave at least 15% for the top file explorer pane
-        const consoleHeightPercent = (this.streamResizeInitialConsoleHeight / totalHeight) * 100;
-        const maxHeightPercent = 85 - consoleHeightPercent;
+        const minExplorerHeightPercent = 15;
+        const minStreamHeightPercent = 15;
 
-        if (newHeightPercent < minHeightPercent) newHeightPercent = minHeightPercent;
-        if (newHeightPercent > maxHeightPercent) newHeightPercent = maxHeightPercent;
+        // Max stream height is total height minus min explorer height and console height
+        const consoleHeightPercent = fixedBottomHeightPx / totalHeight * 100;
+        const maxStreamHeightPercent = 100 - minExplorerHeightPercent - consoleHeightPercent;
 
-        this.bottomPaneHeight.set(newHeightPercent);
+        if (newStreamHeightPercent < minStreamHeightPercent) newStreamHeightPercent = minStreamHeightPercent;
+        if (newStreamHeightPercent > maxStreamHeightPercent) newStreamHeightPercent = maxStreamHeightPercent;
+
+        this.streamPaneHeight.set(newStreamHeightPercent);
     });
   }
 
-  private stopBottomPaneResize(): void {
-      if (!this.isResizingBottomPane()) return;
-      this.isResizingBottomPane.set(false);
+  private stopStreamResize(): void {
+      if (!this.isResizingStreamPane()) return;
+      this.isResizingStreamPane.set(false);
       
-      if (this.unlistenBottomPaneMouseMove) {
-          this.unlistenBottomPaneMouseMove();
-          this.unlistenBottomPaneMouseMove = null;
+      if (this.unlistenStreamPaneMouseMove) {
+          this.unlistenStreamPaneMouseMove();
+          this.unlistenStreamPaneMouseMove = null;
       }
       
-      this.uiPreferencesService.setExplorerStreamHeight(this.bottomPaneHeight());
+      this.uiPreferencesService.setExplorerStreamHeight(this.streamPaneHeight());
   }
 
-  // --- Console Pane Methods ---
   startConsolePaneResize(event: MouseEvent): void {
     this.isResizingConsolePane.set(true);
     const container = this.mainContentWrapperEl.nativeElement;
     const containerRect = container.getBoundingClientRect();
-
+    const totalHeight = containerRect.height;
     event.preventDefault();
+
+    // Capture initial heights of both panes in pixels
+    const initialStreamHeightPx = (this.streamPaneHeight() / 100) * totalHeight;
+    const initialConsoleHeightPx = (this.consolePaneHeight() / 100) * totalHeight;
+    const startY = event.clientY;
+
     this.renderer.setStyle(this.document.body, 'user-select', 'none');
 
     this.unlistenConsolePaneMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
-        const mouseY = e.clientY - containerRect.top;
-        const totalHeight = containerRect.height;
-        let newHeightPercent = ((totalHeight - mouseY) / totalHeight) * 100;
+        const dy = e.clientY - startY;
 
-        const minHeightPercent = 10;
-        const maxHeightPercent = 85;
-        if (newHeightPercent < minHeightPercent) newHeightPercent = minHeightPercent;
-        if (newHeightPercent > maxHeightPercent) newHeightPercent = maxHeightPercent;
+        let newStreamHeightPx = initialStreamHeightPx + dy;
+        let newConsoleHeightPx = initialConsoleHeightPx - dy;
 
-        this.consolePaneHeight.set(newHeightPercent);
+        const minHeightPx = 0.10 * totalHeight; // 10% min height for each pane
+
+        // Apply constraints, ensuring total height is preserved
+        if (newConsoleHeightPx < minHeightPx) {
+            newConsoleHeightPx = minHeightPx;
+            newStreamHeightPx = initialStreamHeightPx + initialConsoleHeightPx - newConsoleHeightPx;
+        }
+        if (newStreamHeightPx < minHeightPx) {
+            newStreamHeightPx = minHeightPx;
+            newConsoleHeightPx = initialStreamHeightPx + initialConsoleHeightPx - newStreamHeightPx;
+        }
+        
+        this.streamPaneHeight.set((newStreamHeightPx / totalHeight) * 100);
+        this.consolePaneHeight.set((newConsoleHeightPx / totalHeight) * 100);
     });
   }
 
@@ -1584,6 +1597,7 @@ export class AppComponent implements OnInit, OnDestroy {
       }
       
       this.uiPreferencesService.setExplorerConsoleHeight(this.consolePaneHeight());
+      this.uiPreferencesService.setExplorerStreamHeight(this.streamPaneHeight());
   }
 
   toggleStreamPaneCollapse(): void {
