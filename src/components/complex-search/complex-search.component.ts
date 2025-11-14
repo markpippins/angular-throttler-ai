@@ -1,20 +1,30 @@
-import { Component, ChangeDetectionStrategy, signal, viewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, viewChild, ElementRef, AfterViewInit, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LoadingSpinnerComponent } from './loading-spinner.component.js';
-import { SearchItemComponent } from './search-item.component.js';
-import { CustomSearchResult, SearchQueryInfo } from '../../models/google-custom-search.model.js';
+
+export interface ComplexSearchParams {
+  query: string;
+  num: number;
+  start: number;
+  safe: string;
+  languageRestrict: string;
+  countryRestrict: string;
+  siteSearch: string;
+  exactTerms: string;
+  excludeTerms: string;
+  orTerms: string;
+  fileType: string;
+  dateRestrict: string;
+}
 
 @Component({
   selector: 'app-complex-search',
   standalone: true,
-  imports: [CommonModule, LoadingSpinnerComponent, SearchItemComponent],
+  imports: [CommonModule],
   templateUrl: './complex-search.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ComplexSearchComponent implements AfterViewInit {
-  // Credentials
-  apiKey = signal('');
-  cx = signal('');
+  search = output<ComplexSearchParams>();
 
   // Main query
   query = signal('Angular Signals');
@@ -31,11 +41,6 @@ export class ComplexSearchComponent implements AfterViewInit {
   orTerms = signal('');
   fileType = signal('');
   dateRestrict = signal('');
-
-  // State
-  loading = signal(false);
-  error = signal<string | null>(null);
-  searchResult = signal<CustomSearchResult | null>(null);
 
   // FIX: Use the viewChild function instead of the decorator. It returns a signal.
   searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
@@ -76,82 +81,20 @@ export class ComplexSearchComponent implements AfterViewInit {
     }, 100);
   }
 
-  async performSearch(): Promise<void> {
-    if (this.loading()) return;
-    this.loading.set(true);
-    this.error.set(null);
-    this.searchResult.set(null);
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // MOCK RESPONSE
-    this.searchResult.set({
-      kind: 'customsearch#search',
-      searchInformation: {
-        searchTime: 0.45,
-        formattedSearchTime: '0.45',
-        totalResults: '123000',
-        formattedTotalResults: '123,000',
-      },
-      items: [
-        {
-          kind: 'customsearch#result',
-          title: 'Signal inputs - Angular',
-          htmlTitle: 'Signal inputs - Angular',
-          link: 'https://angular.dev/guide/signals/inputs',
-          displayLink: 'angular.dev',
-          snippet: 'Signal inputs are a new feature in Angular that provide a declarative way to handle component inputs. They are built on top of signals and offer better type safety ...',
-          htmlSnippet: 'Signal inputs are a new feature in <b>Angular</b> that provide a declarative way to handle component inputs. They are built on top of <b>signals</b> and offer better type safety ...',
-          formattedUrl: 'https://angular.dev/guide/signals/inputs',
-          htmlFormattedUrl: 'https://angular.dev/guide/<b>signals</b>/inputs',
-        },
-        {
-            kind: 'customsearch#result',
-            title: 'Working with Signals in Angular - DigitalOcean',
-            htmlTitle: 'Working with <b>Signals</b> in <b>Angular</b> - DigitalOcean',
-            link: 'https://www.digitalocean.com/community/tutorials/working-with-signals-in-angular',
-            displayLink: 'www.digitalocean.com',
-            snippet: 'This tutorial will teach you how to use signals for state management in your Angular applications, including computed signals and effects.',
-            htmlSnippet: 'This tutorial will teach you how to use <b>signals</b> for state management in your <b>Angular</b> applications, including computed <b>signals</b> and effects.',
-            formattedUrl: 'https://www.digitalocean.com/community/tutorials/working-with-signals-in-angular',
-            htmlFormattedUrl: 'https://www.digitalocean.com/community/tutorials/working-with-<b>signals</b>-in-<b>angular</b>',
-            pagemap: {
-                cse_thumbnail: [{ src: 'https://picsum.photos/seed/search1/200/200' }]
-            }
-        },
-        {
-            kind: 'customsearch#result',
-            title: 'Angular Signals: The Future of State Management - YouTube',
-            htmlTitle: '<b>Angular Signals</b>: The Future of State Management - YouTube',
-            link: 'https://www.youtube.com/watch?v=example',
-            displayLink: 'www.youtube.com',
-            snippet: 'A video presentation on the benefits of using signals in Angular for reactive state management. Covers performance improvements and best practices.',
-            htmlSnippet: 'A video presentation on the benefits of using <b>signals</b> in <b>Angular</b> for reactive state management. Covers performance improvements and best practices.',
-            formattedUrl: 'https://www.youtube.com/watch?v=example',
-            htmlFormattedUrl: 'https://www.youtube.com/watch?v=example',
-        }
-      ],
-      queries: {
-        nextPage: [{
-            title: "Next Page",
-            totalResults: "123000",
-            searchTerms: "Angular Signals",
-            count: 10,
-            startIndex: 11,
-            inputEncoding: "utf8",
-            outputEncoding: "utf8",
-            safe: "active",
-            cx: this.cx(),
-        }],
-      }
+  performSearch(): void {
+    this.search.emit({
+      query: this.query(),
+      num: this.num(),
+      start: this.start(),
+      safe: this.safe(),
+      languageRestrict: this.languageRestrict(),
+      countryRestrict: this.countryRestrict(),
+      siteSearch: this.siteSearch(),
+      exactTerms: this.exactTerms(),
+      excludeTerms: this.excludeTerms(),
+      orTerms: this.orTerms(),
+      fileType: this.fileType(),
+      dateRestrict: this.dateRestrict(),
     });
-
-    this.loading.set(false);
-  }
-
-  goToPage(newStartIndex: number): void {
-    this.start.set(newStartIndex);
-    this.performSearch();
   }
 }

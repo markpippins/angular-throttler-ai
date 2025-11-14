@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, output } from '@angular/core';
-import { ComplexSearchComponent } from '../complex-search/complex-search.component.js';
+import { ComplexSearchComponent, ComplexSearchParams } from '../complex-search/complex-search.component.js';
 
 @Component({
   selector: 'app-complex-search-dialog',
@@ -16,7 +16,7 @@ import { ComplexSearchComponent } from '../complex-search/complex-search.compone
           </button>
         </div>
         <div class="flex-1 overflow-y-auto rounded-lg">
-          <app-complex-search></app-complex-search>
+          <app-complex-search (search)="onSearch($event)"></app-complex-search>
         </div>
       </div>
     </div>
@@ -25,4 +25,10 @@ import { ComplexSearchComponent } from '../complex-search/complex-search.compone
 })
 export class ComplexSearchDialogComponent {
   close = output<void>();
+  search = output<ComplexSearchParams>();
+
+  onSearch(params: ComplexSearchParams): void {
+    this.search.emit(params);
+    this.close.emit();
+  }
 }

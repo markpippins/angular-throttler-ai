@@ -7,28 +7,10 @@
           Complex Search
         </h1>
         <p class="text-[rgb(var(--color-text-subtle))] text-lg">
-          An interface to test advanced search parameters.
+          Build a query using advanced search parameters.
         </p>
       </header>
       
-      <!-- Credentials -->
-      <div class="bg-yellow-900/30 border border-yellow-700 text-yellow-300 p-3 rounded-lg text-sm mb-4">
-          <p class="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 3.001-1.742 3.001H4.42c-1.53 0-2.493-1.667-1.743-3.001l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-            <strong>Security Warning:</strong> This is a mock UI. In a real application, never expose API keys on the client-side.
-          </p>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div>
-          <label class="block text-sm font-medium text-[rgb(var(--color-text-muted))] mb-1">API Key <span class="text-red-500">*</span></label>
-          <input type="password" (input)="apiKey.set($any($event.target).value)" class="w-full bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))] focus:ring-2 focus:ring-[rgb(var(--color-accent-ring))] focus:outline-none transition" placeholder="Your Google API Key">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-[rgb(var(--color-text-muted))] mb-1">Search Engine ID (cx) <span class="text-red-500">*</span></label>
-          <input type="text" (input)="cx.set($any($event.target).value)" class="w-full bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))] focus:ring-2 focus:ring-[rgb(var(--color-accent-ring))] focus:outline-none transition" placeholder="Your Search Engine ID">
-        </div>
-      </div>
-
       <!-- Main Search Bar -->
       <div class="flex flex-col sm:flex-row gap-3 mb-6">
         <input 
@@ -42,21 +24,15 @@
         />
         <button 
           (click)="performSearch()" 
-          [disabled]="loading()"
-          class="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none"
+          class="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 transform hover:scale-105"
         >
-          @if (loading()) {
-            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <span>Searching...</span>
-          } @else {
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
-            <span>Search</span>
-          }
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+          <span>Search</span>
         </button>
       </div>
       
       <!-- Advanced Parameters -->
-      <details>
+      <details open>
         <summary class="text-xl font-semibold text-[rgb(var(--color-text-base))] cursor-pointer hover:text-[rgb(var(--color-accent-text))]">Search Parameters</summary>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 mt-4">
           
@@ -115,58 +91,6 @@
           </div>
         </div>
       </details>
-    </div>
-
-    <div class="mt-8 flex-grow">
-      @if (loading()) {
-        <div class="flex justify-center items-center h-64">
-          <app-loading-spinner></app-loading-spinner>
-        </div>
-      } @else if (error(); as errorMessage) {
-        <div class="bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg text-center">
-          <p class="font-bold">An Error Occurred</p>
-          <p>{{ errorMessage }}</p>
-        </div>
-      } @else if (searchResult(); as result) {
-        <div class="animate-fade-in">
-          @if(result.searchInformation; as info) {
-            <p class="text-[rgb(var(--color-text-subtle))] mb-4">About {{ info.formattedTotalResults }} results ({{ info.formattedSearchTime }} seconds)</p>
-          }
-          <div class="space-y-6">
-            @if(result.items; as items) {
-              @for(item of items; track item.cacheId) {
-                <app-search-item [item]="item"></app-search-item>
-              }
-            }
-          </div>
-
-          <!-- Pagination -->
-          @if(result.queries; as queries) {
-            <div class="flex justify-between items-center mt-8">
-              @if(queries.previousPage?.[0]; as prevPage) {
-                <button (click)="goToPage(prevPage.startIndex)" class="flex items-center gap-2 bg-[rgb(var(--color-surface-muted))] hover:bg-[rgb(var(--color-accent-solid-bg-hover))] hover:text-white text-[rgb(var(--color-text-base))] font-semibold px-4 py-2 rounded-lg transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l-4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-                   Previous
-                </button>
-              } @else {
-                <div></div> <!-- Spacer -->
-              }
-              @if(queries.nextPage?.[0]; as nextPage) {
-                <button (click)="goToPage(nextPage.startIndex)" class="flex items-center gap-2 bg-[rgb(var(--color-surface-muted))] hover:bg-[rgb(var(--color-accent-solid-bg-hover))] hover:text-white text-[rgb(var(--color-text-base))] font-semibold px-4 py-2 rounded-lg transition-colors">
-                  Next 
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                </button>
-              }
-            </div>
-          }
-        </div>
-      } @else {
-        <div class="text-center text-[rgb(var(--color-text-subtle))] p-8 bg-[rgb(var(--color-surface))]/30 rounded-lg border border-dashed border-[rgb(var(--color-border-base))]">
-          <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <p class="text-xl mt-4">Your search results will appear here.</p>
-          <p>Fill in your credentials, set your parameters, and start searching.</p>
-        </div>
-      }
     </div>
   </main>
 </div>

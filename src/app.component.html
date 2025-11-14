@@ -555,7 +555,7 @@
   }
 
   @if (isComplexSearchDialogOpen()) {
-    <app-complex-search-dialog (close)="closeComplexSearchDialog()"></app-complex-search-dialog>
+    <app-complex-search-dialog (close)="closeComplexSearchDialog()" (search)="onComplexSearch($event)"></app-complex-search-dialog>
   }
 
   <app-toasts></app-toasts>

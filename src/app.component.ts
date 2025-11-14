@@ -59,6 +59,7 @@ import { PreferencesDialogComponent } from './components/preferences-dialog/pref
 import { TerminalComponent } from './components/terminal/terminal.component.js';
 import { NotesService } from './services/notes.service.js';
 import { ComplexSearchDialogComponent } from './components/complex-search-dialog/complex-search-dialog.component.js';
+import { ComplexSearchParams } from './components/complex-search/complex-search.component.js';
 
 interface PanePath {
   id: number;
@@ -892,6 +893,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
   closeComplexSearchDialog(): void {
     this.isComplexSearchDialogOpen.set(false);
+  }
+
+  onComplexSearch(params: ComplexSearchParams): void {
+    console.log('Complex search submitted:', params);
+    this.toastService.show('Complex search query sent to console.', 'info');
   }
   
   onPreferencesSaved(prefs: Partial<UiPreferences>): void {
