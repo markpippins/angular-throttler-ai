@@ -137,7 +137,8 @@ export class TreeNodeComponent implements OnInit {
     }
   }
 
-  // This method only changes local state. SAFE to be called from effects.
+  // This method only changes local state and may emit loadChildren.
+  // SAFE to be called from effects.
   private expandProgrammatically(): void {
     const node = this.node();
     if (this.isExpandable() && !this.isExpanded()) {
@@ -145,6 +146,11 @@ export class TreeNodeComponent implements OnInit {
         return;
       }
       this.isExpanded.set(true);
+
+      // If we expand and children are not loaded, we must load them.
+      if (!node.childrenLoaded) {
+        this.loadChildren.emit(this.path());
+      }
     }
   }
 
