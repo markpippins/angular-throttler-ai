@@ -113,7 +113,7 @@ export class NotesService {
 
     const { source, key } = this.getNoteInfoFromPath(path);
     try {
-        const params = { token, source, key, Content: content };
+        const params = { token, source, key, content };
         await this.brokerService.submitRequest(
             this.constructBrokerUrl(profile.brokerUrl),
             'noteService',
@@ -136,7 +136,7 @@ export class NotesService {
     const rootName = path[0];
     const profile = this.serverProfileService.profiles().find(p => p.name === rootName);
     
-    
+
     // If no profile matches, or it's the local session, use the local DB.
     if (!profile || rootName === this.localConfigService.sessionName()) {
       const { id } = this.getNoteInfoFromPath(path);
