@@ -87,13 +87,32 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Country Restrict <code class="text-xs text-cyan-400">cr</code></label>
-            <input type="text" (input)="countryRestrict.set($any($event.target).value)" class="w-full mt-1 bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))]" placeholder="e.g., countryUS">
+            <input type="text" [value]="countryRestrict()" (input)="countryRestrict.set($any($event.target).value)" class="w-full mt-1 bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))]" placeholder="e.g., countryUS">
           </div>
           <div>
             <label class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Site Search <code class="text-xs text-cyan-400">siteSearch</code></label>
-            <input type="text" (input)="siteSearch.set($any($event.target).value)" class="w-full mt-1 bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))]" placeholder="e.g., developers.google.com">
+            <input type="text" [value]="siteSearch()" (input)="siteSearch.set($any($event.target).value)" class="w-full mt-1 bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))]" placeholder="e.g., developers.google.com">
           </div>
-          
+          <div>
+            <label class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Exact Terms <code class="text-xs text-cyan-400">exactTerms</code></label>
+            <input type="text" [value]="exactTerms()" (input)="exactTerms.set($any($event.target).value)" class="w-full mt-1 bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))]" placeholder="e.g., `Angular signals`">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Exclude Terms <code class="text-xs text-cyan-400">excludeTerms</code></label>
+            <input type="text" [value]="excludeTerms()" (input)="excludeTerms.set($any($event.target).value)" class="w-full mt-1 bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))]" placeholder="e.g., AngularJS">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">OR Terms <code class="text-xs text-cyan-400">orTerms</code></label>
+            <input type="text" [value]="orTerms()" (input)="orTerms.set($any($event.target).value)" class="w-full mt-1 bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))]" placeholder="e.g., tutorial guide">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">File Type <code class="text-xs text-cyan-400">fileType</code></label>
+            <input type="text" [value]="fileType()" (input)="fileType.set($any($event.target).value)" class="w-full mt-1 bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))]" placeholder="e.g., pdf">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Date Restrict <code class="text-xs text-cyan-400">dateRestrict</code></label>
+            <input type="text" [value]="dateRestrict()" (input)="dateRestrict.set($any($event.target).value)" class="w-full mt-1 bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-muted))] rounded-lg p-2 text-[rgb(var(--color-text-base))]" placeholder="e.g., d[7], m[3], y[1]">
+          </div>
         </div>
       </details>
     </div>
@@ -126,7 +145,7 @@
             <div class="flex justify-between items-center mt-8">
               @if(queries.previousPage?.[0]; as prevPage) {
                 <button (click)="goToPage(prevPage.startIndex)" class="flex items-center gap-2 bg-[rgb(var(--color-surface-muted))] hover:bg-[rgb(var(--color-accent-solid-bg-hover))] hover:text-white text-[rgb(var(--color-text-base))] font-semibold px-4 py-2 rounded-lg transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l-4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                    Previous
                 </button>
               } @else {
