@@ -75,12 +75,4 @@ export class FsService {
   copy(brokerUrl: string, token: string, fromPath: string[], toPath: string[]): Promise<void> {
     return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'copy', { fromPath, toPath, token });
   }
-
-  async getNote(brokerUrl: string, token: string, path: string[]): Promise<{ content: string }> {
-    return this.brokerService.submitRequest<{ content: string }>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'getNote', { path, token });
-  }
-
-  saveNote(brokerUrl: string, token: string, path: string[], content: string): Promise<void> {
-    return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'saveNote', { path, content, token });
-  }
 }

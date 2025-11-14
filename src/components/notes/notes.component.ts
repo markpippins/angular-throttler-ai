@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, signal, computed, ViewChild, ElementRef, inject, input, effect, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TextEditorService } from '../../services/note-dialog.service.js';
-import { FileSystemProvider } from '../../services/file-system-provider.js';
+import { NotesService } from '../../services/notes.service.js';
 
 // Declare the globals from the CDN scripts
 declare var marked: { parse(markdown: string): string; };
@@ -18,9 +18,9 @@ const DEFAULT_NOTE_TEXT = '# Notes\n\n- Select a folder to view or create a note
 })
 export class NotesComponent implements OnDestroy {
   private textEditorService = inject(TextEditorService);
+  private notesService = inject(NotesService);
 
   path = input.required<string[]>();
-  provider = input.required<FileSystemProvider>();
   
   noteContent = signal<string>(DEFAULT_NOTE_TEXT);
   mode = signal<'edit' | 'preview'>('edit');
@@ -29,10 +29,15 @@ export class NotesComponent implements OnDestroy {
 
   @ViewChild('editor') editorTextarea: ElementRef<HTMLTextAreaElement> | undefined;
 
-  isNoteAvailable = computed(() => {
-    // A note is available if the current provider implements the note-taking methods.
-    const provider = this.provider();
-    return !!(provider.getNote && provider.saveNote);
+  isNoteAvailable = true; // Notes are now available for any path.
+
+  source = computed(() => this.path()?.[0] ?? 'Home');
+  key = computed(() => {
+    const p = this.path();
+    // Special key for the root "Home" view to distinguish from a server named "Home"
+    if (p.length === 0) return '__HOME_NOTE__';
+    // The key is the path relative to the source
+    return p.slice(1).join('/');
   });
 
   renderedHtml = computed(() => {
@@ -46,9 +51,9 @@ export class NotesComponent implements OnDestroy {
 
   constructor() {
     effect(() => {
-      // When path or provider changes, load the note.
-      this.path();
-      this.provider();
+      // When path changes, load the note for the new source/key.
+      this.source();
+      this.key();
       this.loadNote();
     }, { allowSignalWrites: true });
 
@@ -64,19 +69,14 @@ export class NotesComponent implements OnDestroy {
   }
 
   private async loadNote(): Promise<void> {
-    const p = this.path();
-    const provider = this.provider();
-
-    if (!this.isNoteAvailable() || !provider.getNote) {
-      this.noteContent.set(DEFAULT_NOTE_TEXT);
-      return;
-    }
+    const source = this.source();
+    const key = this.key();
     
     this.isLoading.set(true);
     try {
-      const providerPath = p.length > 0 ? p.slice(1) : [];
-      const note = await provider.getNote(providerPath);
-      this.noteContent.set(note ?? `# Notes for ${p.length > 0 ? p[p.length - 1] : 'Home'}\n\nThis note is empty. Start typing...`);
+      const note = await this.notesService.getNote(source, key);
+      const folderName = this.path().length > 0 ? this.path()[this.path().length - 1] : 'Home';
+      this.noteContent.set(note?.content ?? `# Notes for ${folderName}\n\nThis note is empty. Start typing...`);
     } catch(e) {
       console.error('Failed to load note:', e);
       this.noteContent.set(`# Error\n\nCould not load note for this folder.`);
@@ -87,22 +87,13 @@ export class NotesComponent implements OnDestroy {
 
   private scheduleSave(content: string): void {
     clearTimeout(this.saveTimeout);
-    
-    if (!this.isNoteAvailable()) {
-      return;
-    }
 
     this.saveTimeout = setTimeout(async () => {
-      const provider = this.provider();
-      const p = this.path();
-      if (provider.saveNote) {
-        try {
-          const providerPath = p.length > 0 ? p.slice(1) : [];
-          await provider.saveNote(providerPath, content);
-        } catch (e) {
-          console.error('Failed to save note:', e);
-          // Optionally, show a toast to the user.
-        }
+      try {
+        await this.notesService.saveNote(this.source(), this.key(), content);
+      } catch (e) {
+        console.error('Failed to save note:', e);
+        // Optionally, show a toast to the user.
       }
     }, 500); // Debounce saves by 500ms
   }
@@ -118,7 +109,7 @@ export class NotesComponent implements OnDestroy {
   }
 
   applyMarkdown(prefix: string, suffix: string = prefix, placeholder: string = 'text'): void {
-    if (!this.isNoteAvailable()) return;
+    if (!this.isNoteAvailable) return;
     const textarea = this.editorTextarea?.nativeElement;
     if (!textarea) return;
 
@@ -150,7 +141,7 @@ export class NotesComponent implements OnDestroy {
   }
 
   addLink(): void {
-    if (!this.isNoteAvailable()) return;
+    if (!this.isNoteAvailable) return;
     const url = prompt('Enter URL:');
     if (url) {
       this.applyMarkdown('[', `](${url})`, 'link text');
@@ -158,7 +149,7 @@ export class NotesComponent implements OnDestroy {
   }
 
   applyCode(): void {
-    if (!this.isNoteAvailable()) return;
+    if (!this.isNoteAvailable) return;
     const textarea = this.editorTextarea?.nativeElement;
     if (!textarea) return;
 

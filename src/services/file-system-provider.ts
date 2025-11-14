@@ -21,8 +21,4 @@ export abstract class FileSystemProvider {
   abstract importTree(destPath: string[], data: FileSystemNode): Promise<void>;
   abstract hasFile(path: string[], fileName: string): Promise<boolean>;
   abstract hasFolder(path: string[], folderName: string): Promise<boolean>;
-
-  // Optional methods for note-taking functionality
-  getNote?(path: string[]): Promise<string | undefined>;
-  saveNote?(path: string[], content: string): Promise<void>;
 }

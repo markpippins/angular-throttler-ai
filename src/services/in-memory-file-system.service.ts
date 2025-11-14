@@ -2,7 +2,7 @@ import { Injectable, signal, effect, inject } from '@angular/core';
 import { FileSystemNode } from '../models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './file-system-provider.js';
 import { LocalConfigService } from './local-config.service.js';
-import { DbService } from './db.service.js';
+import { NotesService } from './notes.service.js';
 
 const SESSION_FS_STORAGE_KEY = 'file-explorer-session-fs';
 
@@ -36,7 +36,7 @@ function cloneNode(node: FileSystemNode): FileSystemNode {
 })
 export class SessionService implements FileSystemProvider {
   private localConfigService = inject(LocalConfigService);
-  private dbService = inject(DbService);
+  private notesService = inject(NotesService);
   private rootNode = signal<FileSystemNode>({
     name: '', // Name will be set from config service
     type: 'folder',
@@ -341,16 +341,6 @@ export class SessionService implements FileSystemProvider {
       
       return newRoot;
     });
-
-    // Also remove notes for this directory and its children
-    const fullPath = this.getFullPath([...path, name]);
-    const pathStr = fullPath.join('/');
-    const allNotes = await this.dbService.getAllNotes();
-    for (const note of allNotes) {
-      if (note.path === pathStr || note.path.startsWith(pathStr + '/')) {
-        await this.dbService.deleteNote(note.path);
-      }
-    }
   }
 
   async deleteFile(path: string[], name: string): Promise<void> {
@@ -400,25 +390,6 @@ export class SessionService implements FileSystemProvider {
       parentNode.modified = new Date().toISOString();
       return newRoot;
     });
-
-    // Rename notes
-    const oldFullPath = this.getFullPath([...path, oldName]);
-    const newFullPath = this.getFullPath([...path, newName]);
-    await this.renameNotes(oldFullPath.join('/'), newFullPath.join('/'));
-  }
-
-  private async renameNotes(oldPathPrefix: string, newPathPrefix: string): Promise<void> {
-    const allNotes = await this.dbService.getAllNotes();
-    for (const note of allNotes) {
-      if (note.path === oldPathPrefix) {
-        await this.dbService.deleteNote(oldPathPrefix);
-        await this.dbService.saveNote({ path: newPathPrefix, content: note.content });
-      } else if (note.path.startsWith(oldPathPrefix + '/')) {
-        const newPath = newPathPrefix + note.path.substring(oldPathPrefix.length);
-        await this.dbService.deleteNote(note.path);
-        await this.dbService.saveNote({ path: newPath, content: note.content });
-      }
-    }
   }
 
   async move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
@@ -480,11 +451,6 @@ export class SessionService implements FileSystemProvider {
 
       return newRoot;
     });
-
-    // Rename notes for all moved folders
-    for (const { oldPath, newPath } of movedFolders) {
-      await this.renameNotes(oldPath.join('/'), newPath.join('/'));
-    }
   }
 
   private getUniqueCopyName(originalName: string, existingChildren: FileSystemNode[]): string {
@@ -603,16 +569,5 @@ export class SessionService implements FileSystemProvider {
   
       return newRoot;
     });
-  }
-
-  async getNote(providerPath: string[]): Promise<string | undefined> {
-    const fullPath = this.getFullPath(providerPath);
-    const note = await this.dbService.getNote(fullPath.join('/'));
-    return note?.content;
-  }
-
-  async saveNote(providerPath: string[], content: string): Promise<void> {
-    const fullPath = this.getFullPath(providerPath);
-    await this.dbService.saveNote({ path: fullPath.join('/'), content });
   }
 }

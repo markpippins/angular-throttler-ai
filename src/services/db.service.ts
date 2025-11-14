@@ -3,18 +3,14 @@ import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { ServerProfile } from '../models/server-profile.model.js';
 import { RssFeed } from '../models/rss-feed.model.js';
 import { FolderProperties } from '../models/folder-properties.model.js';
+import { Note } from '../models/note.model.js';
 
 const DB_NAME = 'file-explorer-db';
-const DB_VERSION = 4; // Incremented version
+const DB_VERSION = 5; // Incremented version
 const PROFILES_STORE = 'server-profiles';
 const FEEDS_STORE = 'rss-feeds';
 const FOLDER_PROPERTIES_STORE = 'folder-properties';
-const NOTES_STORE = 'notes'; // New store for notes
-
-export interface Note {
-  path: string; // The key, e.g., "Local Session/Documents"
-  content: string;
-}
+const NOTES_STORE = 'notes';
 
 interface FileExplorerDB extends DBSchema {
   [PROFILES_STORE]: {
@@ -30,7 +26,7 @@ interface FileExplorerDB extends DBSchema {
     value: FolderProperties;
     indexes: { 'by-path': string };
   };
-  [NOTES_STORE]: { // Schema for the new store
+  [NOTES_STORE]: {
     key: string;
     value: Note;
   };
@@ -62,6 +58,12 @@ export class DbService {
           if (!db.objectStoreNames.contains(NOTES_STORE)) {
             db.createObjectStore(NOTES_STORE, { keyPath: 'path' });
           }
+        }
+        if (oldVersion < 5) {
+          if (db.objectStoreNames.contains(NOTES_STORE)) {
+            db.deleteObjectStore(NOTES_STORE);
+          }
+          db.createObjectStore(NOTES_STORE, { keyPath: 'id' });
         }
       },
     });
@@ -130,9 +132,9 @@ export class DbService {
 
   // --- Note Methods ---
 
-  async getNote(path: string): Promise<Note | undefined> {
+  async getNote(id: string): Promise<Note | undefined> {
     const db = await this.dbPromise;
-    return db.get(NOTES_STORE, path);
+    return db.get(NOTES_STORE, id);
   }
 
   async saveNote(note: Note): Promise<void> {
@@ -140,9 +142,9 @@ export class DbService {
     await db.put(NOTES_STORE, note);
   }
 
-  async deleteNote(path: string): Promise<void> {
+  async deleteNote(id: string): Promise<void> {
     const db = await this.dbPromise;
-    await db.delete(NOTES_STORE, path);
+    await db.delete(NOTES_STORE, id);
   }
 
   async getAllNotes(): Promise<Note[]> {

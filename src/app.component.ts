@@ -477,8 +477,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.getProvider = this.getProviderForPath.bind(this);
     this.getImageService = this.getImageServiceForPath.bind(this);
 
-    const homeNotePath = '__HOME_NOTE__';
-
     this.homeProvider = {
       getContents: async (path: string[]) => {
         if (path.length > 0) return [];
@@ -510,17 +508,6 @@ export class AppComponent implements OnInit, OnDestroy {
         const serverProfileExists = this.profileService.profiles().some(p => p.name === folderName);
         return serverProfileExists;
       },
-      getNote: async (path: string[]): Promise<string | undefined> => {
-        if (path.length > 0) return undefined; 
-        const note = await this.dbService.getNote(homeNotePath);
-        return note?.content;
-      },
-      saveNote: async (path: string[], content: string): Promise<void> => {
-        if (path.length > 0) {
-          throw new Error('Operation not supported.');
-        }
-        await this.dbService.saveNote({ path: homeNotePath, content });
-      }
     };
     
     effect(() => {

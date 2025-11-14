@@ -1,12 +1,14 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { DbService } from './db.service.js';
 import { FolderProperties } from '../models/folder-properties.model.js';
+import { NotesService } from './notes.service.js';
 
 @Injectable({
   providedIn: 'root',
 })
 export class FolderPropertiesService {
   private dbService = inject(DbService);
+  private notesService = inject(NotesService);
   private propertiesMap = signal<Map<string, FolderProperties>>(new Map());
 
   constructor() {
@@ -57,6 +59,7 @@ export class FolderPropertiesService {
     const newMap = new Map(this.propertiesMap());
     let hasChanges = false;
 
+    // --- Update Folder Properties ---
     for (const [pathStr, props] of this.propertiesMap().entries()) {
       if (pathStr === oldPathStr) {
         const newProps = { ...props, path: newPathStr };
@@ -80,6 +83,9 @@ export class FolderPropertiesService {
     if (hasChanges) {
       this.propertiesMap.set(newMap);
     }
+
+    // --- Update Notes ---
+    await this.notesService.renameNotesForPrefix(oldPathStr, newPathStr);
   }
 
   async handleDelete(path: string[]): Promise<void> {
@@ -87,6 +93,7 @@ export class FolderPropertiesService {
     const newMap = new Map(this.propertiesMap());
     let hasChanges = false;
     
+    // --- Delete Folder Properties ---
     for (const key of this.propertiesMap().keys()) {
         if (key === pathStr || key.startsWith(pathStr + '/')) {
             newMap.delete(key);
@@ -98,5 +105,8 @@ export class FolderPropertiesService {
     if (hasChanges) {
         this.propertiesMap.set(newMap);
     }
+
+    // --- Delete Notes ---
+    await this.notesService.deleteNotesForPrefix(pathStr);
   }
 }
