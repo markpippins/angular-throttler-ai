@@ -58,6 +58,7 @@ import { AcademicResultListItemComponent } from './components/stream-list-items/
 import { PreferencesDialogComponent } from './components/preferences-dialog/preferences-dialog.component.js';
 import { TerminalComponent } from './components/terminal/terminal.component.js';
 import { NotesService } from './services/notes.service.js';
+import { ComplexSearchDialogComponent } from './components/complex-search-dialog/complex-search-dialog.component.js';
 
 interface PanePath {
   id: number;
@@ -107,7 +108,7 @@ const readOnlyProviderOps = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -151,6 +152,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isImportDialogOpen = signal(false);
   isExportDialogOpen = signal(false);
   isPreferencesDialogOpen = signal(false);
+  isComplexSearchDialogOpen = signal(false);
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
   refreshPanes = signal(0);
@@ -883,6 +885,14 @@ export class AppComponent implements OnInit, OnDestroy {
   closePreferencesDialog(): void {
     this.isPreferencesDialogOpen.set(false);
   }
+
+  openComplexSearchDialog(): void {
+    this.isComplexSearchDialogOpen.set(true);
+  }
+
+  closeComplexSearchDialog(): void {
+    this.isComplexSearchDialogOpen.set(false);
+  }
   
   onPreferencesSaved(prefs: Partial<UiPreferences>): void {
     this.uiPreferencesService.saveAllPreferences(prefs);
@@ -1312,6 +1322,11 @@ export class AppComponent implements OnInit, OnDestroy {
     
     // Handle high-priority Escape key presses for modals.
     if (event.key === 'Escape') {
+      if (this.isComplexSearchDialogOpen()) {
+        event.preventDefault();
+        this.closeComplexSearchDialog();
+        return;
+      }
       if (this.isThemeDropdownOpen()) {
         event.preventDefault();
         this.isThemeDropdownOpen.set(false);

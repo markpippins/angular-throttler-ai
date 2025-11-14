@@ -1,0 +1,204 @@
+<div class="min-h-screen flex flex-col items-center p-4 sm:p-6 md:p-8 font-sans">
+  <header class="w-full max-w-6xl text-center mb-8">
+    <h1 class="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-2">
+      Google Custom Search API Explorer
+    </h1>
+    <p class="text-slate-400 text-lg">
+      A "Swagger-like" interface to test the Google Custom Search JSON API.
+    </p>
+  </header>
+
+  <main class="w-full max-w-6xl flex-grow">
+    <div class="bg-slate-800/50 p-6 rounded-2xl shadow-2xl border border-slate-700 backdrop-blur-sm">
+      
+      <!-- Credentials -->
+      <div class="bg-yellow-900/30 border border-yellow-700 text-yellow-300 p-3 rounded-lg text-sm mb-4">
+          <p><i class="fa-solid fa-triangle-exclamation mr-2"></i><strong>Security Warning:</strong> Never expose your API keys in client-side code for public applications. This tool is for development and testing purposes only.</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">API Key <span class="text-red-500">*</span></label>
+          <input type="password" (input)="apiKey.set($any($event.target).value)" class="w-full bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200 focus:ring-2 focus:ring-cyan-500 focus:outline-none transition" placeholder="Your Google API Key">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1">Search Engine ID (cx) <span class="text-red-500">*</span></label>
+          <input type="text" (input)="cx.set($any($event.target).value)" class="w-full bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200 focus:ring-2 focus:ring-cyan-500 focus:outline-none transition" placeholder="Your Search Engine ID">
+        </div>
+      </div>
+
+      <!-- Main Search Bar -->
+      <div class="flex flex-col sm:flex-row gap-3 mb-6">
+        <input 
+          #searchInput 
+          type="text" 
+          [value]="query()"
+          (input)="query.set($any($event.target).value)"
+          (keyup.enter)="performSearch()"
+          placeholder="Enter your search query"
+          class="flex-grow bg-slate-900/70 border border-slate-600 rounded-lg p-3 text-lg text-slate-200 focus:ring-2 focus:ring-cyan-500 focus:outline-none transition duration-300 placeholder-slate-500"
+        />
+        <button 
+          (click)="performSearch()" 
+          [disabled]="loading()"
+          class="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none"
+        >
+          @if (loading()) {
+            <i class="fa-solid fa-spinner animate-spin"></i>
+            <span>Searching...</span>
+          } @else {
+            <i class="fa-solid fa-search"></i>
+            <span>Search</span>
+          }
+        </button>
+      </div>
+      
+      <!-- Advanced Parameters -->
+      <h3 class="text-xl font-semibold text-slate-200 border-b border-slate-700 pb-2 mb-4">Search Parameters</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+        
+        <!-- num -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">Number of Results <code class="text-xs text-cyan-400">num</code></label>
+          <input type="number" min="1" max="10" [value]="num()" (input)="num.set(+$any($event.target).value)" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200">
+          <p class="text-xs text-slate-500 mt-1">Number of results to return (1-10).</p>
+        </div>
+
+        <!-- start -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">Start Index <code class="text-xs text-cyan-400">start</code></label>
+          <input type="number" min="1" [value]="start()" (input)="start.set(+$any($event.target).value)" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200">
+          <p class="text-xs text-slate-500 mt-1">The index of the first result to return.</p>
+        </div>
+
+        <!-- safe -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">Safe Search <code class="text-xs text-cyan-400">safe</code></label>
+          <select (change)="safe.set($any($event.target).value)" [value]="safe()" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200">
+            <option value="active">Active</option>
+            <option value="off">Off</option>
+          </select>
+          <p class="text-xs text-slate-500 mt-1">Filter sexually explicit content.</p>
+        </div>
+
+        <!-- lr -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">Language Restrict <code class="text-xs text-cyan-400">lr</code></label>
+          <select (change)="languageRestrict.set($any($event.target).value)" [value]="languageRestrict()" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200">
+            @for(lang of languages; track lang.code) {
+              <option [value]="lang.code">{{ lang.name }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- cr -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">Country Restrict <code class="text-xs text-cyan-400">cr</code></label>
+          <input type="text" (input)="countryRestrict.set($any($event.target).value)" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200" placeholder="e.g., countryUS">
+          <p class="text-xs text-slate-500 mt-1">Two-letter country code.</p>
+        </div>
+
+        <!-- siteSearch -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">Site Search <code class="text-xs text-cyan-400">siteSearch</code></label>
+          <input type="text" (input)="siteSearch.set($any($event.target).value)" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200" placeholder="e.g., developers.google.com">
+        </div>
+        
+        <!-- exactTerms -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">Exact Terms <code class="text-xs text-cyan-400">exactTerms</code></label>
+          <input type="text" (input)="exactTerms.set($any($event.target).value)" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200" placeholder="e.g., `Angular signals`">
+        </div>
+        
+        <!-- excludeTerms -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">Exclude Terms <code class="text-xs text-cyan-400">excludeTerms</code></label>
+          <input type="text" (input)="excludeTerms.set($any($event.target).value)" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200" placeholder="e.g., AngularJS">
+        </div>
+
+        <!-- orTerms -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">OR Terms <code class="text-xs text-cyan-400">orTerms</code></label>
+          <input type="text" (input)="orTerms.set($any($event.target).value)" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200" placeholder="e.g., tutorial guide">
+        </div>
+
+        <!-- fileType -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">File Type <code class="text-xs text-cyan-400">fileType</code></label>
+          <input type="text" (input)="fileType.set($any($event.target).value)" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200" placeholder="e.g., pdf">
+        </div>
+
+        <!-- dateRestrict -->
+        <div>
+          <label class="block text-sm font-medium text-slate-300">Date Restrict <code class="text-xs text-cyan-400">dateRestrict</code></label>
+          <input type="text" (input)="dateRestrict.set($any($event.target).value)" class="w-full mt-1 bg-slate-900/70 border border-slate-600 rounded-lg p-2 text-slate-200" placeholder="e.g., d[7], m[3], y[1]">
+        </div>
+
+      </div>
+    </div>
+
+    <div class="mt-8">
+      @if (loading()) {
+        <div class="flex justify-center items-center h-64">
+          <app-loading-spinner></app-loading-spinner>
+        </div>
+      } @else if (error(); as errorMessage) {
+        <div class="bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg text-center">
+          <p class="font-bold">An Error Occurred</p>
+          <p>{{ errorMessage }}</p>
+        </div>
+      } @else if (searchResult(); as result) {
+        <div class="animate-fade-in">
+          @if(result.searchInformation; as info) {
+            <p class="text-slate-400 mb-4">About {{ info.formattedTotalResults }} results ({{ info.formattedSearchTime }} seconds)</p>
+          }
+          <div class="space-y-6">
+            @if(result.items; as items) {
+              @for(item of items; track item.cacheId) {
+                <app-search-item [item]="item"></app-search-item>
+              }
+            }
+          </div>
+
+          <!-- Pagination -->
+          @if(result.queries; as queries) {
+            <div class="flex justify-between items-center mt-8">
+              @if(queries.previousPage?.[0]; as prevPage) {
+                <button (click)="goToPage(prevPage.startIndex)" class="flex items-center gap-2 bg-slate-700 hover:bg-cyan-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors">
+                  <i class="fa-solid fa-arrow-left"></i> Previous
+                </button>
+              } @else {
+                <div></div> <!-- Spacer -->
+              }
+              @if(queries.nextPage?.[0]; as nextPage) {
+                <button (click)="goToPage(nextPage.startIndex)" class="flex items-center gap-2 bg-slate-700 hover:bg-cyan-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors">
+                  Next <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="text-center text-slate-500 p-8 bg-slate-800/30 rounded-lg border border-dashed border-slate-700">
+          <i class="fa-solid fa-list-check text-4xl mb-4"></i>
+          <p class="text-xl">Your search results will appear here.</p>
+          <p>Fill in your credentials, set your parameters, and start searching.</p>
+        </div>
+      }
+    </div>
+  </main>
+
+  <footer class="w-full max-w-6xl text-center mt-8 text-slate-500 text-sm">
+    <p>Powered by Angular and the Google Custom Search API</p>
+  </footer>
+</div>
+
+<style>
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
