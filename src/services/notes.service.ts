@@ -70,9 +70,9 @@ export class NotesService {
         return undefined;
     }
 
-    const remotePath = path.slice(1);
+    const { source, key } = this.getNoteInfoFromPath(path);
     try {
-        const params = { path: remotePath, token };
+        const params = { token, source, key };
         const note = await this.brokerService.submitRequest<Note | null>(
             this.constructBrokerUrl(profile.brokerUrl),
             'noteService',
@@ -111,9 +111,9 @@ export class NotesService {
         throw new Error(`Cannot save note: Not connected to remote profile: ${rootName}.`);
     }
 
-    const remotePath = path.slice(1);
+    const { source, key } = this.getNoteInfoFromPath(path);
     try {
-        const params = { path: remotePath, content, token };
+        const params = { token, source, key, Content: content };
         await this.brokerService.submitRequest(
             this.constructBrokerUrl(profile.brokerUrl),
             'noteService',
@@ -149,9 +149,9 @@ export class NotesService {
       throw new Error(`Cannot delete note: Not connected to remote profile: ${rootName}.`);
     }
 
-    const remotePath = path.slice(1);
+    const { source, key } = this.getNoteInfoFromPath(path);
     try {
-      const params = { path: remotePath, token };
+      const params = { token, source, key };
       await this.brokerService.submitRequest(
         this.constructBrokerUrl(profile.brokerUrl),
         'noteService',
