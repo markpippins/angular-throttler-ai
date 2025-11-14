@@ -78,6 +78,9 @@ export class FileExplorerComponent implements OnDestroy {
   }>();
   sortChange = output<SortCriteria>();
   bookmarkDropped = output<{ bookmark: NewBookmark, dropOn: FileSystemNode }>();
+  connectToServer = output<string>();
+  disconnectFromServer = output<string>();
+  editServerProfile = output<string>();
 
   state = signal<FileSystemState>({ status: 'loading', items: [] });
   status = signal<{
@@ -1186,5 +1189,29 @@ export class FileExplorerComponent implements OnDestroy {
   closeAllMenus(): void {
     this.closeContextMenu();
     this.closeDestinationSubMenu();
+  }
+
+  onConnect(): void {
+    const profileId = this.contextMenu()?.item?.profileId;
+    if (profileId) {
+      this.connectToServer.emit(profileId);
+    }
+    this.closeContextMenu();
+  }
+
+  onDisconnect(): void {
+    const profileId = this.contextMenu()?.item?.profileId;
+    if (profileId) {
+      this.disconnectFromServer.emit(profileId);
+    }
+    this.closeContextMenu();
+  }
+  
+  onEditProfile(): void {
+    const profileId = this.contextMenu()?.item?.profileId;
+    if (profileId) {
+      this.editServerProfile.emit(profileId);
+    }
+    this.closeContextMenu();
   }
 }

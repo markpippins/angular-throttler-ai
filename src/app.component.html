@@ -138,7 +138,10 @@
                   (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
                   (itemRenamed)="onPaneItemRenamed($event, pane1Path())"
                   (itemsDeleted)="onItemsDeleted($event)"
-                  (itemsMoved)="onItemsMoved($event)">
+                  (itemsMoved)="onItemsMoved($event)"
+                  (connectToServer)="onConnectToServer($event)"
+                  (disconnectFromServer)="onDisconnectFromServer($event)"
+                  (editServerProfile)="onEditServerProfile($event)">
                 </app-file-explorer>
               </div>
 
@@ -171,7 +174,10 @@
                     (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
                     (itemRenamed)="onPaneItemRenamed($event, pane2Path())"
                     (itemsDeleted)="onItemsDeleted($event)"
-                    (itemsMoved)="onItemsMoved($event)">
+                    (itemsMoved)="onItemsMoved($event)"
+                    (connectToServer)="onConnectToServer($event)"
+                    (disconnectFromServer)="onDisconnectFromServer($event)"
+                    (editServerProfile)="onEditServerProfile($event)">
                   </app-file-explorer>
                 </div>
               }

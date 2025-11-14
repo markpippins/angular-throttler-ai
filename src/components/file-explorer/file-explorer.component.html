@@ -275,24 +275,40 @@
       [style.left.px]="cm.x"
       [style.top.px]="cm.y"
       (click)="$event.stopPropagation()">
-      @if (cm.item) {
+      @if (cm.item?.isServerRoot) {
+        <!-- Server Root Context Menu -->
         <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="openItem(cm.item)">Open</div>
         <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+        @if (!cm.item.connected) {
+          <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onConnect()">Connect...</div>
+        } @else {
+          <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onDisconnect()">Disconnect</div>
+        }
+        <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onEditProfile()">Edit Profile...</div>
+        <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onPropertiesFromContextMenu()">Properties</div>
+      } @else {
+        <!-- Regular Item Context Menu -->
+        @if (cm.item) {
+          <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="openItem(cm.item)">Open</div>
+          <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+        }
+        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" [class.text-[rgb(var(--color-text-disabled))]]="!clipboardService.clipboard()" [class.cursor-not-allowed]="!clipboardService.clipboard()" (click)="onPaste()">Paste</div>
+        <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" [class.text-[rgb(var(--color-text-disabled))]]="selectedItems().size === 0" [class.cursor-not-allowed]="selectedItems().size === 0" (click)="onCut()">Cut</div>
+        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" [class.text-[rgb(var(--color-text-disabled))]]="selectedItems().size === 0" [class.cursor-not-allowed]="selectedItems().size === 0" (click)="onCopy()">Copy</div>
+        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer relative" (mouseenter)="openDestinationSubMenu('copy', $event)" (mouseleave)="onDestinationSubMenuLeave()">Copy to...</div>
+        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer relative" (mouseenter)="openDestinationSubMenu('move', $event)" (mouseleave)="onDestinationSubMenuLeave()">Move to...</div>
+        <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-danger-bg-hover))] text-[rgb(var(--color-danger-text))]" [class.text-opacity-50]="selectedItems().size === 0" [class.cursor-not-allowed]="selectedItems().size === 0" (click)="onDelete()">Delete</div>
+        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" [class.text-[rgb(var(--color-text-disabled))]]="selectedItems().size !== 1" [class.cursor-not-allowed]="selectedItems().size !== 1" (click)="onRename()">Rename</div>
+         @if (cm.item && cm.item.type === 'folder' && !cm.item.isMagnet) {
+          <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onMagnetizeFromContextMenu()">Magnetize</div>
+        }
+        <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
+        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" [class.text-[rgb(var(--color-text-disabled))]]="selectedItems().size !== 1" [class.cursor-not-allowed]="selectedItems().size !== 1" (click)="onPropertiesFromContextMenu()">Properties</div>
       }
-      <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" [class.text-[rgb(var(--color-text-disabled))]]="!clipboardService.clipboard()" [class.cursor-not-allowed]="!clipboardService.clipboard()" (click)="onPaste()">Paste</div>
-      <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-      <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" [class.text-[rgb(var(--color-text-disabled))]]="selectedItems().size === 0" [class.cursor-not-allowed]="selectedItems().size === 0" (click)="onCut()">Cut</div>
-      <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" [class.text-[rgb(var(--color-text-disabled))]]="selectedItems().size === 0" [class.cursor-not-allowed]="selectedItems().size === 0" (click)="onCopy()">Copy</div>
-      <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer relative" (mouseenter)="openDestinationSubMenu('copy', $event)" (mouseleave)="onDestinationSubMenuLeave()">Copy to...</div>
-      <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer relative" (mouseenter)="openDestinationSubMenu('move', $event)" (mouseleave)="onDestinationSubMenuLeave()">Move to...</div>
-      <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-      <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-danger-bg-hover))] text-[rgb(var(--color-danger-text))]" [class.text-opacity-50]="selectedItems().size === 0" [class.cursor-not-allowed]="selectedItems().size === 0" (click)="onDelete()">Delete</div>
-      <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" [class.text-[rgb(var(--color-text-disabled))]]="selectedItems().size !== 1" [class.cursor-not-allowed]="selectedItems().size !== 1" (click)="onRename()">Rename</div>
-       @if (cm.item && cm.item.type === 'folder' && !cm.item.isMagnet) {
-        <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="onMagnetizeFromContextMenu()">Magnetize</div>
-      }
-      <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
-      <div class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" [class.text-[rgb(var(--color-text-disabled))]]="selectedItems().size !== 1" [class.cursor-not-allowed]="selectedItems().size !== 1" (click)="onPropertiesFromContextMenu()">Properties</div>
     </div>
   }
   
