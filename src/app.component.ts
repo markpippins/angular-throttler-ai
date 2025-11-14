@@ -57,6 +57,7 @@ import { YoutubeResultListItemComponent } from './components/stream-list-items/y
 import { AcademicResultListItemComponent } from './components/stream-list-items/academic-result-list-item.component.js';
 import { PreferencesDialogComponent } from './components/preferences-dialog/preferences-dialog.component.js';
 import { TerminalComponent } from './components/terminal/terminal.component.js';
+import { NotesService } from './services/notes.service.js';
 
 interface PanePath {
   id: number;
@@ -138,6 +139,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private geminiService = inject(GeminiService);
   private youtubeSearchService = inject(YoutubeSearchService);
   private academicSearchService = inject(AcademicSearchService);
+  private notesService = inject(NotesService);
 
   // --- State Management ---
   isSplitView = signal(false);
@@ -686,6 +688,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
       this.mountedProfileUsers.update(map => new Map(map).set(profile.id, user));
       this.mountedProfileTokens.update(map => new Map(map).set(profile.id, token));
+      this.notesService.setToken(profile.id, token);
       
       this.connectionStatus.set('connected');
     } catch (e) {
@@ -735,6 +738,7 @@ export class AppComponent implements OnInit, OnDestroy {
       newMap.delete(profile.id);
       return newMap;
     });
+    this.notesService.removeToken(profile.id);
   }
   
   toggleSplitView(): void {

@@ -1,12 +1,40 @@
 import { Injectable, inject } from '@angular/core';
 import { DbService } from './db.service.js';
 import { Note } from '../models/note.model.js';
+import { BrokerService } from './broker.service.js';
+import { ServerProfileService } from './server-profile.service.js';
+import { LocalConfigService } from './local-config.service.js';
 
 @Injectable({
   providedIn: 'root',
 })
 export class NotesService {
   private dbService = inject(DbService);
+  private brokerService = inject(BrokerService);
+  private serverProfileService = inject(ServerProfileService);
+  private localConfigService = inject(LocalConfigService);
+
+  private tokens = new Map<string, string>();
+
+  setToken(profileId: string, token: string): void {
+    this.tokens.set(profileId, token);
+  }
+
+  removeToken(profileId: string): void {
+    this.tokens.delete(profileId);
+  }
+
+  private constructBrokerUrl(baseUrl: string): string {
+    let fullUrl = baseUrl.trim();
+    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        fullUrl = `http://${fullUrl}`;
+    }
+    if (fullUrl.endsWith('/')) {
+        fullUrl = fullUrl.slice(0, -1);
+    }
+    fullUrl += '/api/broker/submitRequest';
+    return fullUrl;
+  }
 
   private getNoteInfoFromPath(path: string[]): { id: string; source: string; key: string } {
     const source = path[0] ?? 'Home';
@@ -21,23 +49,116 @@ export class NotesService {
   }
 
   async getNote(path: string[]): Promise<Note | undefined> {
-    console.log('getting note...');
-    const { id } = this.getNoteInfoFromPath(path);
-    const note = await this.dbService.getNote(id);
-    if (note)
-      console.log('note found in db');
-    return note;
+    if (path.length === 0) { // Home root is always local
+      const { id } = this.getNoteInfoFromPath(path);
+      return this.dbService.getNote(id);
+    }
+
+    const rootName = path[0];
+    const profile = this.serverProfileService.profiles().find(p => p.name === rootName);
+
+    // If no profile matches, or it's the local session, use the local DB.
+    if (!profile || rootName === this.localConfigService.sessionName()) {
+        const { id } = this.getNoteInfoFromPath(path);
+        return this.dbService.getNote(id);
+    }
+
+    // It's a remote path. Check for connection.
+    const token = this.tokens.get(profile.id);
+    if (!token) {
+        console.warn(`Not connected to remote profile: ${rootName}, cannot fetch note.`);
+        return undefined;
+    }
+
+    const remotePath = path.slice(1);
+    try {
+        const note = await this.brokerService.submitRequest<Note | null>(
+            this.constructBrokerUrl(profile.brokerUrl),
+            'notesService',
+            'getNote',
+            { path: remotePath, token }
+        );
+        return note ?? undefined;
+    } catch (e) {
+        console.error(`Failed to fetch remote note for path ${path.join('/')}. This may be expected if no note exists.`, e);
+        return undefined; 
+    }
   }
 
   async saveNote(path: string[], content: string): Promise<void> {
-    const { id, source, key } = this.getNoteInfoFromPath(path);
-    const note: Note = { id, source, key, content };
-    await this.dbService.saveNote(note);
+    if (path.length === 0) { // Home root is always local
+      const { id, source, key } = this.getNoteInfoFromPath(path);
+      const note: Note = { id, source, key, content };
+      await this.dbService.saveNote(note);
+      return;
+    }
+
+    const rootName = path[0];
+    const profile = this.serverProfileService.profiles().find(p => p.name === rootName);
+
+    // If no profile matches, or it's the local session, use the local DB.
+    if (!profile || rootName === this.localConfigService.sessionName()) {
+      const { id, source, key } = this.getNoteInfoFromPath(path);
+      const note: Note = { id, source, key, content };
+      await this.dbService.saveNote(note);
+      return;
+    }
+
+    // It's a remote path.
+    const token = this.tokens.get(profile.id);
+    if (!token) {
+        throw new Error(`Cannot save note: Not connected to remote profile: ${rootName}.`);
+    }
+
+    const remotePath = path.slice(1);
+    try {
+        await this.brokerService.submitRequest(
+            this.constructBrokerUrl(profile.brokerUrl),
+            'notesService',
+            'saveNote',
+            { path: remotePath, content, token }
+        );
+    } catch (e) {
+        console.error(`Failed to save remote note for path ${path.join('/')}`, e);
+        throw e;
+    }
   }
 
   async deleteNote(path: string[]): Promise<void> {
-    const { id } = this.getNoteInfoFromPath(path);
-    await this.dbService.deleteNote(id);
+    if (path.length === 0) { // Home root is always local
+      const { id } = this.getNoteInfoFromPath(path);
+      await this.dbService.deleteNote(id);
+      return;
+    }
+    
+    const rootName = path[0];
+    const profile = this.serverProfileService.profiles().find(p => p.name === rootName);
+    
+    // If no profile matches, or it's the local session, use the local DB.
+    if (!profile || rootName === this.localConfigService.sessionName()) {
+      const { id } = this.getNoteInfoFromPath(path);
+      await this.dbService.deleteNote(id);
+      return;
+    }
+
+    // It's a remote path.
+    const token = this.tokens.get(profile.id);
+    if (!token) {
+      throw new Error(`Cannot delete note: Not connected to remote profile: ${rootName}.`);
+    }
+
+    const remotePath = path.slice(1);
+    try {
+      await this.brokerService.submitRequest(
+        this.constructBrokerUrl(profile.brokerUrl),
+        'notesService',
+        'deleteNote',
+        { path: remotePath, token }
+      );
+    } catch (e) {
+      console.error(`Failed to delete remote note for path ${path.join('/')}`, e);
+      throw e;
+    }
   }
 
   getAllNotes(): Promise<Note[]> {
