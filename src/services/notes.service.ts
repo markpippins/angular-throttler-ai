@@ -24,13 +24,18 @@ export class NotesService {
   }
 
   async getNote(path: string[]): Promise<Note | undefined> {
+    console.log('getting note...')
     const { id } = this.getNoteInfoFromPath(path);
     if (this.noteCache.has(id)) {
+      console.log('note fonud in cache')
       const cached = this.noteCache.get(id);
       return cached ? cached : undefined;
     }
 
     const note = await this.dbService.getNote(id);
+    if (note)
+      console.log('note found in db');
+      
     this.noteCache.set(id, note ?? null); // Cache the result, even if it's not found (null)
     return note;
   }
