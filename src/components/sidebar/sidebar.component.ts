@@ -10,14 +10,12 @@ import { InputDialogComponent } from '../input-dialog/input-dialog.component.js'
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component.js';
 import { FileSystemProvider } from '../../services/file-system-provider.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
-import { ExportDialogComponent } from '../export-dialog/export-dialog.component.js';
-import { ImportDialogComponent } from '../import-dialog/import-dialog.component.js';
 import { NotesComponent } from '../notes/notes.component.js';
 
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.component.html',
-  imports: [CommonModule, ChatComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent, ExportDialogComponent, ImportDialogComponent, NotesComponent],
+  imports: [CommonModule, ChatComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent, NotesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnDestroy {

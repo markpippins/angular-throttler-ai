@@ -254,16 +254,16 @@ export class AppComponent implements OnInit, OnDestroy {
   // --- Toolbar State Management ---
   toolbarAction = signal<{ name: string; payload?: any; id: number } | null>(null);
   
-  private pane1SortCriteria = signal<SortCriteria>({ key: 'name', direction: 'asc' });
-  private pane2SortCriteria = signal<SortCriteria>({ key: 'name', direction: 'asc' });
+  pane1SortCriteria = signal<SortCriteria>({ key: 'name', direction: 'asc' });
+  pane2SortCriteria = signal<SortCriteria>({ key: 'name', direction: 'asc' });
   activeSortCriteria = computed(() => this.activePaneId() === 1 ? this.pane1SortCriteria() : this.pane2SortCriteria());
 
-  private pane1DisplayMode = signal<'grid' | 'list'>('grid');
-  private pane2DisplayMode = signal<'grid' | 'list'>('grid');
+  pane1DisplayMode = signal<'grid' | 'list'>('grid');
+  pane2DisplayMode = signal<'grid' | 'list'>('grid');
   activeDisplayMode = computed(() => this.activePaneId() === 1 ? this.pane1DisplayMode() : this.pane2DisplayMode());
 
-  private pane1FilterQuery = signal('');
-  private pane2FilterQuery = signal('');
+  pane1FilterQuery = signal('');
+  pane2FilterQuery = signal('');
   activeFilterQuery = computed(() => this.activePaneId() === 1 ? this.pane1FilterQuery() : this.pane2FilterQuery());
   
   // States computed from active pane status for toolbar
@@ -375,14 +375,28 @@ export class AppComponent implements OnInit, OnDestroy {
       let valA: string = '';
       let valB: string = '';
 
+      const getSource = (item: StreamItem): string => {
+        switch (item.type) {
+          case 'web':
+          case 'image':
+            return item.source ?? '';
+          case 'youtube':
+            return item.channelTitle ?? '';
+          case 'academic':
+            return item.publication ?? '';
+          case 'gemini':
+            return 'Gemini';
+        }
+      };
+
       switch(sort.key) {
         case 'title':
           valA = ('title' in a ? a.title : ('description' in a ? a.description : a.query)) ?? '';
           valB = ('title' in b ? b.title : ('description' in b ? b.description : b.query)) ?? '';
           break;
         case 'source':
-          valA = a.source ?? '';
-          valB = b.source ?? '';
+          valA = getSource(a);
+          valB = getSource(b);
           break;
         case 'date':
           valA = a.publishedAt ?? '0';
