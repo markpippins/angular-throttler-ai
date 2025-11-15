@@ -27,26 +27,33 @@ export class GoogleSearchService {
   }
 
   async search(params: GoogleSearchParams): Promise<GoogleSearchResult[]> {
-    const { brokerUrl, token, query } = params;
-    
-    if (!brokerUrl) {
+    if (!params.brokerUrl) {
       console.warn('GoogleSearchService: No brokerUrl provided. Returning empty results.');
       return Promise.resolve([]);
     }
-    if (!token) {
+    if (!params.token) {
       console.warn('GoogleSearchService: No token provided. Returning empty results.');
       return Promise.resolve([]);
     }
-    if (!query || query.trim() === '') {
+    if (!params.query || params.query.trim() === '') {
       // Don't send a search request for an empty query.
       return Promise.resolve([]);
     }
 
     try {
-      const results = await this.brokerService.submitRequest<GoogleSearchResult[]>(this.constructBrokerUrl(brokerUrl), 'googleSearch', 'simple', {
-        token,
-        query,
-      });
+      // Explicitly create the params object for the broker request
+      // to ensure it matches the required structure exactly.
+      const brokerParams = {
+        token: params.token,
+        query: params.query,
+      };
+
+      const results = await this.brokerService.submitRequest<GoogleSearchResult[]>(
+        this.constructBrokerUrl(params.brokerUrl), 
+        'googleSearch', 
+        'simple', 
+        brokerParams
+      );
 
       // The backend might return null or not an array.
       return Array.isArray(results) ? results : [];
