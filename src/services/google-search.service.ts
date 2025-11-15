@@ -29,6 +29,10 @@ export class GoogleSearchService {
       console.warn('GoogleSearchService: No token provided. Returning empty results.');
       return Promise.resolve([]);
     }
+    if (!query || query.trim() === '') {
+      // Don't send a search request for an empty query.
+      return Promise.resolve([]);
+    }
 
     try {
       const results = await this.brokerService.submitRequest<GoogleSearchResult[]>(this.constructBrokerUrl(brokerUrl), 'googleSearch', 'simple', {
