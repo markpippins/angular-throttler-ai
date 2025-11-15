@@ -1,14 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { GoogleSearchResult } from '../models/google-search-result.model.js';
 import { BrokerService } from './broker.service.js';
-import { ServerProfileService } from './server-profile.service.js';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GoogleSearchService {
   private brokerService = inject(BrokerService);
-  private serverProfileService = inject(ServerProfileService);
 
   private constructBrokerUrl(baseUrl: string): string {
     let fullUrl = baseUrl.trim();
@@ -22,19 +20,20 @@ export class GoogleSearchService {
     return fullUrl;
   }
 
-  async search(query: string, path: string[]): Promise<GoogleSearchResult[]> {
-    const activeProfile = this.serverProfileService.activeProfile();
-    if (!activeProfile || !activeProfile.brokerUrl) {
-      console.warn('GoogleSearchService: No active profile with a brokerUrl configured. Returning empty results.');
+  async search(brokerUrl: string, token: string, query: string): Promise<GoogleSearchResult[]> {
+    if (!brokerUrl) {
+      console.warn('GoogleSearchService: No brokerUrl provided. Returning empty results.');
+      return Promise.resolve([]);
+    }
+    if (!token) {
+      console.warn('GoogleSearchService: No token provided. Returning empty results.');
       return Promise.resolve([]);
     }
 
     try {
-      const brokerUrl = this.constructBrokerUrl(activeProfile.brokerUrl);
-      
-      const results = await this.brokerService.submitRequest<GoogleSearchResult[]>(brokerUrl, 'googleSearch', 'simple', {
+      const results = await this.brokerService.submitRequest<GoogleSearchResult[]>(this.constructBrokerUrl(brokerUrl), 'googleSearch', 'simple', {
+        token,
         query,
-        path,
       });
 
       // The backend might return null or not an array.
