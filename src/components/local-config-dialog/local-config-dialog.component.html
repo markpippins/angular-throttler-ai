@@ -25,6 +25,14 @@
               class="mt-2 block w-full px-3 py-2 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] sm:text-sm">
       </div>
 
+      <div>
+        <label for="healthCheckDelay" class="block text-sm font-medium text-[rgb(var(--color-text-muted))]">Image Server Health Check Delay (minutes)</label>
+        <p class="text-xs text-[rgb(var(--color-text-subtle))] mt-1">When an image server is down, wait this many minutes before retrying.</p>
+        <input type="number" id="healthCheckDelay" [value]="formState().healthCheckDelayMinutes" (input)="onNumberValueChange($event, 'healthCheckDelayMinutes')"
+              min="1"
+              class="mt-2 block w-full px-3 py-2 bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded-md shadow-sm focus:outline-none focus:ring-[rgb(var(--color-accent-ring))] focus:border-[rgb(var(--color-accent-ring))] sm:text-sm">
+      </div>
+
       <div class="pt-2">
         <div class="relative flex items-start">
           <div class="flex h-6 items-center">

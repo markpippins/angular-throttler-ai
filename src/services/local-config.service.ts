@@ -6,12 +6,14 @@ export interface LocalConfig {
   sessionName: string;
   defaultImageUrl: string;
   logBrokerMessages: boolean;
+  healthCheckDelayMinutes: number;
 }
 
 const DEFAULT_CONFIG: LocalConfig = {
   sessionName: 'Local Session',
   defaultImageUrl: 'http://localhost:8081', // A sensible default
   logBrokerMessages: true,
+  healthCheckDelayMinutes: 3,
 };
 
 @Injectable({

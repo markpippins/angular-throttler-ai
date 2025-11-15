@@ -70,8 +70,8 @@ export class SidebarComponent implements OnDestroy {
   private unlistenChatMouseMove: (() => void) | null = null;
   private unlistenChatMouseUp: (() => void) | null = null;
   
-  isChatPaneCollapsed = signal(false);
-  isNotesPaneCollapsed = signal(false);
+  isChatPaneCollapsed = this.uiPreferencesService.isChatPaneCollapsed;
+  isNotesPaneCollapsed = this.uiPreferencesService.isNotesPaneCollapsed;
 
   @ViewChild('contentContainer') contentContainerEl!: ElementRef<HTMLDivElement>;
   
@@ -155,8 +155,8 @@ export class SidebarComponent implements OnDestroy {
       let occupiedByOtherPanes = 0;
       if (this.isChatVisible()) {
         if (this.isChatPaneCollapsed()) {
-          // Collapsed chat pane is just its header height (h-12 = 3rem = 48px)
-          occupiedByOtherPanes += 48;
+          // Collapsed chat pane is just its header height (h-7 = 1.75rem = 28px)
+          occupiedByOtherPanes += 28;
         } else {
           occupiedByOtherPanes += this.chatPaneHeight();
         }
@@ -234,11 +234,11 @@ export class SidebarComponent implements OnDestroy {
   }
 
   toggleChatPaneCollapse(): void {
-    this.isChatPaneCollapsed.update(v => !v);
+    this.uiPreferencesService.toggleChatPaneCollapse();
   }
   
   toggleNotesPaneCollapse(): void {
-    this.isNotesPaneCollapsed.update(v => !v);
+    this.uiPreferencesService.toggleNotesPaneCollapse();
   }
 
   onTreeViewPathChange(path: string[]): void {
@@ -357,6 +357,11 @@ export class SidebarComponent implements OnDestroy {
   // --- Context Menu Action Handlers ---
   handleSettings(): void {
     this.localConfigMenuClick.emit();
+    this.contextMenu.set(null);
+  }
+
+  handleServers(): void {
+    this.serversMenuClick.emit();
     this.contextMenu.set(null);
   }
 

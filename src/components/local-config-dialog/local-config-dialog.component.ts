@@ -15,7 +15,7 @@ export class LocalConfigDialogComponent implements OnInit {
   close = output<void>();
   save = output<LocalConfig>();
 
-  formState = signal<LocalConfig>({ sessionName: '', defaultImageUrl: '', logBrokerMessages: false });
+  formState = signal<LocalConfig>({ sessionName: '', defaultImageUrl: '', logBrokerMessages: false, healthCheckDelayMinutes: 3 });
 
   ngOnInit(): void {
     this.formState.set(this.localConfigService.currentConfig());
@@ -24,6 +24,11 @@ export class LocalConfigDialogComponent implements OnInit {
   onValueChange(event: Event, field: 'sessionName' | 'defaultImageUrl'): void {
     const value = (event.target as HTMLInputElement).value;
     this.formState.update(state => ({ ...state, [field]: value }));
+  }
+  
+  onNumberValueChange(event: Event, field: 'healthCheckDelayMinutes'): void {
+    const value = (event.target as HTMLInputElement).valueAsNumber;
+    this.formState.update(state => ({ ...state, [field]: isNaN(value) || value < 1 ? 1 : value }));
   }
 
   onCheckboxChange(event: Event, field: 'logBrokerMessages'): void {

@@ -2,12 +2,14 @@ import { FileSystemNode } from '../models/file-system.model.js';
 import { ImageClientService } from './image-client.service.js';
 import { ServerProfile } from '../models/server-profile.model.js';
 import { PreferencesService } from './preferences.service.js';
+import { HealthCheckService } from './health-check.service.js';
 
 export class ImageService {
   constructor(
     private profile: ServerProfile,
     private imageClientService: ImageClientService,
-    private preferencesService: PreferencesService
+    private preferencesService: PreferencesService,
+    private healthCheckService: HealthCheckService
   ) {}
 
   getIconUrl(item: FileSystemNode, customImageName?: string | null): string | null {
@@ -16,6 +18,13 @@ export class ImageService {
     }
 
     if (!this.profile.imageUrl) {
+      return null;
+    }
+    
+    // Check service health before making a request
+    const status = this.healthCheckService.getServiceStatus(this.profile.imageUrl);
+    if (status === 'DOWN') {
+      // If down, don't attempt to fetch an image to avoid broken image icons.
       return null;
     }
 

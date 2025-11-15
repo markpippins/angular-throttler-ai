@@ -141,7 +141,9 @@
                   (itemsMoved)="onItemsMoved($event)"
                   (connectToServer)="onConnectToServer($event)"
                   (disconnectFromServer)="onDisconnectFromServer($event)"
-                  (editServerProfile)="onEditServerProfile($event)">
+                  (editServerProfile)="onEditServerProfile($event)"
+                  (addServerProfile)="openServerProfilesDialog()"
+                  (editLocalConfig)="openLocalConfigDialog()">
                 </app-file-explorer>
               </div>
 
@@ -177,7 +179,9 @@
                     (itemsMoved)="onItemsMoved($event)"
                     (connectToServer)="onConnectToServer($event)"
                     (disconnectFromServer)="onDisconnectFromServer($event)"
-                    (editServerProfile)="onEditServerProfile($event)">
+                    (editServerProfile)="onEditServerProfile($event)"
+                    (addServerProfile)="openServerProfilesDialog()"
+                    (editLocalConfig)="openLocalConfigDialog()">
                   </app-file-explorer>
                 </div>
               }

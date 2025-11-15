@@ -60,6 +60,7 @@ import { TerminalComponent } from './components/terminal/terminal.component.js';
 import { NotesService } from './services/notes.service.js';
 import { ComplexSearchDialogComponent } from './components/complex-search-dialog/complex-search-dialog.component.js';
 import { ComplexSearchParams } from './components/complex-search/complex-search.component.js';
+import { HealthCheckService } from './services/health-check.service.js';
 
 interface PanePath {
   id: number;
@@ -142,6 +143,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private youtubeSearchService = inject(YoutubeSearchService);
   private academicSearchService = inject(AcademicSearchService);
   private notesService = inject(NotesService);
+  private healthCheckService = inject(HealthCheckService);
 
   // --- State Management ---
   isSplitView = signal(false);
@@ -279,13 +281,13 @@ export class AppComponent implements OnInit, OnDestroy {
   
   public getImageServiceForPath(path: string[]): ImageService {
     if (path.length === 0) {
-      const homeProfileStub = {
+      const homeProfileStub: ServerProfile = {
           id: 'home-view',
           name: 'Home',
           brokerUrl: '',
           imageUrl: this.localConfigService.defaultImageUrl()
       };
-      return new ImageService(homeProfileStub, this.imageClientService, this.preferencesService);
+      return new ImageService(homeProfileStub, this.imageClientService, this.preferencesService, this.healthCheckService);
     }
     const root = path[0];
     const remoteService = this.remoteImageServices().get(root);
@@ -293,13 +295,13 @@ export class AppComponent implements OnInit, OnDestroy {
     
     // For local session
     if (root === this.localConfigService.sessionName()) {
-      const localProfileStub = {
+      const localProfileStub: ServerProfile = {
           id: 'local-session',
           name: this.localConfigService.sessionName(),
           brokerUrl: '',
           imageUrl: this.localConfigService.defaultImageUrl()
       };
-      return new ImageService(localProfileStub, this.imageClientService, this.preferencesService);
+      return new ImageService(localProfileStub, this.imageClientService, this.preferencesService, this.healthCheckService);
     }
 
     // For unmounted remote profiles, create a temporary image service with fallback.
@@ -307,13 +309,13 @@ export class AppComponent implements OnInit, OnDestroy {
     if (profile) {
         const imageUrl = profile.imageUrl || this.localConfigService.defaultImageUrl();
         const tempProfileWithImage = { ...profile, imageUrl };
-        return new ImageService(tempProfileWithImage, this.imageClientService, this.preferencesService);
+        return new ImageService(tempProfileWithImage, this.imageClientService, this.preferencesService, this.healthCheckService);
     }
     return this.defaultImageService;
   }
   public getImageService: (path: string[]) => ImageService;
 
-  private defaultImageService = new ImageService({ id: 'temp', name: 'Temp', brokerUrl: '', imageUrl: '' }, this.imageClientService, this.preferencesService);
+  private defaultImageService: ImageService;
 
   pane1Provider = computed(() => this.getProviderForPath(this.pane1Path()));
   pane2Provider = computed(() => this.getProviderForPath(this.pane2Path()));
@@ -480,6 +482,7 @@ export class AppComponent implements OnInit, OnDestroy {
   constructor() {
     this.getProvider = this.getProviderForPath.bind(this);
     this.getImageService = this.getImageServiceForPath.bind(this);
+    this.defaultImageService = new ImageService({ id: 'temp', name: 'Temp', brokerUrl: '', imageUrl: '' }, this.imageClientService, this.preferencesService, this.healthCheckService);
 
     this.homeProvider = {
       getContents: async (path: string[]) => {
@@ -552,6 +555,48 @@ export class AppComponent implements OnInit, OnDestroy {
     });
 
     effect(() => {
+      // Monitor all known image service and gateway URLs whenever they change.
+      const localConfig = this.localConfigService.currentConfig();
+      const profiles = this.profileService.profiles();
+      const monitoredUrls = new Set<string>();
+
+      // Helper to avoid monitoring the same URL multiple times
+      const monitor = (url: string, delayMinutes?: number) => {
+        if (!url || monitoredUrls.has(url)) return;
+        
+        monitoredUrls.add(url);
+        const profileForHealthCheck: Pick<ServerProfile, 'imageUrl' | 'healthCheckDelayMinutes'> = {
+          imageUrl: url,
+          healthCheckDelayMinutes: delayMinutes ?? localConfig.healthCheckDelayMinutes
+        };
+        this.healthCheckService.monitorService(profileForHealthCheck);
+      };
+
+      // Monitor default image URL which covers Home view and Local Session
+      monitor(localConfig.defaultImageUrl, localConfig.healthCheckDelayMinutes);
+      
+      // Monitor all server profiles' image and broker URLs
+      for (const profile of profiles) {
+        // Monitor image URL
+        const imageUrl = profile.imageUrl || localConfig.defaultImageUrl;
+        monitor(imageUrl, profile.healthCheckDelayMinutes);
+
+        // Monitor broker URL (the gateway)
+        if (profile.brokerUrl) {
+          // The health check is on the base URL, not the full broker path.
+          let baseUrl = profile.brokerUrl.trim();
+          if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+            baseUrl = `http://${baseUrl}`;
+          }
+          if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.slice(0, -1);
+          }
+          monitor(baseUrl, profile.healthCheckDelayMinutes);
+        }
+      }
+    });
+
+    effect(() => {
       // Sync the stream's display mode with the main display mode from the toolbar.
       this.streamDisplayMode.set(this.activeDisplayMode());
     }, { allowSignalWrites: true });
@@ -579,7 +624,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const imageQuery2 = 'Nature';
 
     const [google1, images1, gemini1, youtube1, academic1] = await Promise.all([
-      this.googleSearchService.search(query1),
+      this.googleSearchService.search(query1, this.pane1Path()),
       this.unsplashService.search(imageQuery1),
       this.geminiService.search(query1),
       this.youtubeSearchService.search(query1),
@@ -588,7 +633,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.streamResults1.set(this.interleaveResults(google1, images1, gemini1, youtube1, academic1, query1));
 
     const [google2, images2, gemini2, youtube2, academic2] = await Promise.all([
-      this.googleSearchService.search(query2),
+      this.googleSearchService.search(query2, this.pane2Path()),
       this.unsplashService.search(imageQuery2),
       this.geminiService.search(query2),
       this.youtubeSearchService.search(query2),
@@ -680,7 +725,8 @@ export class AppComponent implements OnInit, OnDestroy {
       const provider = new RemoteFileSystemService(profile, this.fsService, token);
       const imageUrl = profile.imageUrl || this.localConfigService.defaultImageUrl();
       const profileForImageService = { ...profile, imageUrl };
-      const imageService = new ImageService(profileForImageService, this.imageClientService, this.preferencesService);
+      this.healthCheckService.monitorService(profileForImageService);
+      const imageService = new ImageService(profileForImageService, this.imageClientService, this.preferencesService, this.healthCheckService);
 
       await provider.getFolderTree(); // Test connection
 
@@ -1252,7 +1298,7 @@ export class AppComponent implements OnInit, OnDestroy {
       if (this.remoteImageServices().has(oldName)) {
         const imageUrl = profile.imageUrl || this.localConfigService.defaultImageUrl();
         const profileForImageService = { ...profile, imageUrl };
-        const newImageService = new ImageService(profileForImageService, this.imageClientService, this.preferencesService);
+        const newImageService = new ImageService(profileForImageService, this.imageClientService, this.preferencesService, this.healthCheckService);
         this.remoteImageServices.update(map => {
             const newMap = new Map(map);
             newMap.set(newName, newImageService);

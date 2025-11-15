@@ -81,6 +81,8 @@ export class FileExplorerComponent implements OnDestroy {
   connectToServer = output<string>();
   disconnectFromServer = output<string>();
   editServerProfile = output<string>();
+  addServerProfile = output<void>();
+  editLocalConfig = output<void>();
 
   state = signal<FileSystemState>({ status: 'loading', items: [] });
   status = signal<{
@@ -1212,6 +1214,16 @@ export class FileExplorerComponent implements OnDestroy {
     if (profileId) {
       this.editServerProfile.emit(profileId);
     }
+    this.closeContextMenu();
+  }
+
+  onAddServerProfile(): void {
+    this.addServerProfile.emit();
+    this.closeContextMenu();
+  }
+
+  onEditLocalConfig(): void {
+    this.editLocalConfig.emit();
     this.closeContextMenu();
   }
 }

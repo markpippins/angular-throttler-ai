@@ -16,6 +16,8 @@ export interface UiPreferences {
   isStreamVisible: boolean;
   isConsoleCollapsed: boolean;
   isStreamPaneCollapsed: boolean;
+  isChatPaneCollapsed: boolean;
+  isNotesPaneCollapsed: boolean;
   sidebarWidth: number | null;
   sidebarTreeHeight: number | null;
   sidebarChatHeight: number | null;
@@ -39,6 +41,8 @@ const DEFAULT_PREFERENCES: UiPreferences = {
   isStreamVisible: true,
   isConsoleCollapsed: false,
   isStreamPaneCollapsed: false,
+  isChatPaneCollapsed: false,
+  isNotesPaneCollapsed: false,
   sidebarWidth: null,
   sidebarTreeHeight: null,
   sidebarChatHeight: null,
@@ -68,6 +72,8 @@ export class UiPreferencesService {
   public readonly isStreamVisible = computed(() => this.preferences().isStreamVisible);
   public readonly isConsoleCollapsed = computed(() => this.preferences().isConsoleCollapsed);
   public readonly isStreamPaneCollapsed = computed(() => this.preferences().isStreamPaneCollapsed);
+  public readonly isChatPaneCollapsed = computed(() => this.preferences().isChatPaneCollapsed);
+  public readonly isNotesPaneCollapsed = computed(() => this.preferences().isNotesPaneCollapsed);
   public readonly sidebarWidth = computed(() => this.preferences().sidebarWidth);
   public readonly sidebarTreeHeight = computed(() => this.preferences().sidebarTreeHeight);
   public readonly sidebarChatHeight = computed(() => this.preferences().sidebarChatHeight);
@@ -151,6 +157,14 @@ export class UiPreferencesService {
 
   toggleStreamPaneCollapse(): void {
     this.preferences.update(p => ({ ...p, isStreamPaneCollapsed: !p.isStreamPaneCollapsed }));
+  }
+
+  toggleChatPaneCollapse(): void {
+    this.preferences.update(p => ({ ...p, isChatPaneCollapsed: !p.isChatPaneCollapsed }));
+  }
+
+  toggleNotesPaneCollapse(): void {
+    this.preferences.update(p => ({ ...p, isNotesPaneCollapsed: !p.isNotesPaneCollapsed }));
   }
 
   // --- Public methods to set pane dimensions ---

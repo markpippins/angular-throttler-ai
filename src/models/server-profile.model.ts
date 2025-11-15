@@ -5,4 +5,5 @@ export interface ServerProfile {
   imageUrl: string;
   searchUrl?: string;
   autoConnect?: boolean;
+  healthCheckDelayMinutes?: number;
 }

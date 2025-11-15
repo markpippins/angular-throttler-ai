@@ -106,10 +106,16 @@
         <!-- Middle Pane: Chat -->
         <div class="flex flex-col overflow-hidden" 
           [class.flex-1]="!isChatPaneCollapsed() && (!isNotesVisible() || isNotesPaneCollapsed())"
-          [class.mt-auto]="isChatPaneCollapsed()"
+          [class.h-7]="isChatPaneCollapsed()"
           [style.height.px]="!isChatPaneCollapsed() && (isTreeVisible() || (isNotesVisible() && !isNotesPaneCollapsed())) ? chatPaneHeight() : undefined">
-          <div class="flex-shrink-0 flex items-center h-12 px-4 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface-muted))]">
-            <h4 class="font-semibold text-[rgb(var(--color-text-base))]">Chat</h4>
+          <div class="flex-shrink-0 flex items-center px-4 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface-muted))]"
+               [class.h-12]="!isChatPaneCollapsed()"
+               [class.h-7]="isChatPaneCollapsed()">
+            @if (isChatPaneCollapsed()) {
+              <span class="text-xs text-[rgb(var(--color-text-muted))]">Chat</span>
+            } @else {
+              <h4 class="font-semibold text-[rgb(var(--color-text-base))]">Chat</h4>
+            }
             <div class="flex-grow"></div>
              <button (click)="toggleChatPaneCollapse()" [title]="isChatPaneCollapsed() ? 'Expand Chat' : 'Collapse Chat'" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))]">
                 @if (isChatPaneCollapsed()) {
@@ -142,9 +148,15 @@
         <!-- Bottom Pane: Notes -->
         <div class="flex flex-col overflow-hidden" 
              [class.flex-1]="!isNotesPaneCollapsed()" 
-             [class.mt-auto]="isNotesPaneCollapsed()">
-          <div class="flex-shrink-0 flex items-center h-12 px-4 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface-muted))]">
-            <h4 class="font-semibold text-[rgb(var(--color-text-base))]">Notes</h4>
+             [class.h-7]="isNotesPaneCollapsed()">
+          <div class="flex-shrink-0 flex items-center px-4 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface-muted))]"
+              [class.h-12]="!isNotesPaneCollapsed()"
+              [class.h-7]="isNotesPaneCollapsed()">
+            @if (isNotesPaneCollapsed()) {
+              <span class="text-xs text-[rgb(var(--color-text-muted))]">Notes</span>
+            } @else {
+              <h4 class="font-semibold text-[rgb(var(--color-text-base))]">Notes</h4>
+            }
             <div class="flex-grow"></div>
             <button (click)="toggleNotesPaneCollapse()" [title]="isNotesPaneCollapsed() ? 'Expand Notes' : 'Collapse Notes'" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))]">
               @if (isNotesPaneCollapsed()) {
@@ -179,7 +191,10 @@
          [style.left.px]="cm.x"
          [style.top.px]="cm.y"
          (click)="$event.stopPropagation()">
-        @if (cm.node.isServerRoot) {
+        @if (cm.path.length === 0) {
+            <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleSettings()">Settings...</div>
+            <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleServers()">Server Profiles...</div>
+        } @else if (cm.node.isServerRoot) {
           @if (!cm.node.connected) {
             <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleConnect()">Connect...</div>
           } @else {
@@ -187,10 +202,6 @@
           }
           <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
            <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleEditProfile()">Edit Profile...</div>
-        } @else if (cm.path.length === 0) {
-            <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleSettings()">Settings...</div>
-        } @else if (cm.path.length === 1 && !cm.node.isServerRoot) {
-            <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleSettings()">Properties...</div>
         } @else {
             @if (isChildOfWritableRoot(cm.path)) {
               <div class="px-4 py-2 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer" (click)="handleNewFolder()">New Folder...</div>
