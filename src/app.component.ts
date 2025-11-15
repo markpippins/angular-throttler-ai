@@ -396,6 +396,24 @@ export class AppComponent implements OnInit, OnDestroy {
     return items;
   });
 
+  // --- Pane Context Signals for Stream ---
+  private pane1Context = computed(() => {
+    const path = this.pane1Path();
+    const rootName = path.length > 0 ? path[0] : 'Home';
+    const profile = this.profileService.profiles().find(p => p.name === rootName);
+    const token = profile ? this.mountedProfileTokens().get(profile.id) : null;
+    return { path, profile, token };
+  });
+
+  private pane2Context = computed(() => {
+    const path = this.pane2Path();
+    const rootName = path.length > 0 ? path[0] : 'Home';
+    const profile = this.profileService.profiles().find(p => p.name === rootName);
+    const token = profile ? this.mountedProfileTokens().get(profile.id) : null;
+    return { path, profile, token };
+  });
+
+
   constructor() {
     this.homeProvider = {
       getContents: async (path: string[]) => {
@@ -1263,33 +1281,26 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // --- Stream ---
 
-  private getVisiblePanes(): { id: number; path: string[] }[] {
-    const paths = this.panePaths();
-    if (this.isSplitView()) {
-        return paths;
-    }
-    const activeId = this.activePaneId();
-    return paths.filter(p => p.id === activeId);
-  }
-
   private loadStreamResultsForPanes = effect(async () => {
-    // This effect will react to changes in pane paths and trigger stream updates.
-    this.panePaths(); // Depend on panePaths
+    // This effect reacts to changes in pane contexts, ensuring it runs on every navigation.
+    const contexts: ({ id: number; } & ReturnType<typeof this.pane1Context>)[] = [];
     
-    // Determine which panes need updating based on path changes.
-    // For simplicity in this step, we'll just update all visible panes.
-    const panesToUpdate = this.getVisiblePanes();
+    if (this.isSplitView()) {
+      contexts.push({ id: 1, ...this.pane1Context() });
+      contexts.push({ id: 2, ...this.pane2Context() });
+    } else {
+      const activeId = this.activePaneId();
+      contexts.push({ id: activeId, ...(activeId === 1 ? this.pane1Context() : this.pane2Context()) });
+    }
 
-    for (const pane of panesToUpdate) {
-        const path = pane.path;
+    for (const context of contexts) {
+        const { id, path, profile, token } = context;
+
         const rootName = path.length > 0 ? path[0] : 'Home';
         const relativePath = path.slice(1);
 
         const query = relativePath.length > 0 ? relativePath[relativePath.length - 1] : rootName;
         const simpleSearchQuery = relativePath.join(', ');
-
-        const profile = this.profileService.profiles().find(p => p.name === rootName);
-        const token = profile ? this.mountedProfileTokens().get(profile.id) : null;
 
         const promises: Promise<StreamItem[]>[] = [];
 
@@ -1297,48 +1308,47 @@ export class AppComponent implements OnInit, OnDestroy {
         if (profile && token) {
             promises.push(
                 this.googleSearchService.search(profile.brokerUrl, token, simpleSearchQuery)
-                    .then(results => results.map(r => ({ ...r, type: 'web' as const, paneId: pane.id })))
+                    .then(results => results.map(r => ({ ...r, type: 'web' as const, paneId: id })))
             );
         }
 
         // Unsplash Image Search
         promises.push(
             this.unsplashService.search(query)
-                .then(results => results.map(r => ({ ...r, type: 'image' as const, paneId: pane.id })))
+                .then(results => results.map(r => ({ ...r, type: 'image' as const, paneId: id })))
         );
 
         // YouTube Search
         promises.push(
             this.youtubeSearchService.search(query)
-                .then(results => results.map(r => ({ ...r, type: 'youtube' as const, paneId: pane.id })))
+                .then(results => results.map(r => ({ ...r, type: 'youtube' as const, paneId: id })))
         );
         
         // Academic Search
         promises.push(
             this.academicSearchService.search(query)
-                .then(results => results.map(r => ({ ...r, type: 'academic' as const, paneId: pane.id })))
+                .then(results => results.map(r => ({ ...r, type: 'academic' as const, paneId: id })))
         );
 
         // Gemini Search
         promises.push(
             this.geminiService.search(query)
-                .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: pane.id }])
+                .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
         );
 
         try {
             const results = await Promise.all(promises);
             const flattenedResults = results.flat();
             
-            // This logic ensures we only update the signal for the correct pane.
-            if (pane.id === 1) {
+            if (id === 1) {
                 this.streamResultsForPane1.set(flattenedResults);
             } else {
                 this.streamResultsForPane2.set(flattenedResults);
             }
 
         } catch (error) {
-            console.error(`Failed to load stream results for pane ${pane.id}`, error);
-            if (pane.id === 1) {
+            console.error(`Failed to load stream results for pane ${id}`, error);
+            if (id === 1) {
                 this.streamResultsForPane1.set([]);
             } else {
                 this.streamResultsForPane2.set([]);
