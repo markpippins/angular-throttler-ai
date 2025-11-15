@@ -2,6 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { GoogleSearchResult } from '../models/google-search-result.model.js';
 import { BrokerService } from './broker.service.js';
 
+export interface GoogleSearchParams {
+  brokerUrl: string;
+  token: string;
+  query: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -20,7 +26,9 @@ export class GoogleSearchService {
     return fullUrl;
   }
 
-  async search(brokerUrl: string, token: string, query: string): Promise<GoogleSearchResult[]> {
+  async search(params: GoogleSearchParams): Promise<GoogleSearchResult[]> {
+    const { brokerUrl, token, query } = params;
+    
     if (!brokerUrl) {
       console.warn('GoogleSearchService: No brokerUrl provided. Returning empty results.');
       return Promise.resolve([]);

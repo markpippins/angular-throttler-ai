@@ -36,7 +36,7 @@ import { FolderPropertiesService } from './services/folder-properties.service.js
 import { TextEditorService } from './services/note-dialog.service.js';
 import { TextEditorDialogComponent } from './components/note-view-dialog/note-view-dialog.component.js';
 import { DbService } from './services/db.service.js';
-import { GoogleSearchService } from './services/google-search.service.js';
+import { GoogleSearchService, GoogleSearchParams } from './services/google-search.service.js';
 import { UnsplashService } from './services/unsplash.service.js';
 import { GeminiService } from './services/gemini.service.js';
 import { YoutubeSearchService } from './services/youtube-search.service.js';
@@ -1306,8 +1306,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
         // Google Search (Simple) - only for server paths
         if (profile && token) {
+            const searchParams: GoogleSearchParams = {
+                brokerUrl: profile.brokerUrl,
+                token: token,
+                query: simpleSearchQuery
+            };
             promises.push(
-                this.googleSearchService.search(profile.brokerUrl, token, simpleSearchQuery)
+                this.googleSearchService.search(searchParams)
                     .then(results => results.map(r => ({ ...r, type: 'web' as const, paneId: id })))
             );
         }
