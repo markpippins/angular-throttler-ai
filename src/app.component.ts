@@ -627,24 +627,41 @@ export class AppComponent implements OnInit, OnDestroy {
       
       this.folderTree.update(currentTree => {
         if (!currentTree) return null;
-        
-        const newTree = { ...currentTree }; // Shallow copy
-        let nodeToUpdate: FileSystemNode | undefined = newTree;
-        for (const segment of path) {
-          nodeToUpdate = nodeToUpdate?.children?.find(c => c.name === segment);
-          if (!nodeToUpdate) break;
-        }
 
-        if (nodeToUpdate) {
-          nodeToUpdate.children = children.map(child => ({
-            ...child,
-            // If it's a folder, mark its children as not loaded for further lazy loading
-            children: child.type === 'folder' ? [] : undefined,
-            childrenLoaded: child.type !== 'folder',
-          }));
-          nodeToUpdate.childrenLoaded = true;
-        }
-        return newTree;
+        // Recursive function to perform an immutable update on the tree
+        const updateNodeRecursive = (node: FileSystemNode, currentPathSegments: string[]): FileSystemNode => {
+          // If we've reached the target node...
+          if (currentPathSegments.length === 0) {
+            return {
+              ...node,
+              childrenLoaded: true,
+              children: children.map(child => ({
+                ...child,
+                children: child.type === 'folder' ? [] : undefined,
+                childrenLoaded: child.type !== 'folder',
+              })),
+            };
+          }
+
+          // If we're still traversing, find the next child in the path
+          const nextSegment = currentPathSegments[0];
+          const remainingSegments = currentPathSegments.slice(1);
+
+          return {
+            ...node,
+            children: (node.children ?? []).map(child => {
+              if (child.name === nextSegment) {
+                // This is the child we need to recurse into
+                return updateNodeRecursive(child, remainingSegments);
+              }
+              // This is not the child we're looking for, return it as is
+              return child;
+            }),
+          };
+        };
+        
+        // Start the recursive update from the root node.
+        return updateNodeRecursive(currentTree, path);
       });
 
     } catch (e) {
