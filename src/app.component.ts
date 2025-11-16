@@ -106,6 +106,12 @@ const readOnlyProviderOps = {
   hasFolder: () => Promise.resolve(false),
 };
 
+const disconnectedProvider: FileSystemProvider = {
+  getContents: () => Promise.resolve([]),
+  getFolderTree: () => Promise.reject(new Error('Server is disconnected.')),
+  ...readOnlyProviderOps,
+};
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -519,8 +525,22 @@ export class AppComponent implements OnInit, OnDestroy {
   getProvider = (path: string[]): FileSystemProvider => {
     if (path.length === 0) return this.homeProvider;
     const rootName = path[0];
-    const remote = this.remoteProviders().get(rootName);
-    if (remote) return remote;
+
+    // Check if the root of the path corresponds to a known server profile.
+    const isServerProfile = this.profileService.profiles().some(p => p.name === rootName);
+
+    if (isServerProfile) {
+      const remoteProvider = this.remoteProviders().get(rootName);
+      if (remoteProvider) {
+        // The server is mounted, return its specific provider.
+        return remoteProvider;
+      } else {
+        // The server is known but not mounted, return the disconnected provider.
+        return disconnectedProvider;
+      }
+    }
+    
+    // If the path does not point to a server, it must be the local session.
     return this.sessionFs;
   }
 
