@@ -1002,6 +1002,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const profile = this.profileForLogin();
     if (profile) {
       this.onLoginAndMount({ profile, username, password });
+      this.profileForLogin.set(null);
     } else {
       console.error("Login submitted but no profile was selected for login.");
       this.toastService.show('Login failed: No profile selected.', 'error');

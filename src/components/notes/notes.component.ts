@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, signal, computed, ViewChild, Elemen
 import { CommonModule } from '@angular/common';
 import { TextEditorService } from '../../services/note-dialog.service.js';
 import { NotesService } from '../../services/notes.service.js';
+import { ToastService } from '../../services/toast.service.js';
 
 // Declare the globals from the CDN scripts
 declare var marked: { parse(markdown: string): string; };
@@ -19,6 +20,7 @@ const DEFAULT_NOTE_TEXT = '# Notes\n\n- Select a folder to view or create a note
 export class NotesComponent implements OnDestroy {
   private textEditorService = inject(TextEditorService);
   private notesService = inject(NotesService);
+  private toastService = inject(ToastService);
 
   path = input.required<string[]>();
   
@@ -80,7 +82,7 @@ export class NotesComponent implements OnDestroy {
         await this.notesService.saveNote(this.path(), content);
       } catch (e) {
         console.error('Failed to save note:', e);
-        // Optionally, show a toast to the user.
+        this.toastService.show((e as Error).message, 'error');
       }
     }, 500); // Debounce saves by 500ms
   }
