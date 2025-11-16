@@ -50,8 +50,8 @@ export class GoogleSearchService {
 
       const results = await this.brokerService.submitRequest<GoogleSearchResult[]>(
         this.constructBrokerUrl(params.brokerUrl), 
-        'simpleSearchService', 
-        'simple', 
+        'googleSearchService', 
+        'simpleSearch', 
         brokerParams
       );
 
