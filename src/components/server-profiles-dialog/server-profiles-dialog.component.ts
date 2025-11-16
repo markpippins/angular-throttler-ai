@@ -11,7 +11,6 @@ type FormState = {
   name: string;
   brokerUrl: string;
   imageUrl: string;
-  searchUrl: string;
   autoConnect: boolean;
   healthCheckDelayMinutes: number | null;
 }
@@ -68,7 +67,6 @@ export class ServerProfilesDialogComponent implements OnInit {
       name: '',
       brokerUrl: '',
       imageUrl: '',
-      searchUrl: '',
       autoConnect: false,
       healthCheckDelayMinutes: null,
     });
@@ -79,7 +77,6 @@ export class ServerProfilesDialogComponent implements OnInit {
   startEdit(profile: ServerProfile): void {
     this.formState.set({
       ...profile,
-      searchUrl: profile.searchUrl ?? '',
       autoConnect: profile.autoConnect ?? false,
       healthCheckDelayMinutes: profile.healthCheckDelayMinutes ?? null
     });
@@ -105,8 +102,6 @@ export class ServerProfilesDialogComponent implements OnInit {
         name: state.name.trim(),
         brokerUrl: state.brokerUrl.trim(),
         imageUrl: state.imageUrl.trim(),
-        // Conditionally add searchUrl only if it's not empty, making the persisted object cleaner.
-        ...(state.searchUrl.trim() && { searchUrl: state.searchUrl.trim() }),
         autoConnect: state.autoConnect,
         ...(state.healthCheckDelayMinutes && state.healthCheckDelayMinutes > 0 && { healthCheckDelayMinutes: state.healthCheckDelayMinutes }),
       };
@@ -123,7 +118,6 @@ export class ServerProfilesDialogComponent implements OnInit {
         name: state.name.trim(),
         brokerUrl: state.brokerUrl.trim(),
         imageUrl: state.imageUrl.trim(),
-        ...(state.searchUrl.trim() && { searchUrl: state.searchUrl.trim() }),
         autoConnect: state.autoConnect,
         ...(state.healthCheckDelayMinutes && state.healthCheckDelayMinutes > 0 && { healthCheckDelayMinutes: state.healthCheckDelayMinutes }),
       };

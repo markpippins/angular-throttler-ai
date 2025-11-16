@@ -175,7 +175,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isStreamPaneCollapsed = this.uiPreferencesService.isStreamPaneCollapsed;
   
   // Keep track of each pane's path
-  private panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
+  panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
 
   // --- Dialog Control State ---
   profileForLogin = signal<ServerProfile | null>(null);
@@ -190,8 +190,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private remoteImageServices = signal<Map<string, ImageService>>(new Map());
   
   // --- Status Bar State ---
-  private pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
-  private pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
+  pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
+  pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
   
   activePaneStatus = computed<PaneStatus>(() => {
     const activeId = this.activePaneId();
@@ -311,8 +311,8 @@ export class AppComponent implements OnInit, OnDestroy {
   currentTheme = this.uiPreferencesService.theme;
 
   // --- Idea Stream State ---
-  private streamResultsForPane1 = signal<StreamItem[]>([]);
-  private streamResultsForPane2 = signal<StreamItem[]>([]);
+  streamResultsForPane1 = signal<StreamItem[]>([]);
+  streamResultsForPane2 = signal<StreamItem[]>([]);
   streamDisplayMode = signal<'grid' | 'list'>('grid');
   streamSourceToggle = signal<'all' | 'active' | 'left' | 'right'>('active');
   streamSearchQuery = signal('');
@@ -378,6 +378,7 @@ export class AppComponent implements OnInit, OnDestroy {
       const getSource = (item: StreamItem): string => {
         switch (item.type) {
           case 'web':
+            return item.source ?? '';
           case 'image':
             return item.source ?? '';
           case 'youtube':
@@ -411,7 +412,7 @@ export class AppComponent implements OnInit, OnDestroy {
   });
 
   // --- Pane Context Signals for Stream ---
-  private pane1Context = computed(() => {
+  pane1Context = computed(() => {
     const path = this.pane1Path();
     const rootName = path.length > 0 ? path[0] : 'Home';
     const profile = this.profileService.profiles().find(p => p.name === rootName);
@@ -419,7 +420,7 @@ export class AppComponent implements OnInit, OnDestroy {
     return { path, profile, token };
   });
 
-  private pane2Context = computed(() => {
+  pane2Context = computed(() => {
     const path = this.pane2Path();
     const rootName = path.length > 0 ? path[0] : 'Home';
     const profile = this.profileService.profiles().find(p => p.name === rootName);
@@ -891,7 +892,8 @@ export class AppComponent implements OnInit, OnDestroy {
       this.toastService.show(`Successfully connected to ${profile.name}.`);
 
     } catch (e) {
-      this.toastService.show(`Login to ${profile.name} failed: ${(e as Error).message}`, 'error');
+      const profileName = profile ? profile.name : 'the server';
+      this.toastService.show(`Login to ${profileName} failed: ${(e as Error).message}`, 'error');
     }
   }
 
@@ -996,8 +998,14 @@ export class AppComponent implements OnInit, OnDestroy {
     this.loadFolderTree();
   }
   
-  onLoginSubmittedFromSidebar({ profile, username, password }: { profile: ServerProfile, username: string, password: string }): void {
-    this.onLoginAndMount({ profile, username, password });
+  onLoginSubmittedFromSidebar({ username, password }: { username: string, password: string }): void {
+    const profile = this.profileForLogin();
+    if (profile) {
+      this.onLoginAndMount({ profile, username, password });
+    } else {
+      console.error("Login submitted but no profile was selected for login.");
+      this.toastService.show('Login failed: No profile selected.', 'error');
+    }
   }
 
   // --- Drag & Drop for Bookmarks ---

@@ -11,7 +11,6 @@ const DEFAULT_PROFILES: ServerProfile[] = [
     name: 'Local (Debug)',
     brokerUrl: 'localhost:8080',
     imageUrl: 'http://localhost:8081',
-    searchUrl: 'http://localhost:8082/search',
   },
 ];
 
