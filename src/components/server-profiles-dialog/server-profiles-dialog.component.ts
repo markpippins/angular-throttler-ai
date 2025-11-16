@@ -20,6 +20,9 @@ type FormState = {
   templateUrl: './server-profiles-dialog.component.html',
   imports: [CommonModule, LoginDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'close.emit()',
+  },
 })
 export class ServerProfilesDialogComponent implements OnInit {
   profileService = inject(ServerProfileService);

@@ -11,6 +11,9 @@ declare var DOMPurify: { sanitize(dirty: string): string; };
   imports: [CommonModule],
   templateUrl: './note-view-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'close.emit()',
+  },
 })
 export class TextEditorDialogComponent {
   contentSignal = input.required<WritableSignal<string>>();

@@ -11,6 +11,9 @@ import { TreeViewComponent } from '../tree-view/tree-view.component.js';
   imports: [CommonModule, TreeViewComponent],
   templateUrl: './import-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'close.emit()',
+  },
 })
 export class ImportDialogComponent {
   localSessionNode = input.required<FileSystemNode | null>();

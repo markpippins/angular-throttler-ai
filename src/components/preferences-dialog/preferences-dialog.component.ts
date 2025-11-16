@@ -13,6 +13,9 @@ interface PanelPreference {
   imports: [CommonModule],
   templateUrl: './preferences-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'close.emit()',
+  },
 })
 export class PreferencesDialogComponent implements OnInit {
   private uiPreferencesService = inject(UiPreferencesService);

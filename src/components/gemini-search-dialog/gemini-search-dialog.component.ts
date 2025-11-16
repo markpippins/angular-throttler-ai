@@ -1,10 +1,11 @@
 import { Component, ChangeDetectionStrategy, output } from '@angular/core';
-import { ComplexSearchComponent, ComplexSearchParams } from '../complex-search/complex-search.component.js';
+import { GeminiSearchComponent } from '../gemini-search/gemini-search.component.js';
+import { GeminiSearchParams } from '../../services/gemini.service.js';
 
 @Component({
-  selector: 'app-complex-search-dialog',
+  selector: 'app-gemini-search-dialog',
   standalone: true,
-  imports: [ComplexSearchComponent],
+  imports: [GeminiSearchComponent],
   template: `
     <div class="fixed inset-0 bg-slate-900 bg-opacity-90 z-[70] flex p-4 sm:p-6 md:p-8" (click)="close.emit()">
       <div class="w-full h-full bg-transparent flex flex-col" (click)="$event.stopPropagation()">
@@ -16,7 +17,7 @@ import { ComplexSearchComponent, ComplexSearchParams } from '../complex-search/c
           </button>
         </div>
         <div class="flex-1 overflow-y-auto rounded-lg">
-          <app-complex-search (search)="onSearch($event)"></app-complex-search>
+          <app-gemini-search (search)="onSearch($event)"></app-gemini-search>
         </div>
       </div>
     </div>
@@ -26,11 +27,11 @@ import { ComplexSearchComponent, ComplexSearchParams } from '../complex-search/c
     '(window:keydown.escape)': 'close.emit()',
   },
 })
-export class ComplexSearchDialogComponent {
+export class GeminiSearchDialogComponent {
   close = output<void>();
-  search = output<ComplexSearchParams>();
+  search = output<GeminiSearchParams>();
 
-  onSearch(params: ComplexSearchParams): void {
+  onSearch(params: GeminiSearchParams): void {
     this.search.emit(params);
     this.close.emit();
   }

@@ -6,6 +6,9 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   templateUrl: './confirm-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'onCancel()',
+  },
 })
 export class ConfirmDialogComponent {
   title = input.required<string>();

@@ -38,7 +38,7 @@ import { TextEditorDialogComponent } from './components/note-view-dialog/note-vi
 import { DbService } from './services/db.service.js';
 import { GoogleSearchService, GoogleSearchParams } from './services/google-search.service.js';
 import { UnsplashService } from './services/unsplash.service.js';
-import { GeminiService } from './services/gemini.service.js';
+import { GeminiService, GeminiSearchParams } from './services/gemini.service.js';
 import { YoutubeSearchService } from './services/youtube-search.service.js';
 import { AcademicSearchService } from './services/academic-search.service.js';
 import { GoogleSearchResult } from './models/google-search-result.model.js';
@@ -61,6 +61,7 @@ import { NotesService } from './services/notes.service.js';
 import { ComplexSearchDialogComponent } from './components/complex-search-dialog/complex-search-dialog.component.js';
 import { ComplexSearchParams } from './components/complex-search/complex-search.component.js';
 import { HealthCheckService } from './services/health-check.service.js';
+import { GeminiSearchDialogComponent } from './components/gemini-search-dialog/gemini-search-dialog.component.js';
 
 interface PanePath {
   id: number;
@@ -116,7 +117,7 @@ const disconnectedProvider: FileSystemProvider = {
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -164,6 +165,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isExportDialogOpen = signal(false);
   isPreferencesDialogOpen = signal(false);
   isComplexSearchDialogOpen = signal(false);
+  isGeminiSearchDialogOpen = signal(false);
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
   refreshPanes = signal(0);
@@ -1337,6 +1339,22 @@ export class AppComponent implements OnInit, OnDestroy {
     this.toastService.show(`Complex search initiated for: "${params.query}"`);
     console.log("Complex Search Params:", params);
     // In a real app, you would now use these params to call a search service.
+  }
+
+  // --- Gemini Search ---
+  openGeminiSearchDialog(): void {
+    this.isGeminiSearchDialogOpen.set(true);
+  }
+
+  closeGeminiSearchDialog(): void {
+    this.isGeminiSearchDialogOpen.set(false);
+  }
+
+  onGeminiSearch(params: GeminiSearchParams): void {
+    this.toastService.show(`Gemini search initiated for: "${params.query}"`);
+    console.log("Gemini Search Params:", params);
+    // Here we could call the gemini service and update the stream results.
+    // For now, just logging as requested.
   }
 
   // --- Stream ---

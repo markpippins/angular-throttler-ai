@@ -8,6 +8,9 @@ import { LocalConfig, LocalConfigService } from '../../services/local-config.ser
   imports: [CommonModule],
   templateUrl: './local-config-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'close.emit()',
+  },
 })
 export class LocalConfigDialogComponent implements OnInit {
   private localConfigService = inject(LocalConfigService);

@@ -7,6 +7,9 @@ import { ServerProfile } from '../../models/server-profile.model.js';
   imports: [CommonModule],
   templateUrl: './login-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'onCancel()',
+  },
 })
 export class LoginDialogComponent {
   profile = input.required<ServerProfile>();

@@ -6,6 +6,9 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   templateUrl: './input-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'onCancel()',
+  },
 })
 export class InputDialogComponent implements OnInit, AfterViewInit {
   title = input.required<string>();

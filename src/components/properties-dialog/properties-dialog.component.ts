@@ -10,6 +10,9 @@ import { FolderProperties } from '../../models/folder-properties.model.js';
   templateUrl: './properties-dialog.component.html',
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'close.emit()',
+  },
 })
 export class PropertiesDialogComponent implements OnInit {
   item = input.required<FileSystemNode>();

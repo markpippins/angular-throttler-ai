@@ -15,6 +15,9 @@ type FormState = {
   imports: [CommonModule],
   templateUrl: './rss-feeds-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'close.emit()',
+  },
 })
 export class RssFeedsDialogComponent {
   rssFeedService = inject(RssFeedService);

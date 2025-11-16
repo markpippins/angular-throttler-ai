@@ -9,6 +9,9 @@ export type ConflictResolution = 'merge' | 'replace' | 'skip' | 'cancel';
   imports: [CommonModule],
   templateUrl: './conflict-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.escape)': 'onCancel()',
+  },
 })
 export class ConflictDialogComponent {
   itemName = input.required<string>();
