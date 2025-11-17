@@ -1,3 +1,4 @@
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -558,7 +559,7 @@ export class AppComponent implements OnInit, OnDestroy {
       brokerUrl: '', // not used for images
       imageUrl: this.localConfigService.defaultImageUrl(),
     };
-    return new ImageService(localProfile, this.imageClientService, this.preferencesService, this.healthCheckService);
+    return new ImageService(localProfile, this.imageClientService, this.preferencesService, this.healthCheckService, this.localConfigService);
   }
 
   async buildCombinedFolderTree(): Promise<FileSystemNode> {
@@ -917,7 +918,7 @@ export class AppComponent implements OnInit, OnDestroy {
       const { user, token } = await this.loginService.login(profile, username, password);
       
       const provider = new RemoteFileSystemService(profile, this.fsService, token);
-      const imageService = new ImageService(profile, this.imageClientService, this.preferencesService, this.healthCheckService);
+      const imageService = new ImageService(profile, this.imageClientService, this.preferencesService, this.healthCheckService, this.localConfigService);
 
       this.mountedProfiles.update(p => [...p, profile]);
       this.mountedProfileUsers.update(m => new Map(m).set(profile.id, user));

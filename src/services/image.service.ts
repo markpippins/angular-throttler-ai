@@ -1,15 +1,18 @@
+
 import { FileSystemNode } from '../models/file-system.model.js';
 import { ImageClientService } from './image-client.service.js';
 import { ServerProfile } from '../models/server-profile.model.js';
 import { PreferencesService } from './preferences.service.js';
 import { HealthCheckService } from './health-check.service.js';
+import { LocalConfigService } from './local-config.service.js';
 
 export class ImageService {
   constructor(
     private profile: ServerProfile,
     private imageClientService: ImageClientService,
     private preferencesService: PreferencesService,
-    private healthCheckService: HealthCheckService
+    private healthCheckService: HealthCheckService,
+    private localConfigService: LocalConfigService
   ) {}
 
   getIconUrl(item: FileSystemNode, customImageName?: string | null): string | null {
@@ -17,12 +20,14 @@ export class ImageService {
       return null;
     }
 
-    if (!this.profile.imageUrl) {
+    const baseUrl = this.profile.imageUrl || this.localConfigService.defaultImageUrl();
+
+    if (!baseUrl) {
       return null;
     }
     
     // Check service health before making a request
-    const status = this.healthCheckService.getServiceStatus(this.profile.imageUrl);
+    const status = this.healthCheckService.getServiceStatus(baseUrl);
     if (status === 'DOWN') {
       // If down, don't attempt to fetch an image to avoid broken image icons.
       return null;
@@ -48,6 +53,6 @@ export class ImageService {
     const folderNameWithDashes = folderName.replace(/ /g, '-');
     const lowerCaseFolderName = folderNameWithDashes.toLowerCase();
     
-    return `${this.profile.imageUrl}/${encodeURIComponent(lowerCaseFolderName)}`;
+    return `${baseUrl}/${encodeURIComponent(lowerCaseFolderName)}`;
   }
 }
