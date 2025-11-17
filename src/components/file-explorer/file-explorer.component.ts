@@ -57,6 +57,7 @@ export class FileExplorerComponent implements OnDestroy {
   isSplitView = input(false);
   fileSystemProvider = input.required<FileSystemProvider>();
   imageService = input.required<ImageService>();
+  getImageService = input<(path: string[]) => ImageService>();
   folderTree = input<FileSystemNode | null>(null);
   refresh = input<number>(0);
   toolbarAction = input<{ name: string; payload?: any; id: number } | null>(null);
@@ -894,13 +895,26 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   getIconUrl(item: FileSystemNode): string | null {
-    const imageService = this.imageService();
+    const imageServiceForPane = this.imageService();
+    const getImageServiceFn = this.getImageService();
+    let serviceToUse: ImageService = imageServiceForPane;
+  
+    // In special cases (like the Home view), an item might belong to a different root
+    // than the pane itself. In these cases, we must get the specific service for that item.
+    if (item.isServerRoot && getImageServiceFn) {
+      serviceToUse = getImageServiceFn([item.name]);
+    }
+  
     const fullPath = [...this.path(), item.name];
     const props = this.folderPropertiesService.getProperties(fullPath);
+  
+    // For server roots, always use the 'cloud' icon.
     if (item.isServerRoot) {
-      return imageService.getIconUrl({ ...item, name: 'cloud' });
+      return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
     }
-    return imageService.getIconUrl(item, props?.imageName);
+  
+    // For regular items, use the determined service.
+    return serviceToUse.getIconUrl(item, props?.imageName);
   }
 
   onImageError(name: string): void {
