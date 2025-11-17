@@ -754,9 +754,13 @@ export class FileExplorerComponent implements OnDestroy {
   async onMagnetize(item: FileSystemNode): Promise<void> {
     if (item.type !== 'folder' || item.isMagnet) return;
     
-    const magnetFileName = `${item.name}.magnet`;
+    // The new path for the file is INSIDE the folder.
+    const newFilePath = [...this.providerPath(), item.name];
+    const magnetFileName = '.magnet';
+
     try {
-      await this.fileSystemProvider().createFile(this.providerPath(), magnetFileName);
+      // Create the file at the new path.
+      await this.fileSystemProvider().createFile(newFilePath, magnetFileName);
       this.directoryChanged.emit();
     } catch (e) {
       alert(`Failed to magnetize folder: ${(e as Error).message}`);

@@ -1377,7 +1377,26 @@ export class AppComponent implements OnInit, OnDestroy {
     for (const context of contexts) {
         const { id, path, profile, token } = context;
 
-        const rootName = path.length > 0 ? path[0] : 'Home';
+        let isMagnetFolder = false;
+        if (path.length > 0) {
+            const provider = this.getProvider(path);
+            // The provider's internal path does not include the root name (e.g., 'Local Session')
+            const providerPath = path.slice(1);
+            isMagnetFolder = await provider.hasFile(providerPath, '.magnet');
+        }
+
+        // If the current folder is not a magnet folder, clear its stream results and do nothing else.
+        if (!isMagnetFolder) {
+            if (id === 1) {
+                this.streamResultsForPane1.set([]);
+            } else {
+                this.streamResultsForPane2.set([]);
+            }
+            continue; // Move to the next pane context
+        }
+
+        // --- If it IS a magnet folder, proceed with the existing search logic ---
+        const rootName = path[0];
         const relativePath = path.slice(1);
 
         const query = relativePath.length > 0 ? relativePath[relativePath.length - 1] : rootName;

@@ -73,10 +73,8 @@ export class SessionService implements FileSystemProvider {
                 name: 'Projects',
                 type: 'folder',
                 children: [
-                  { name: 'Throttler', type: 'folder', children: [], modified: '2023-10-20T09:00:00Z' },
-                  { name: 'Throttler.magnet', type: 'file', content: '', modified: '2023-10-20T09:00:00Z' },
+                  { name: 'Throttler', type: 'folder', children: [{ name: '.magnet', type: 'file', content: '', modified: '2023-10-20T09:00:00Z' }], modified: '2023-10-20T09:00:00Z' },
                   { name: 'Atomix', type: 'folder', children: [], modified: '2023-10-18T16:20:00Z' },
-                  { name: 'Atomix.magnet', type: 'file', content: '', modified: '2023-10-18T16:20:00Z' },
                 ],
                 modified: '2023-10-20T09:00:00Z'
               },
@@ -206,26 +204,24 @@ export class SessionService implements FileSystemProvider {
       throw new Error('Path not found or is not a folder.');
     }
 
-    const magnetFiles = new Set(
-      node.children
-        .filter(item => item.name.endsWith('.magnet') && item.type === 'file')
-        .map(item => item.name)
-    );
-
     const processedItems: FileSystemNode[] = [];
 
     for (const item of node.children) {
-      if (item.name.endsWith('.magnet') && item.type === 'file') {
-        continue; // Skip magnet files themselves
+      // Hide decorator files like .magnet from the file listing.
+      if (item.name === '.magnet' && item.type === 'file') {
+        continue;
       }
-      
+
       const nodeClone = cloneNode(item);
 
       if (nodeClone.type === 'folder') {
-        const magnetFileName = `${nodeClone.name}.magnet`;
-        if (magnetFiles.has(magnetFileName)) {
+        // Find the original node in the tree to inspect its children
+        const originalFolderNode = this.findNodeInTree(this.rootNode(), [...path, nodeClone.name]);
+        const hasMagnetFile = originalFolderNode?.children?.some(c => c.name === '.magnet' && c.type === 'file') ?? false;
+        
+        if (hasMagnetFile) {
           nodeClone.isMagnet = true;
-          nodeClone.magnetFile = magnetFileName;
+          nodeClone.magnetFile = '.magnet';
         }
       }
       
@@ -334,9 +330,8 @@ export class SessionService implements FileSystemProvider {
       const childExists = parentNode.children.some(c => c.name === name && c.type === 'folder');
       if (!childExists) throw new Error(`Directory '${name}' not found.`);
       
-      // Also remove the associated .magnet file if it exists
-      const magnetFileName = `${name}.magnet`;
-      parentNode.children = parentNode.children.filter(c => c.name !== name && c.name !== magnetFileName);
+      // The directory and all its contents (including any .magnet file) are removed.
+      parentNode.children = parentNode.children.filter(c => c.name !== name);
       parentNode.modified = new Date().toISOString();
       
       return newRoot;
@@ -378,14 +373,8 @@ export class SessionService implements FileSystemProvider {
           newChildren[childIndex] = { ...newChildren[childIndex], name: newName, modified: new Date().toISOString() };
       }
 
-      // If the renamed item was a folder, rename its .magnet file too
-      if (childToRename.type === 'folder') {
-          const magnetFileIndex = newChildren.findIndex(c => c.name === `${oldName}.magnet`);
-          if (magnetFileIndex > -1) {
-              newChildren[magnetFileIndex] = { ...newChildren[magnetFileIndex], name: `${newName}.magnet`, modified: new Date().toISOString() };
-          }
-      }
-
+      // No special handling needed for .magnet files as they are inside the folder.
+      
       parentNode.children = newChildren;
       parentNode.modified = new Date().toISOString();
       return newRoot;
@@ -409,6 +398,7 @@ export class SessionService implements FileSystemProvider {
       const itemsToMove: FileSystemNode[] = [];
       const newSourceChildren: FileSystemNode[] = [];
 
+      // No special handling for magnet files; they move with their parent folder.
       for (const child of sourceParent.children) {
         const shouldMove = items.some(itemRef => itemRef.name === child.name && itemRef.type === child.type);
         if (shouldMove) {
@@ -418,11 +408,6 @@ export class SessionService implements FileSystemProvider {
               oldPath: this.getFullPath([...sourcePath, child.name]),
               newPath: this.getFullPath([...destPath, child.name]),
             });
-            // Also look for and move the associated .magnet file
-            const magnetFile = sourceParent.children.find(c => c.name === `${child.name}.magnet`);
-            if (magnetFile) {
-              itemsToMove.push(magnetFile);
-            }
           }
         } else {
           newSourceChildren.push(child);
@@ -494,17 +479,8 @@ export class SessionService implements FileSystemProvider {
             return root; // No change needed
         }
         
-        const nodesToCopy: FileSystemNode[] = [];
-        for (const node of nodesToProcess) {
-          nodesToCopy.push(node);
-          // If it's a folder, also grab its .magnet file
-          if (node.type === 'folder') {
-            const magnetFile = sourceParent.children.find(c => c.name === `${node.name}.magnet`);
-            if (magnetFile) {
-              nodesToCopy.push(magnetFile);
-            }
-          }
-        }
+        // No special handling for magnet files; they are cloned with their parent folder via cloneNode.
+        const nodesToCopy: FileSystemNode[] = nodesToProcess;
 
         const existingDestChildren = [...(destParent.children || [])];
         const newClonesToAdd: FileSystemNode[] = [];

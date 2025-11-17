@@ -36,40 +36,40 @@ export class RemoteFileSystemService implements FileSystemProvider {
       }
     }
 
-    const magnetFiles = new Set(
-      rawItems
-        .filter(item => item.name && item.name.endsWith('.magnet'))
-        .map(item => item.name)
-    );
+    // Don't show .magnet files in the listing
+    const visibleItems = rawItems.filter(item => item.name !== '.magnet');
 
-    const processedItems: FileSystemNode[] = [];
+    const nodes: FileSystemNode[] = visibleItems.map(item => {
+        const itemType = (item.type || '').toLowerCase();
+        const isFolder = itemType === 'folder' || itemType === 'directory';
+        return {
+            name: item.name,
+            type: isFolder ? 'folder' : 'file',
+            modified: item.modified,
+            content: item.content,
+        };
+    });
 
-    for (const item of rawItems) {
-      if (item.name && item.name.endsWith('.magnet')) {
-        continue; // Skip magnet files themselves
-      }
+    const folderNodes = nodes.filter(node => node.type === 'folder');
+
+    // Asynchronously check each folder for the presence of a .magnet file.
+    // This is extensible for other file/folder decorators in the future.
+    if (folderNodes.length > 0) {
+      const magnetChecks = folderNodes.map(folder => 
+        this.hasFile([...path, folder.name], '.magnet').catch(() => false) // Gracefully handle errors
+      );
       
-      const itemType = (item.type || '').toLowerCase();
-      const isFolder = itemType === 'folder' || itemType === 'directory';
+      const magnetResults = await Promise.all(magnetChecks);
 
-      const node: FileSystemNode = {
-        name: item.name,
-        type: isFolder ? 'folder' : 'file',
-        modified: item.modified,
-        content: item.content,
-      };
-
-      if (isFolder) {
-        const magnetFileName = `${item.name}.magnet`;
-        if (magnetFiles.has(magnetFileName)) {
-          node.isMagnet = true;
-          node.magnetFile = magnetFileName;
+      folderNodes.forEach((folder, index) => {
+        if (magnetResults[index]) {
+          folder.isMagnet = true;
+          folder.magnetFile = '.magnet';
         }
-      }
-      
-      processedItems.push(node);
+      });
     }
-    return processedItems;
+
+    return nodes;
   }
 
   getFileContent(path: string[], name: string): Promise<string> {
@@ -114,15 +114,9 @@ export class RemoteFileSystemService implements FileSystemProvider {
   }
 
   async removeDirectory(path: string[], name: string): Promise<void> {
-    // First, remove the directory
+    // The associated .magnet file is inside the directory, so it will be removed
+    // by the backend's recursive delete. No special handling needed here.
     await this.fsService.removeDirectory(this.profile.brokerUrl, this.token, [...path, name]);
-  
-    // Now, check for and remove the associated .magnet file
-    const magnetFileName = `${name}.magnet`;
-    const fileExists = await this.hasFile(path, magnetFileName);
-    if (fileExists) {
-      await this.fsService.deleteFile(this.profile.brokerUrl, this.token, path, magnetFileName);
-    }
   }
 
   createFile(path: string[], name: string): Promise<void> {
@@ -137,17 +131,9 @@ export class RemoteFileSystemService implements FileSystemProvider {
     const fromPath = [...path, oldName];
     const toPath = [...path, newName];
     
-    // First, rename the primary item
+    // Renaming the folder will also move any decorator files (like .magnet) inside it.
+    // No special handling needed here for sibling files.
     await this.fsService.rename(this.profile.brokerUrl, this.token, fromPath, toPath);
-    
-    // Now, check for and rename the associated .magnet file
-    const magnetFileName = `${oldName}.magnet`;
-    const fileExists = await this.hasFile(path, magnetFileName);
-    if (fileExists) {
-      const newMagnetFileName = `${newName}.magnet`;
-      // The rename operation in fs.service takes full paths for 'from' and 'to'
-      await this.fsService.rename(this.profile.brokerUrl, this.token, [...path, magnetFileName], [...path, newMagnetFileName]);
-    }
   }
 
   uploadFile(path: string[], file: File): Promise<void> {
