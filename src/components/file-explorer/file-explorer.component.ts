@@ -911,19 +911,19 @@ export class FileExplorerComponent implements OnDestroy {
     const itemPath = [...this.path(), item.name];
     const props = this.folderPropertiesService.getProperties(itemPath);
 
-    // If we are in the "Home" root (path length 0), each item could belong
-    // to a different server profile. We must get the specific service for each one.
+    // ALWAYS re-calculate the service for each item based on its full path.
+    // This mirrors the logic in the tree view, which is known to work correctly.
+    // The path passed to getImageService determines the root, and thus the correct service.
+    const serviceForThisItem = this.getImageService()(itemPath);
+
+    // If we are at the home level, we need to handle special icon names for server roots vs local session.
     if (this.path().length === 0) {
-      const serviceForThisItem = this.getImageService()(itemPath);
-      // For server roots, we want a 'cloud' icon. For the local session root, use its name.
       const iconName = item.isServerRoot ? 'cloud' : item.name;
-      // Pass the modified item with the correct icon name to getIconUrl
       return serviceForThisItem.getIconUrl({ ...item, name: iconName }, props?.imageName);
     } 
     
-    // If we are inside any folder (local or remote), all items use the pane's
-    // main image service. This is more efficient.
-    return this.imageService().getIconUrl(item, props?.imageName);
+    // For all other cases inside any folder, just use the item's name.
+    return serviceForThisItem.getIconUrl(item, props?.imageName);
   }
 
   onImageError(name: string): void {
