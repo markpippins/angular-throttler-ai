@@ -2,6 +2,8 @@
 
 
 
+
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -228,7 +230,13 @@ export class AppComponent implements OnInit, OnDestroy {
     }
     
     const itemType = item.type.charAt(0).toUpperCase() + item.type.slice(1);
-    return `${itemType}: ${item.name} | Modified: ${item.modified ? new Date(item.modified).toLocaleString() : 'N/A'}`;
+    let info = `${itemType}: ${item.name} | Modified: ${item.modified ? new Date(item.modified).toLocaleString() : 'N/A'}`;
+    
+    if (item.isMagnet) {
+        info += ' | 🧲 Magnet Folder';
+    }
+
+    return info;
   });
 
   statusBarItemCounts = computed(() => {
