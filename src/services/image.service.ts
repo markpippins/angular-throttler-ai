@@ -1,5 +1,6 @@
 
 
+
 import { FileSystemNode } from '../models/file-system.model.js';
 import { ImageClientService } from './image-client.service.js';
 import { ServerProfile } from '../models/server-profile.model.js';
@@ -49,8 +50,6 @@ export class ImageService {
 
     if (customImageName) {
       folderName = customImageName;
-    } else if (item.isMagnet && item.magnetFile) {
-      folderName = item.magnetFile.slice(0, -7);
     } else {
       folderName = item.name;
     }
