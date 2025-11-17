@@ -103,7 +103,7 @@ const readOnlyProviderOps = {
   importTree: () => Promise.reject(new Error('Operation not supported.')),
   getFileContent: () => Promise.reject(new Error('Operation not supported.')),
   saveFileContent: () => Promise.reject(new Error('Operation not supported.')),
-  hasFile: () => Promise.resolve(false),
+  hasFile: (path: string[], filename: string) => Promise.resolve(false),
   hasFolder: () => Promise.resolve(false),
 };
 

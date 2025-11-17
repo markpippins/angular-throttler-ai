@@ -261,12 +261,12 @@ export class SessionService implements FileSystemProvider {
     });
   }
 
-  async hasFile(path: string[], fileName: string): Promise<boolean> {
+  async hasFile(path: string[], filename: string): Promise<boolean> {
     const parentNode = this.findNodeInTree(this.rootNode(), path);
     if (!parentNode || !parentNode.children) {
       return false;
     }
-    return parentNode.children.some(child => child.name === fileName && child.type === 'file');
+    return parentNode.children.some(child => child.name === filename && child.type === 'file');
   }
 
   async hasFolder(path: string[], folderName: string): Promise<boolean> {

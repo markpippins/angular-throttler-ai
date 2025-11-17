@@ -60,8 +60,8 @@ export class FsService {
     return this.brokerService.submitRequest(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'rename', { fromPath, toPath, token });
   }
 
-  hasFile(brokerUrl: string, token: string, path: string[], fileName: string): Promise<boolean> {
-    return this.brokerService.submitRequest<boolean>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'hasFile', { path, fileName, token });
+  hasFile(brokerUrl: string, token: string, path: string[], filename: string): Promise<boolean> {
+    return this.brokerService.submitRequest<boolean>(this.constructBrokerUrl(brokerUrl), SERVICE_NAME, 'hasFile', { path, filename, token });
   }
 
   hasFolder(brokerUrl: string, token: string, path: string[], folderName: string): Promise<boolean> {

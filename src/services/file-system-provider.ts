@@ -19,6 +19,6 @@ export abstract class FileSystemProvider {
   abstract move(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void>;
   abstract copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void>;
   abstract importTree(destPath: string[], data: FileSystemNode): Promise<void>;
-  abstract hasFile(path: string[], fileName: string): Promise<boolean>;
+  abstract hasFile(path: string[], filename: string): Promise<boolean>;
   abstract hasFolder(path: string[], folderName: string): Promise<boolean>;
 }

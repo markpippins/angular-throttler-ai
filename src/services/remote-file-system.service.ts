@@ -101,8 +101,8 @@ export class RemoteFileSystemService implements FileSystemProvider {
     };
   }
 
-  hasFile(path: string[], fileName: string): Promise<boolean> {
-    return this.fsService.hasFile(this.profile.brokerUrl, this.token, path, fileName);
+  hasFile(path: string[], filename: string): Promise<boolean> {
+    return this.fsService.hasFile(this.profile.brokerUrl, this.token, path, filename);
   }
 
   hasFolder(path: string[], folderName: string): Promise<boolean> {
