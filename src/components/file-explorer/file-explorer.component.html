@@ -66,7 +66,7 @@
                     <app-folder #selectableItem
                       [item]="item"
                       [displayName]="getDisplayName(item)"
-                      [iconUrl]="iconUrls().get(item.name)!"
+                      [iconUrl]="getIconUrl(item)"
                       [hasFailedToLoadImage]="failedImageItems().has(item.name)"
                       [isSelected]="selectedItems().has(item.name)"
                       [isEditing]="editingItemName() === item.name"
@@ -205,16 +205,10 @@
                       [attr.data-item-name]="item.name">
                     <td class="px-2 py-1.5">
                       @if (item.type === 'folder') {
-                        @let url = iconUrls().get(item.name);
-                        @let hasError = failedImageItems().has(item.name);
-                        <div class="relative h-5 w-5 flex items-center justify-center">
-                          @if (url && !hasError) {
-                            <img [src]="url" [alt]="item.name" (error)="onImageError(item.name)" class="h-5 w-5 object-contain" [class.opacity-50]="item.isServerRoot && !item.connected">
-                          } @else {
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" [class.opacity-50]="item.isServerRoot && !item.connected" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                            </svg>
-                          }
+                        <div class="relative h-5 w-5">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="absolute inset-0 h-5 w-5 text-yellow-500" [class.opacity-50]="item.isServerRoot && !item.connected" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                          </svg>
                           @if(item.isServerRoot && !item.connected) {
                             <div class="absolute -bottom-0.5 -right-0.5 bg-[rgb(var(--color-surface))] rounded-full">
                               <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-red-500" viewBox="0 0 20 20" fill="currentColor">

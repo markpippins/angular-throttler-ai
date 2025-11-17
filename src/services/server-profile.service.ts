@@ -10,6 +10,7 @@ const DEFAULT_PROFILES: ServerProfile[] = [
     id: 'default-local',
     name: 'Local (Debug)',
     brokerUrl: 'localhost:8080',
+    imageUrl: 'http://localhost:8081',
   },
 ];
 
@@ -28,14 +29,15 @@ export class ServerProfileService {
     return profiles.find(p => p.id === activeId) ?? null;
   });
 
-  activeConfig = computed<{ brokerUrl: string }>(() => {
+  activeConfig = computed<{ brokerUrl: string, imageUrl: string }>(() => {
     const active = this.activeProfile();
     if (active) {
-      return { brokerUrl: active.brokerUrl };
+      return { brokerUrl: active.brokerUrl, imageUrl: active.imageUrl };
     }
     // Fallback to default if no active profile is found (should not happen after init)
     return { 
       brokerUrl: DEFAULT_PROFILES[0].brokerUrl, 
+      imageUrl: DEFAULT_PROFILES[0].imageUrl 
     };
   });
 

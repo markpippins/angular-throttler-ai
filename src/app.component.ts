@@ -1,6 +1,4 @@
 
-
-
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -63,6 +61,7 @@ import { TerminalComponent } from './components/terminal/terminal.component.js';
 import { NotesService } from './services/notes.service.js';
 import { ComplexSearchDialogComponent } from './components/complex-search-dialog/complex-search-dialog.component.js';
 import { ComplexSearchParams } from './components/complex-search/complex-search.component.js';
+import { HealthCheckService } from './services/health-check.service.js';
 import { GeminiSearchDialogComponent } from './components/gemini-search-dialog/gemini-search-dialog.component.js';
 
 interface PanePath {
@@ -130,6 +129,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private profileService = inject(ServerProfileService);
   private localConfigService = inject(LocalConfigService);
   private fsService = inject(FsService);
+  private imageClientService = inject(ImageClientService);
   private loginService = inject(LoginService);
   private preferencesService = inject(PreferencesService);
   private clipboardService = inject(ClipboardService);
@@ -151,8 +151,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private youtubeSearchService = inject(YoutubeSearchService);
   private academicSearchService = inject(AcademicSearchService);
   private notesService = inject(NotesService);
-  
-  public imageService: ImageService;
+  private healthCheckService = inject(HealthCheckService);
 
   private initialAutoConnectAttempted = false;
 
@@ -197,6 +196,7 @@ export class AppComponent implements OnInit, OnDestroy {
   mountedProfileTokens = signal<Map<string, string>>(new Map());
   mountedProfileIds = computed(() => this.mountedProfiles().map(p => p.id));
   private remoteProviders = signal<Map<string, RemoteFileSystemService>>(new Map());
+  private remoteImageServices = signal<Map<string, ImageService>>(new Map());
   
   // --- Status Bar State ---
   pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
@@ -257,6 +257,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   pane1Provider = computed<FileSystemProvider>(() => this.getProvider(this.pane1Path()));
   pane2Provider = computed<FileSystemProvider>(() => this.getProvider(this.pane2Path()));
+  pane1ImageService = computed<ImageService>(() => this.getImageService(this.pane1Path()));
+  pane2ImageService = computed<ImageService>(() => this.getImageService(this.pane2Path()));
 
   // --- Toolbar State Management ---
   toolbarAction = signal<{ name: string; payload?: any; id: number } | null>(null);
@@ -437,8 +439,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
 
   constructor() {
-    this.imageService = new ImageService(this.localConfigService);
-
     this.homeProvider = {
       getContents: async (path: string[]) => {
         if (path.length > 0) throw new Error('Home provider does not support subdirectories.');
@@ -472,6 +472,19 @@ export class AppComponent implements OnInit, OnDestroy {
       this.renderer.removeClass(this.document.body, 'theme-steel');
       this.renderer.removeClass(this.document.body, 'theme-dark');
       this.renderer.addClass(this.document.body, theme);
+    });
+
+    // Monitor health of server profiles
+    effect(() => {
+      const profiles = this.profileService.profiles();
+      profiles.forEach(p => {
+        if (p.imageUrl) {
+          this.healthCheckService.monitorService({
+            imageUrl: p.imageUrl,
+            healthCheckDelayMinutes: p.healthCheckDelayMinutes
+          });
+        }
+      });
     });
 
     // Reactive Folder Tree and Auto-Connect
@@ -532,6 +545,21 @@ export class AppComponent implements OnInit, OnDestroy {
     
     // If the path does not point to a server, it must be the local session.
     return this.sessionFs;
+  }
+
+  getImageService = (path: string[]): ImageService => {
+    const rootName = path.length > 0 ? path[0] : this.localConfigService.sessionName();
+    const remote = this.remoteImageServices().get(rootName);
+    if (remote) return remote;
+    
+    // Fallback for local session or if no remote service is found
+    const localProfile: ServerProfile = {
+      id: 'local-session',
+      name: this.localConfigService.sessionName(),
+      brokerUrl: '', // not used for images
+      imageUrl: this.localConfigService.defaultImageUrl(),
+    };
+    return new ImageService(localProfile, this.imageClientService, this.preferencesService, this.healthCheckService, this.localConfigService);
   }
 
   async buildCombinedFolderTree(): Promise<FileSystemNode> {
@@ -890,11 +918,13 @@ export class AppComponent implements OnInit, OnDestroy {
       const { user, token } = await this.loginService.login(profile, username, password);
       
       const provider = new RemoteFileSystemService(profile, this.fsService, token);
+      const imageService = new ImageService(profile, this.imageClientService, this.preferencesService, this.healthCheckService, this.localConfigService);
 
       this.mountedProfiles.update(p => [...p, profile]);
       this.mountedProfileUsers.update(m => new Map(m).set(profile.id, user));
       this.mountedProfileTokens.update(m => new Map(m).set(profile.id, token));
       this.remoteProviders.update(m => new Map(m).set(profile.name, provider));
+      this.remoteImageServices.update(m => new Map(m).set(profile.name, imageService));
       this.notesService.setToken(profile.id, token);
 
       await this.loadFolderTree();
@@ -923,6 +953,12 @@ export class AppComponent implements OnInit, OnDestroy {
     });
     
     this.remoteProviders.update(m => {
+      const newMap = new Map(m);
+      newMap.delete(profile.name);
+      return newMap;
+    });
+
+    this.remoteImageServices.update(m => {
       const newMap = new Map(m);
       newMap.delete(profile.name);
       return newMap;
@@ -969,13 +1005,21 @@ export class AppComponent implements OnInit, OnDestroy {
   onServerProfileRenamed(event: { oldName: string, newName: string, profile: ServerProfile }): void {
     const { oldName, newName, profile } = event;
 
-    // 1. Update remoteProviders key if the profile is mounted
+    // 1. Update remoteProviders and remoteImageServices keys if the profile is mounted
     if (this.remoteProviders().has(oldName)) {
         const provider = this.remoteProviders().get(oldName)!;
         this.remoteProviders.update(m => {
             const newMap = new Map(m);
             newMap.delete(oldName);
             newMap.set(newName, provider);
+            return newMap;
+        });
+        
+        const imageService = this.remoteImageServices().get(oldName)!;
+        this.remoteImageServices.update(m => {
+            const newMap = new Map(m);
+            newMap.delete(oldName);
+            newMap.set(newName, imageService);
             return newMap;
         });
     }

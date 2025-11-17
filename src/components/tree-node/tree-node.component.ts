@@ -24,7 +24,7 @@ export class TreeNodeComponent implements OnInit {
   currentPath = input.required<string[]>();
   level = input(0);
   expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
-  imageService = input.required<ImageService>();
+  getImageService = input.required<(path: string[]) => ImageService>();
   getProvider = input.required<(path: string[]) => FileSystemProvider>();
 
   pathChange = output<string[]>();
@@ -41,7 +41,7 @@ export class TreeNodeComponent implements OnInit {
   properties = computed(() => this.folderPropertiesService.getProperties(this.path()));
   
   iconUrl = computed(() => {
-    const service = this.imageService();
+    const service = this.getImageService()(this.path());
     const node = this.node();
     const props = this.properties();
 

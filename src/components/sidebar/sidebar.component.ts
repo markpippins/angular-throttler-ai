@@ -25,7 +25,7 @@ export class SidebarComponent implements OnDestroy {
 
   folderTree = input<FileSystemNode | null>(null);
   currentPath = input.required<string[]>();
-  imageService = input.required<ImageService>();
+  getImageService = input.required<(path: string[]) => ImageService>();
   getProvider = input.required<(path: string[]) => FileSystemProvider>();
   isTreeVisible = input(true);
   isChatVisible = input(true);

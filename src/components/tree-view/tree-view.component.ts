@@ -17,7 +17,7 @@ export class TreeViewComponent {
   rootNode = input.required<FileSystemNode>();
   currentPath = input.required<string[]>();
   expansionCommand = input<{ command: 'expand' | 'collapse', id: number } | null>();
-  imageService = input.required<ImageService>();
+  getImageService = input.required<(path: string[]) => ImageService>();
   getProvider = input.required<(path: string[]) => FileSystemProvider>();
 
   pathChange = output<string[]>();

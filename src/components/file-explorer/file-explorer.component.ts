@@ -57,6 +57,7 @@ export class FileExplorerComponent implements OnDestroy {
   isSplitView = input(false);
   fileSystemProvider = input.required<FileSystemProvider>();
   imageService = input.required<ImageService>();
+  getImageService = input.required<(path: string[]) => ImageService>();
   folderTree = input<FileSystemNode | null>(null);
   refresh = input<number>(0);
   toolbarAction = input<{ name: string; payload?: any; id: number } | null>(null);
@@ -247,16 +248,6 @@ export class FileExplorerComponent implements OnDestroy {
       return items;
     }
     return items.filter(item => item.name.toLowerCase().includes(query));
-  });
-
-  iconUrls = computed(() => {
-    const urlMap = new Map<string, string | null>();
-    for (const item of this.filteredItems()) {
-      if (item.type === 'folder') {
-        urlMap.set(item.name, this._getSingleIconUrl(item));
-      }
-    }
-    return urlMap;
   });
 
   constructor() {
@@ -903,18 +894,25 @@ export class FileExplorerComponent implements OnDestroy {
     this.sortChange.emit(newCriteria);
   }
 
-  private _getSingleIconUrl(item: FileSystemNode): string | null {
-    const props = this.folderPropertiesService.getProperties([...this.path(), item.name]);
-    const service = this.imageService();
+  getIconUrl(item: FileSystemNode): string | null {
+    const getImageServiceFn = this.getImageService();
 
-    // If we are at the home level, we need to handle special icon names for server roots vs local session.
-    if (this.path().length === 0) {
-      const iconName = item.isServerRoot ? 'cloud' : item.name;
-      return service.getIconUrl({ ...item, name: iconName }, props?.imageName);
-    } 
+    // The full path to the item determines which image service to use.
+    // When in the root "Home" view, this.path() is [], so itemPath becomes just [item.name].
+    // When inside a folder, this.path() has segments, so itemPath becomes the full path.
+    const itemPath = [...this.path(), item.name];
     
-    // For all other cases inside any folder, just use the item's name.
-    return service.getIconUrl(item, props?.imageName);
+    const serviceToUse = getImageServiceFn(itemPath);
+    const props = this.folderPropertiesService.getProperties(itemPath);
+
+    // Special handling for server root icons when they are displayed in the "Home" view.
+    if (this.path().length === 0 && item.isServerRoot) {
+      // For a server root, we always request the 'cloud' icon from its specific image service.
+      return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
+    }
+    
+    // For all other folders, request an icon based on its name or custom properties.
+    return serviceToUse.getIconUrl(item, props?.imageName);
   }
 
   onImageError(name: string): void {

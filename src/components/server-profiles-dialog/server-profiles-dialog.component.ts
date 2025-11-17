@@ -10,7 +10,9 @@ type FormState = {
   id: string | null;
   name: string;
   brokerUrl: string;
+  imageUrl: string;
   autoConnect: boolean;
+  healthCheckDelayMinutes: number | null;
 }
 
 @Component({
@@ -67,7 +69,9 @@ export class ServerProfilesDialogComponent implements OnInit {
       id: null,
       name: '',
       brokerUrl: '',
+      imageUrl: '',
       autoConnect: false,
+      healthCheckDelayMinutes: null,
     });
     this.selectedProfileId.set(null);
     this.originalProfileName = null;
@@ -75,10 +79,9 @@ export class ServerProfilesDialogComponent implements OnInit {
   
   startEdit(profile: ServerProfile): void {
     this.formState.set({
-      id: profile.id,
-      name: profile.name,
-      brokerUrl: profile.brokerUrl,
+      ...profile,
       autoConnect: profile.autoConnect ?? false,
+      healthCheckDelayMinutes: profile.healthCheckDelayMinutes ?? null
     });
     this.selectedProfileId.set(profile.id);
     this.originalProfileName = profile.name;
@@ -101,7 +104,9 @@ export class ServerProfilesDialogComponent implements OnInit {
         id: state.id,
         name: state.name.trim(),
         brokerUrl: state.brokerUrl.trim(),
+        imageUrl: state.imageUrl.trim(),
         autoConnect: state.autoConnect,
+        ...(state.healthCheckDelayMinutes && state.healthCheckDelayMinutes > 0 && { healthCheckDelayMinutes: state.healthCheckDelayMinutes }),
       };
 
       await this.profileService.updateProfile(updatedProfile);
@@ -115,7 +120,9 @@ export class ServerProfilesDialogComponent implements OnInit {
       const newProfileData = {
         name: state.name.trim(),
         brokerUrl: state.brokerUrl.trim(),
+        imageUrl: state.imageUrl.trim(),
         autoConnect: state.autoConnect,
+        ...(state.healthCheckDelayMinutes && state.healthCheckDelayMinutes > 0 && { healthCheckDelayMinutes: state.healthCheckDelayMinutes }),
       };
 
       await this.profileService.addProfile(newProfileData);
@@ -162,9 +169,14 @@ export class ServerProfilesDialogComponent implements OnInit {
     this.unmountProfile.emit(profile);
   }
 
-  onFormValueChange(event: Event, field: keyof Omit<FormState, 'id' | 'autoConnect'>): void {
+  onFormValueChange(event: Event, field: keyof Omit<FormState, 'id' | 'autoConnect' | 'healthCheckDelayMinutes'>): void {
     const value = (event.target as HTMLInputElement).value;
     this.formState.update(state => state ? { ...state, [field]: value } : null);
+  }
+
+  onNumberValueChange(event: Event, field: 'healthCheckDelayMinutes'): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.formState.update(state => state ? { ...state, [field]: value ? parseInt(value, 10) : null } : null);
   }
 
   onCheckboxChange(event: Event, field: 'autoConnect'): void {
