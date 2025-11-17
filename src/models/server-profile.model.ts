@@ -4,5 +4,6 @@ export interface ServerProfile {
   brokerUrl: string;
   imageUrl: string;
   autoConnect?: boolean;
+  // FIX: Add missing optional property for health check configuration.
   healthCheckDelayMinutes?: number;
 }

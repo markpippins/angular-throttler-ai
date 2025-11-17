@@ -1,19 +1,8 @@
-
-
-
 import { FileSystemNode } from '../models/file-system.model.js';
-import { ImageClientService } from './image-client.service.js';
-import { ServerProfile } from '../models/server-profile.model.js';
-import { PreferencesService } from './preferences.service.js';
-import { HealthCheckService } from './health-check.service.js';
 import { LocalConfigService } from './local-config.service.js';
 
 export class ImageService {
   constructor(
-    private profile: ServerProfile,
-    private imageClientService: ImageClientService,
-    private preferencesService: PreferencesService,
-    private healthCheckService: HealthCheckService,
     private localConfigService: LocalConfigService
   ) {}
 
@@ -22,32 +11,7 @@ export class ImageService {
       return null;
     }
 
-    const enableHealthChecks = this.localConfigService.currentConfig().enableHealthChecks;
-    const profileUrl = this.profile.imageUrl;
-    const defaultUrl = this.localConfigService.defaultImageUrl();
-    let baseUrl: string | null = null;
-
-    if (enableHealthChecks) {
-      // 1. Try profile's image URL if it exists and is healthy.
-      if (profileUrl) {
-        const status = this.healthCheckService.getServiceStatus(profileUrl);
-        if (status !== 'DOWN') {
-          baseUrl = profileUrl;
-        }
-      }
-
-      // 2. Fallback to default URL if profile URL wasn't used or was down.
-      if (!baseUrl && defaultUrl) {
-        const status = this.healthCheckService.getServiceStatus(defaultUrl);
-        if (status !== 'DOWN') {
-          baseUrl = defaultUrl;
-        }
-      }
-    } else {
-      // Simple logic: prefer profile URL, fallback to default. Assume UP.
-      baseUrl = profileUrl || defaultUrl || null;
-    }
-
+    const baseUrl = this.localConfigService.defaultImageUrl() || null;
 
     if (!baseUrl) {
       return null;

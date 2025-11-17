@@ -18,7 +18,6 @@ import { FolderPropertiesService } from '../../services/folder-properties.servic
 import { FolderProperties } from '../../models/folder-properties.model.js';
 import { ConflictDialogComponent, ConflictResolution } from '../conflict-dialog/conflict-dialog.component.js';
 import { TextEditorService } from '../../services/note-dialog.service.js';
-import { HealthCheckService } from '../../services/health-check.service.js';
 
 // Declare the globals from the CDN scripts for Markdown parsing
 declare var marked: { parse(markdown: string): string; };
@@ -50,7 +49,6 @@ export class FileExplorerComponent implements OnDestroy {
   private folderPropertiesService = inject(FolderPropertiesService);
   private textEditorService = inject(TextEditorService);
   private injector = inject(Injector);
-  private healthCheckService = inject(HealthCheckService);
 
   // Inputs & Outputs for multi-pane communication
   id = input.required<number>();
@@ -59,7 +57,6 @@ export class FileExplorerComponent implements OnDestroy {
   isSplitView = input(false);
   fileSystemProvider = input.required<FileSystemProvider>();
   imageService = input.required<ImageService>();
-  getImageService = input.required<(path: string[]) => ImageService>();
   folderTree = input<FileSystemNode | null>(null);
   refresh = input<number>(0);
   toolbarAction = input<{ name: string; payload?: any; id: number } | null>(null);
@@ -253,7 +250,6 @@ export class FileExplorerComponent implements OnDestroy {
   });
 
   iconUrls = computed(() => {
-    this.healthCheckService.serviceStatuses(); // Make this computed reactive to health changes
     const urlMap = new Map<string, string | null>();
     for (const item of this.filteredItems()) {
       if (item.type === 'folder') {
@@ -908,22 +904,17 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   private _getSingleIconUrl(item: FileSystemNode): string | null {
-    const itemPath = [...this.path(), item.name];
-    const props = this.folderPropertiesService.getProperties(itemPath);
-
-    // ALWAYS re-calculate the service for each item based on its full path.
-    // This mirrors the logic in the tree view, which is known to work correctly.
-    // The path passed to getImageService determines the root, and thus the correct service.
-    const serviceForThisItem = this.getImageService()(itemPath);
+    const props = this.folderPropertiesService.getProperties([...this.path(), item.name]);
+    const service = this.imageService();
 
     // If we are at the home level, we need to handle special icon names for server roots vs local session.
     if (this.path().length === 0) {
       const iconName = item.isServerRoot ? 'cloud' : item.name;
-      return serviceForThisItem.getIconUrl({ ...item, name: iconName }, props?.imageName);
+      return service.getIconUrl({ ...item, name: iconName }, props?.imageName);
     } 
     
     // For all other cases inside any folder, just use the item's name.
-    return serviceForThisItem.getIconUrl(item, props?.imageName);
+    return service.getIconUrl(item, props?.imageName);
   }
 
   onImageError(name: string): void {
