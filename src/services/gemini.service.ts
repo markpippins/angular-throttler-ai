@@ -65,7 +65,7 @@ This is a generated summary. For more detailed information, consider consulting 
         model: 'gemini-2.5-flash',
         contents: query,
         config: {
-          ...(systemInstruction && { systemInstruction }),
+          ...(systemInstruction !== undefined && { systemInstruction }),
           ...(temperature !== undefined && { temperature }),
           ...(topK !== undefined && { topK }),
           ...(topP !== undefined && { topP }),
