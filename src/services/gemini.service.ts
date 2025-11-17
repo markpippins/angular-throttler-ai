@@ -71,7 +71,7 @@ This is a generated summary. For more detailed information, consider consulting 
           ...(topP !== undefined && { topP }),
         }
       });
-      return response.text;
+      return response.text ?? '';
     } catch(e) {
       console.error('Error calling Gemini API:', e);
       return `Error: Could not get a response from the Gemini API. ${(e as Error).message}`;
