@@ -908,16 +908,22 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   private _getSingleIconUrl(item: FileSystemNode): string | null {
-    const getImageServiceFn = this.getImageService();
     const itemPath = [...this.path(), item.name];
-    const serviceToUse = getImageServiceFn(itemPath);
     const props = this.folderPropertiesService.getProperties(itemPath);
 
-    if (this.path().length === 0 && item.isServerRoot) {
-      return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
-    }
+    // If we are in the "Home" root (path length 0), each item could belong
+    // to a different server profile. We must get the specific service for each one.
+    if (this.path().length === 0) {
+      const serviceForThisItem = this.getImageService()(itemPath);
+      // For server roots, we want a 'cloud' icon. For the local session root, use its name.
+      const iconName = item.isServerRoot ? 'cloud' : item.name;
+      // Pass the modified item with the correct icon name to getIconUrl
+      return serviceForThisItem.getIconUrl({ ...item, name: iconName }, props?.imageName);
+    } 
     
-    return serviceToUse.getIconUrl(item, props?.imageName);
+    // If we are inside any folder (local or remote), all items use the pane's
+    // main image service. This is more efficient.
+    return this.imageService().getIconUrl(item, props?.imageName);
   }
 
   onImageError(name: string): void {
