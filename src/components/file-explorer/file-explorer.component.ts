@@ -895,25 +895,33 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   getIconUrl(item: FileSystemNode): string | null {
-    const imageServiceForPane = this.imageService();
     const getImageServiceFn = this.getImageService();
-    let serviceToUse: ImageService = imageServiceForPane;
-  
-    // In special cases (like the Home view), an item might belong to a different root
-    // than the pane itself. In these cases, we must get the specific service for that item.
-    if (item.isServerRoot && getImageServiceFn) {
-      serviceToUse = getImageServiceFn([item.name]);
+    // If the function isn't available, fall back to the pane's default service.
+    // This maintains backward compatibility but is not the ideal path.
+    if (!getImageServiceFn) {
+        const props = this.folderPropertiesService.getProperties([...this.path(), item.name]);
+        return this.imageService().getIconUrl(item, props?.imageName);
     }
-  
-    const fullPath = [...this.path(), item.name];
-    const props = this.folderPropertiesService.getProperties(fullPath);
-  
-    // For server roots, always use the 'cloud' icon.
+    
+    // Determine the path that represents the root of the item.
+    let itemRootPath: string[];
+    if (item.isServerRoot) {
+        // This is a server root item (e.g., in the Home view). Its root is itself.
+        itemRootPath = [item.name];
+    } else {
+        // This is a regular item. Its root is determined by the pane's current path.
+        itemRootPath = this.path();
+    }
+    
+    // Get the correct service for this item's root.
+    const serviceToUse = getImageServiceFn(itemRootPath);
+    const props = this.folderPropertiesService.getProperties([...this.path(), item.name]);
+
+    // Use a special 'cloud' icon for server roots, regardless of their actual name.
     if (item.isServerRoot) {
       return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
     }
-  
-    // For regular items, use the determined service.
+    
     return serviceToUse.getIconUrl(item, props?.imageName);
   }
 
