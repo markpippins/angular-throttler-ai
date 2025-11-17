@@ -7,6 +7,7 @@ export interface LocalConfig {
   defaultImageUrl: string;
   logBrokerMessages: boolean;
   healthCheckDelayMinutes: number;
+  enableHealthChecks: boolean;
 }
 
 const DEFAULT_CONFIG: LocalConfig = {
@@ -14,6 +15,7 @@ const DEFAULT_CONFIG: LocalConfig = {
   defaultImageUrl: 'http://localhost:8081', // A sensible default
   logBrokerMessages: true,
   healthCheckDelayMinutes: 3,
+  enableHealthChecks: false,
 };
 
 @Injectable({

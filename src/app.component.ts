@@ -1,4 +1,5 @@
 
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -476,6 +477,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Monitor health of server profiles
     effect(() => {
+      if (!this.localConfigService.currentConfig().enableHealthChecks) {
+        this.healthCheckService.stopAllMonitoring();
+        return;
+      }
       const profiles = this.profileService.profiles();
       profiles.forEach(p => {
         if (p.imageUrl) {

@@ -77,4 +77,12 @@ export class HealthCheckService {
       this.serviceTimers.set(baseUrl, timerId);
     }
   }
+
+  stopAllMonitoring(): void {
+    for (const timerId of this.serviceTimers.values()) {
+        clearTimeout(timerId);
+    }
+    this.serviceTimers.clear();
+    this._serviceStatuses.set(new Map());
+  }
 }
