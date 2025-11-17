@@ -1,4 +1,6 @@
 
+
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -72,6 +74,7 @@ interface PaneStatus {
   selectedItemsCount: number;
   totalItemsCount: number;
   filteredItemsCount: number | null;
+  unmagnetizedSelectedFoldersCount: number;
 }
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
@@ -182,6 +185,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isStreamVisible = this.uiPreferencesService.isStreamVisible;
   isConsoleCollapsed = this.uiPreferencesService.isConsoleCollapsed;
   isStreamPaneCollapsed = this.uiPreferencesService.isStreamPaneCollapsed;
+  isStreamActiveSearchEnabled = this.uiPreferencesService.isStreamActiveSearchEnabled;
   
   // Keep track of each pane's path
   panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
@@ -199,8 +203,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private remoteImageServices = signal<Map<string, ImageService>>(new Map());
   
   // --- Status Bar State ---
-  pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
-  pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
+  pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null, unmagnetizedSelectedFoldersCount: 0 });
+  pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null, unmagnetizedSelectedFoldersCount: 0 });
   
   activePaneStatus = computed<PaneStatus>(() => {
     const activeId = this.activePaneId();
@@ -279,6 +283,7 @@ export class AppComponent implements OnInit, OnDestroy {
   canCutCopyShareDelete = computed(() => this.activePaneStatus().selectedItemsCount > 0);
   canRename = computed(() => this.activePaneStatus().selectedItemsCount === 1);
   canPaste = computed(() => !!this.clipboardService.clipboard());
+  canMagnetize = computed(() => this.activePaneStatus().unmagnetizedSelectedFoldersCount > 0);
 
   // --- Split View Resizing ---
   pane1Width = signal(this.uiPreferencesService.splitViewPaneWidth() ?? 50); // percentage
@@ -805,6 +810,10 @@ export class AppComponent implements OnInit, OnDestroy {
   
   toggleStreamPaneCollapse(): void {
     this.uiPreferencesService.toggleStreamPaneCollapse();
+  }
+
+  toggleStreamActiveSearch(): void {
+    this.uiPreferencesService.toggleStreamActiveSearch();
   }
 
   triggerRefresh(): void {
@@ -1386,8 +1395,8 @@ export class AppComponent implements OnInit, OnDestroy {
             isMagnetFolder = await provider.hasFile(providerPath, '.magnet');
         }
 
-        // If the current folder is not a magnet folder, clear its stream results and do nothing else.
-        if (!isMagnetFolder) {
+        // If not a magnet folder OR active search is disabled, clear results.
+        if (!isMagnetFolder || !this.isStreamActiveSearchEnabled()) {
             if (id === 1) {
                 this.streamResultsForPane1.set([]);
             } else {
@@ -1396,7 +1405,7 @@ export class AppComponent implements OnInit, OnDestroy {
             continue; // Move to the next pane context
         }
 
-        // --- If it IS a magnet folder, proceed with the existing search logic ---
+        // --- If it IS a magnet folder AND active search is enabled, proceed with the existing search logic ---
         const rootName = path[0];
         const relativePath = path.slice(1);
 

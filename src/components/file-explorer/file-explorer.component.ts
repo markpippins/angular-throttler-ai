@@ -76,6 +76,7 @@ export class FileExplorerComponent implements OnDestroy {
     selectedItemsCount: number;
     totalItemsCount: number;
     filteredItemsCount: number | null;
+    unmagnetizedSelectedFoldersCount: number;
   }>();
   sortChange = output<SortCriteria>();
   bookmarkDropped = output<{ bookmark: NewBookmark, dropOn: FileSystemNode }>();
@@ -90,7 +91,8 @@ export class FileExplorerComponent implements OnDestroy {
     selectedItemsCount: number;
     totalItemsCount: number;
     filteredItemsCount: number | null;
-  }>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
+    unmagnetizedSelectedFoldersCount: number;
+  }>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null, unmagnetizedSelectedFoldersCount: 0 });
   contextMenu = signal<{ x: number; y: number; item: FileSystemNode | null } | null>(null);
   previewItem = signal<FileSystemNode | null>(null);
   failedImageItems = signal<Set<string>>(new Set());
@@ -268,10 +270,15 @@ export class FileExplorerComponent implements OnDestroy {
         const filteredItemsCount = this.filteredItems().length;
         const hasFilter = this.filterQuery().trim().length > 0;
         
+        const selectedNodes = this.getSelectedNodes();
+        const selectedFolders = selectedNodes.filter(n => n.type === 'folder');
+        const unmagnetizedSelectedFoldersCount = selectedFolders.filter(f => !f.isMagnet).length;
+
         const newStatus = {
             selectedItemsCount: selectionSize,
             totalItemsCount: totalItems,
             filteredItemsCount: hasFilter ? filteredItemsCount : null,
+            unmagnetizedSelectedFoldersCount: unmagnetizedSelectedFoldersCount,
         };
 
         this.status.set(newStatus);
@@ -641,6 +648,7 @@ export class FileExplorerComponent implements OnDestroy {
       case 'moveTo': this.onItemsMovedTo(action.payload); break;
       case 'selectAll': this.selectAllItems(); break;
       case 'clearSelection': this.clearSelection(); break;
+      case 'magnetize': this.onMagnetizeSelected(); break;
     }
   }
 
@@ -755,16 +763,28 @@ export class FileExplorerComponent implements OnDestroy {
   async onMagnetize(item: FileSystemNode): Promise<void> {
     if (item.type !== 'folder' || item.isMagnet) return;
     
-    // The new path for the file is INSIDE the folder.
     const newFilePath = [...this.providerPath(), item.name];
     const magnetFileName = '.magnet';
 
+    await this.fileSystemProvider().createFile(newFilePath, magnetFileName);
+  }
+  
+  async onMagnetizeSelected(): Promise<void> {
+    const selectedNodes = this.getSelectedNodes();
+    const foldersToMagnetize = selectedNodes.filter(node => node.type === 'folder' && !node.isMagnet);
+    
+    if (foldersToMagnetize.length === 0) {
+        return;
+    }
+
+    this.isLoading.set(true);
     try {
-      // Create the file at the new path.
-      await this.fileSystemProvider().createFile(newFilePath, magnetFileName);
-      this.directoryChanged.emit();
+        await Promise.all(foldersToMagnetize.map(folder => this.onMagnetize(folder)));
+        this.directoryChanged.emit();
     } catch (e) {
-      alert(`Failed to magnetize folder: ${(e as Error).message}`);
+        alert(`Failed to magnetize one or more folders: ${(e as Error).message}`);
+    } finally {
+        this.isLoading.set(false);
     }
   }
 
@@ -838,12 +858,20 @@ export class FileExplorerComponent implements OnDestroy {
     }
   }
   
-  onMagnetizeFromContextMenu(): void {
+  async onMagnetizeFromContextMenu(): Promise<void> {
     const item = this.contextMenu()?.item;
-    if (item?.type === 'folder' && !item.isMagnet) {
-      this.onMagnetize(item);
-    }
     this.closeContextMenu();
+    if (item?.type === 'folder' && !item.isMagnet) {
+      this.isLoading.set(true);
+      try {
+        await this.onMagnetize(item);
+        this.directoryChanged.emit();
+      } catch (e) {
+        alert(`Failed to magnetize folder: ${(e as Error).message}`);
+      } finally {
+        this.isLoading.set(false);
+      }
+    }
   }
   
   onPropertiesFromContextMenu(): void {

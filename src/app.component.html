@@ -65,6 +65,7 @@
         [canRename]="canRename()"
         [canShare]="canCutCopyShareDelete()"
         [canDelete]="canCutCopyShareDelete()"
+        [canMagnetize]="canMagnetize()"
         [currentSort]="activeSortCriteria()"
         [folderTree]="folderTree()"
         [currentPath]="activePanePath()"
@@ -90,6 +91,7 @@
         (renameClick)="onToolbarAction('rename')"
         (shareClick)="onToolbarAction('share')"
         (deleteClick)="onToolbarAction('delete')"
+        (magnetizeClick)="onToolbarAction('magnetize')"
         (sortChange)="onSortChange($event)"
         (displayModeChange)="onDisplayModeChange($event)"
         (filterChange)="onFilterChange($event)"
@@ -233,6 +235,21 @@
                               [class.hover:bg-[rgb(var(--color-surface-hover))]]="streamDisplayMode() !== 'list'">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                           <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <!-- Active Search Toggle -->
+                    <div class="flex items-center rounded-md bg-[rgb(var(--color-surface))] p-0.5 border border-[rgb(var(--color-border-muted))]">
+                      <button (click)="toggleStreamActiveSearch()" [title]="isStreamActiveSearchEnabled() ? 'Active Search Enabled' : 'Active Search Disabled'"
+                              class="p-1.5 rounded-sm transition-colors"
+                              [class.bg-[rgb(var(--color-accent-solid-bg))]]="isStreamActiveSearchEnabled()"
+                              [class.text-white]="isStreamActiveSearchEnabled()"
+                              [class.text-[rgb(var(--color-text-muted))]]="!isStreamActiveSearchEnabled()"
+                              [class.hover:bg-[rgb(var(--color-surface-hover))]]="!isStreamActiveSearchEnabled()">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M15 4a1 1 0 00-1-1H6A1 1 0 005 4v5.111C5 12.368 7.686 15 10.929 15c3.242 0 5.928-2.632 5.928-5.889V4zM7 5h6v4H7V5z"/>
+                          <path d="M3 4a1 1 0 011-1h1v2H3V4zM15 3a1 1 0 011 1v1h-2V3h1zM3 10h2v4H3v-4zM15 10h2v4h-2v-4z"/>
                         </svg>
                       </button>
                     </div>

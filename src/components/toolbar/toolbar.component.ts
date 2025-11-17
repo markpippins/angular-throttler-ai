@@ -35,6 +35,7 @@ export class ToolbarComponent {
   canRename = input(false);
   canShare = input(false);
   canDelete = input(false);
+  canMagnetize = input(false);
   currentSort = input<SortCriteria>({ key: 'name', direction: 'asc' });
   folderTree = input<FileSystemNode | null>(null);
   currentPath = input<string[]>([]);
@@ -64,6 +65,7 @@ export class ToolbarComponent {
   renameClick = output<void>();
   shareClick = output<void>();
   deleteClick = output<void>();
+  magnetizeClick = output<void>();
   sortChange = output<SortCriteria>();
   displayModeChange = output<'grid' | 'list'>();
   filterChange = output<string>();

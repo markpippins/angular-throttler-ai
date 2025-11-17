@@ -18,6 +18,7 @@ export interface UiPreferences {
   isStreamPaneCollapsed: boolean;
   isChatPaneCollapsed: boolean;
   isNotesPaneCollapsed: boolean;
+  isStreamActiveSearchEnabled: boolean;
   sidebarWidth: number | null;
   sidebarTreeHeight: number | null;
   sidebarChatHeight: number | null;
@@ -43,6 +44,7 @@ const DEFAULT_PREFERENCES: UiPreferences = {
   isStreamPaneCollapsed: false,
   isChatPaneCollapsed: false,
   isNotesPaneCollapsed: false,
+  isStreamActiveSearchEnabled: true,
   sidebarWidth: null,
   sidebarTreeHeight: null,
   sidebarChatHeight: null,
@@ -74,6 +76,7 @@ export class UiPreferencesService {
   public readonly isStreamPaneCollapsed = computed(() => this.preferences().isStreamPaneCollapsed);
   public readonly isChatPaneCollapsed = computed(() => this.preferences().isChatPaneCollapsed);
   public readonly isNotesPaneCollapsed = computed(() => this.preferences().isNotesPaneCollapsed);
+  public readonly isStreamActiveSearchEnabled = computed(() => this.preferences().isStreamActiveSearchEnabled);
   public readonly sidebarWidth = computed(() => this.preferences().sidebarWidth);
   public readonly sidebarTreeHeight = computed(() => this.preferences().sidebarTreeHeight);
   public readonly sidebarChatHeight = computed(() => this.preferences().sidebarChatHeight);
@@ -165,6 +168,10 @@ export class UiPreferencesService {
 
   toggleNotesPaneCollapse(): void {
     this.preferences.update(p => ({ ...p, isNotesPaneCollapsed: !p.isNotesPaneCollapsed }));
+  }
+
+  toggleStreamActiveSearch(): void {
+    this.preferences.update(p => ({ ...p, isStreamActiveSearchEnabled: !p.isStreamActiveSearchEnabled }));
   }
 
   // --- Public methods to set pane dimensions ---
