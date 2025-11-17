@@ -896,29 +896,16 @@ export class FileExplorerComponent implements OnDestroy {
 
   getIconUrl(item: FileSystemNode): string | null {
     const getImageServiceFn = this.getImageService();
-    // If the function isn't available, fall back to the pane's default service.
-    // This maintains backward compatibility but is not the ideal path.
-    if (!getImageServiceFn) {
-        const props = this.folderPropertiesService.getProperties([...this.path(), item.name]);
-        return this.imageService().getIconUrl(item, props?.imageName);
-    }
-    
-    // Determine the path that represents the root of the item.
-    let itemRootPath: string[];
-    if (item.isServerRoot) {
-        // This is a server root item (e.g., in the Home view). Its root is itself.
-        itemRootPath = [item.name];
-    } else {
-        // This is a regular item. Its root is determined by the pane's current path.
-        itemRootPath = this.path();
-    }
-    
-    // Get the correct service for this item's root.
-    const serviceToUse = getImageServiceFn(itemRootPath);
-    const props = this.folderPropertiesService.getProperties([...this.path(), item.name]);
 
-    // Use a special 'cloud' icon for server roots, regardless of their actual name.
+    // The full path to the item determines which image service to use.
+    // The getImageService function correctly uses path[0] to find the root.
+    const itemPath = item.isServerRoot ? [item.name] : [...this.path(), item.name];
+
+    const serviceToUse = getImageServiceFn ? getImageServiceFn(itemPath) : this.imageService();
+    const props = this.folderPropertiesService.getProperties(itemPath);
+
     if (item.isServerRoot) {
+      // Server roots in the home view always get the 'cloud' icon from their specific image service.
       return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
     }
     
