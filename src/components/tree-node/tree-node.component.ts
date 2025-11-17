@@ -6,6 +6,7 @@ import { DragDropService, DragDropPayload } from '../../services/drag-drop.servi
 import { NewBookmark } from '../../models/bookmark.model.js';
 import { FileSystemProvider } from '../../services/file-system-provider.js';
 import { FolderPropertiesService } from '../../services/folder-properties.service.js';
+import { HealthCheckService } from '../../services/health-check.service.js';
 
 @Component({
   selector: 'app-tree-node',
@@ -18,6 +19,7 @@ import { FolderPropertiesService } from '../../services/folder-properties.servic
 export class TreeNodeComponent implements OnInit {
   private dragDropService = inject(DragDropService);
   private folderPropertiesService = inject(FolderPropertiesService);
+  private healthCheckService = inject(HealthCheckService);
 
   node = input.required<FileSystemNode>();
   path = input.required<string[]>();
@@ -41,6 +43,8 @@ export class TreeNodeComponent implements OnInit {
   properties = computed(() => this.folderPropertiesService.getProperties(this.path()));
   
   iconUrl = computed(() => {
+    this.healthCheckService.serviceStatuses(); // Make this computed reactive to health status changes
+
     const service = this.getImageService()(this.path());
     const node = this.node();
     const props = this.properties();

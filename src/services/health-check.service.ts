@@ -17,20 +17,22 @@ export class HealthCheckService {
   private http = inject(HttpClient);
   private localConfigService = inject(LocalConfigService);
 
-  private serviceStatuses = signal<Map<string, ServiceStatus>>(new Map());
+  private _serviceStatuses = signal<Map<string, ServiceStatus>>(new Map());
+  // FIX: Expose serviceStatuses as a public readonly signal for reactivity.
+  public readonly serviceStatuses = this._serviceStatuses.asReadonly();
   private serviceTimers = new Map<string, any>();
 
   getServiceStatus(baseUrl: string): ServiceStatus {
-    return this.serviceStatuses().get(baseUrl) ?? 'UNKNOWN';
+    return this._serviceStatuses().get(baseUrl) ?? 'UNKNOWN';
   }
 
   monitorService(profile: Pick<ServerProfile, 'imageUrl' | 'healthCheckDelayMinutes'>): void {
     const baseUrl = profile.imageUrl;
-    if (!baseUrl || this.serviceStatuses().has(baseUrl)) {
+    if (!baseUrl || this._serviceStatuses().has(baseUrl)) {
       return; // Already monitoring or no URL to monitor
     }
 
-    this.serviceStatuses.update(map => new Map(map).set(baseUrl, 'CHECKING'));
+    this._serviceStatuses.update(map => new Map(map).set(baseUrl, 'CHECKING'));
     
     const delayMinutes = profile.healthCheckDelayMinutes ?? this.localConfigService.currentConfig().healthCheckDelayMinutes;
     const delayMs = delayMinutes * 60 * 1000;
@@ -48,7 +50,7 @@ export class HealthCheckService {
       const response = await firstValueFrom(response$);
       
       if (response.status === 'UP') {
-        this.serviceStatuses.update(map => new Map(map).set(baseUrl, 'UP'));
+        this._serviceStatuses.update(map => new Map(map).set(baseUrl, 'UP'));
         // If it was down, clear the timer. We don't need to poll a healthy service.
         if (this.serviceTimers.has(baseUrl)) {
             clearTimeout(this.serviceTimers.get(baseUrl));
@@ -59,7 +61,7 @@ export class HealthCheckService {
       }
     } catch (error) {
       // Any error (network, or status DOWN) leads to this block
-      this.serviceStatuses.update(map => new Map(map).set(baseUrl, 'DOWN'));
+      this._serviceStatuses.update(map => new Map(map).set(baseUrl, 'DOWN'));
       console.warn(`Health check for ${baseUrl} failed. Retrying in ${delayMs / 1000 / 60} minutes.`);
 
       // Clear any existing timer for this URL before setting a new one
@@ -69,7 +71,7 @@ export class HealthCheckService {
 
       const timerId = setTimeout(() => {
         this.serviceTimers.delete(baseUrl); // Clean up before next check
-        this.serviceStatuses.update(map => new Map(map).set(baseUrl, 'CHECKING'));
+        this._serviceStatuses.update(map => new Map(map).set(baseUrl, 'CHECKING'));
         this._checkHealth(baseUrl, delayMs);
       }, delayMs);
       this.serviceTimers.set(baseUrl, timerId);

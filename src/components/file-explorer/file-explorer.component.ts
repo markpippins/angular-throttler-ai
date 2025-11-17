@@ -18,6 +18,7 @@ import { FolderPropertiesService } from '../../services/folder-properties.servic
 import { FolderProperties } from '../../models/folder-properties.model.js';
 import { ConflictDialogComponent, ConflictResolution } from '../conflict-dialog/conflict-dialog.component.js';
 import { TextEditorService } from '../../services/note-dialog.service.js';
+import { HealthCheckService } from '../../services/health-check.service.js';
 
 // Declare the globals from the CDN scripts for Markdown parsing
 declare var marked: { parse(markdown: string): string; };
@@ -49,6 +50,7 @@ export class FileExplorerComponent implements OnDestroy {
   private folderPropertiesService = inject(FolderPropertiesService);
   private textEditorService = inject(TextEditorService);
   private injector = inject(Injector);
+  private healthCheckService = inject(HealthCheckService);
 
   // Inputs & Outputs for multi-pane communication
   id = input.required<number>();
@@ -248,6 +250,17 @@ export class FileExplorerComponent implements OnDestroy {
       return items;
     }
     return items.filter(item => item.name.toLowerCase().includes(query));
+  });
+
+  iconUrls = computed(() => {
+    this.healthCheckService.serviceStatuses(); // Make this computed reactive to health changes
+    const urlMap = new Map<string, string | null>();
+    for (const item of this.filteredItems()) {
+      if (item.type === 'folder') {
+        urlMap.set(item.name, this._getSingleIconUrl(item));
+      }
+    }
+    return urlMap;
   });
 
   constructor() {
@@ -894,24 +907,16 @@ export class FileExplorerComponent implements OnDestroy {
     this.sortChange.emit(newCriteria);
   }
 
-  getIconUrl(item: FileSystemNode): string | null {
+  private _getSingleIconUrl(item: FileSystemNode): string | null {
     const getImageServiceFn = this.getImageService();
-
-    // The full path to the item determines which image service to use.
-    // When in the root "Home" view, this.path() is [], so itemPath becomes just [item.name].
-    // When inside a folder, this.path() has segments, so itemPath becomes the full path.
     const itemPath = [...this.path(), item.name];
-    
     const serviceToUse = getImageServiceFn(itemPath);
     const props = this.folderPropertiesService.getProperties(itemPath);
 
-    // Special handling for server root icons when they are displayed in the "Home" view.
     if (this.path().length === 0 && item.isServerRoot) {
-      // For a server root, we always request the 'cloud' icon from its specific image service.
       return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
     }
     
-    // For all other folders, request an icon based on its name or custom properties.
     return serviceToUse.getIconUrl(item, props?.imageName);
   }
 
