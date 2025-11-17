@@ -57,7 +57,7 @@ export class FileExplorerComponent implements OnDestroy {
   isSplitView = input(false);
   fileSystemProvider = input.required<FileSystemProvider>();
   imageService = input.required<ImageService>();
-  getImageService = input<(path: string[]) => ImageService>();
+  getImageService = input.required<(path: string[]) => ImageService>();
   folderTree = input<FileSystemNode | null>(null);
   refresh = input<number>(0);
   toolbarAction = input<{ name: string; payload?: any; id: number } | null>(null);
@@ -898,17 +898,20 @@ export class FileExplorerComponent implements OnDestroy {
     const getImageServiceFn = this.getImageService();
 
     // The full path to the item determines which image service to use.
-    // The getImageService function correctly uses path[0] to find the root.
-    const itemPath = item.isServerRoot ? [item.name] : [...this.path(), item.name];
-
-    const serviceToUse = getImageServiceFn ? getImageServiceFn(itemPath) : this.imageService();
+    // When in the root "Home" view, this.path() is [], so itemPath becomes just [item.name].
+    // When inside a folder, this.path() has segments, so itemPath becomes the full path.
+    const itemPath = [...this.path(), item.name];
+    
+    const serviceToUse = getImageServiceFn(itemPath);
     const props = this.folderPropertiesService.getProperties(itemPath);
 
-    if (item.isServerRoot) {
-      // Server roots in the home view always get the 'cloud' icon from their specific image service.
+    // Special handling for server root icons when they are displayed in the "Home" view.
+    if (this.path().length === 0 && item.isServerRoot) {
+      // For a server root, we always request the 'cloud' icon from its specific image service.
       return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
     }
     
+    // For all other folders, request an icon based on its name or custom properties.
     return serviceToUse.getIconUrl(item, props?.imageName);
   }
 
