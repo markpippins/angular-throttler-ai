@@ -1,6 +1,7 @@
 
 
 
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -74,7 +75,6 @@ interface PaneStatus {
   selectedItemsCount: number;
   totalItemsCount: number;
   filteredItemsCount: number | null;
-  unmagnetizedSelectedFoldersCount: number;
 }
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
@@ -203,8 +203,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private remoteImageServices = signal<Map<string, ImageService>>(new Map());
   
   // --- Status Bar State ---
-  pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null, unmagnetizedSelectedFoldersCount: 0 });
-  pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null, unmagnetizedSelectedFoldersCount: 0 });
+  pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
+  pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
   
   activePaneStatus = computed<PaneStatus>(() => {
     const activeId = this.activePaneId();
@@ -283,7 +283,7 @@ export class AppComponent implements OnInit, OnDestroy {
   canCutCopyShareDelete = computed(() => this.activePaneStatus().selectedItemsCount > 0);
   canRename = computed(() => this.activePaneStatus().selectedItemsCount === 1);
   canPaste = computed(() => !!this.clipboardService.clipboard());
-  canMagnetize = computed(() => this.activePaneStatus().unmagnetizedSelectedFoldersCount > 0);
+  canMagnetize = computed(() => this.activePaneStatus().selectedItemsCount > 0);
 
   // --- Split View Resizing ---
   pane1Width = signal(this.uiPreferencesService.splitViewPaneWidth() ?? 50); // percentage

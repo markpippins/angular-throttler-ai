@@ -76,7 +76,6 @@ export class FileExplorerComponent implements OnDestroy {
     selectedItemsCount: number;
     totalItemsCount: number;
     filteredItemsCount: number | null;
-    unmagnetizedSelectedFoldersCount: number;
   }>();
   sortChange = output<SortCriteria>();
   bookmarkDropped = output<{ bookmark: NewBookmark, dropOn: FileSystemNode }>();
@@ -91,8 +90,7 @@ export class FileExplorerComponent implements OnDestroy {
     selectedItemsCount: number;
     totalItemsCount: number;
     filteredItemsCount: number | null;
-    unmagnetizedSelectedFoldersCount: number;
-  }>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null, unmagnetizedSelectedFoldersCount: 0 });
+  }>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
   contextMenu = signal<{ x: number; y: number; item: FileSystemNode | null } | null>(null);
   previewItem = signal<FileSystemNode | null>(null);
   failedImageItems = signal<Set<string>>(new Set());
@@ -269,16 +267,11 @@ export class FileExplorerComponent implements OnDestroy {
         const totalItems = this.state().items.length;
         const filteredItemsCount = this.filteredItems().length;
         const hasFilter = this.filterQuery().trim().length > 0;
-        
-        const selectedNodes = this.getSelectedNodes();
-        const selectedFolders = selectedNodes.filter(n => n.type === 'folder');
-        const unmagnetizedSelectedFoldersCount = selectedFolders.filter(f => !f.isMagnet).length;
 
         const newStatus = {
             selectedItemsCount: selectionSize,
             totalItemsCount: totalItems,
             filteredItemsCount: hasFilter ? filteredItemsCount : null,
-            unmagnetizedSelectedFoldersCount: unmagnetizedSelectedFoldersCount,
         };
 
         this.status.set(newStatus);
