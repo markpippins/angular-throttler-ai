@@ -594,9 +594,9 @@
   <!-- Theme Dropdown -->
   @if (isThemeDropdownOpen()) {
     <div 
-        class="fixed z-20 w-36 origin-top-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none theme-menu"
+        class="fixed z-20 w-36 origin-top-right rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none theme-menu"
         [style.top]="themeMenuPosition().top"
-        [style.left]="themeMenuPosition().left"
+        [style.right]="themeMenuPosition().right"
         (click)="$event.stopPropagation()">
         <div class="py-1">
             @for(theme of themes; track theme.id) {

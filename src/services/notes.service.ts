@@ -24,6 +24,23 @@ export class NotesService {
     this.tokens.delete(profileId);
   }
 
+  isConnected(path: string[]): boolean {
+    if (path.length === 0) { // Home root is always connected
+      return true;
+    }
+
+    const rootName = path[0];
+    const profile = this.serverProfileService.profiles().find(p => p.name === rootName);
+
+    // If no profile matches, or it's the local session, it's connected.
+    if (!profile || rootName === this.localConfigService.sessionName()) {
+      return true;
+    }
+
+    // It's a remote path. Check for token.
+    return this.tokens.has(profile.id);
+  }
+
   private constructBrokerUrl(baseUrl: string): string {
     let fullUrl = baseUrl.trim();
     if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {

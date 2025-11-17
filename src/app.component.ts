@@ -310,7 +310,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // --- Theme Dropdown ---
   isThemeDropdownOpen = signal(false);
-  themeMenuPosition = signal({ top: '0px', left: '0px' });
+  themeMenuPosition = signal({ top: '0px', right: '0px' });
   themes: { id: Theme; name: string }[] = [
     { id: 'theme-light', name: 'Light' },
     { id: 'theme-steel', name: 'Steel' },
@@ -1299,10 +1299,13 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   // --- Theme Menu ---
-  openThemeMenu(event: MouseEvent): void {
-    const target = event.currentTarget as HTMLElement;
+  openThemeMenu(target: HTMLElement): void {
     const rect = target.getBoundingClientRect();
-    this.themeMenuPosition.set({ top: `${rect.bottom + 8}px`, left: `${rect.left}px` });
+    const viewportWidth = window.innerWidth;
+    this.themeMenuPosition.set({ 
+      top: `${rect.bottom + 8}px`, 
+      right: `${viewportWidth - rect.right}px` 
+    });
     this.isThemeDropdownOpen.set(true);
   }
 

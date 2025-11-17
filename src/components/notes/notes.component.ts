@@ -31,7 +31,7 @@ export class NotesComponent implements OnDestroy {
 
   @ViewChild('editor') editorTextarea: ElementRef<HTMLTextAreaElement> | undefined;
 
-  isNoteAvailable = true; // Notes are now available for any path.
+  isNoteAvailable = computed(() => this.notesService.isConnected(this.path()));
 
   renderedHtml = computed(() => {
     if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
@@ -46,14 +46,13 @@ export class NotesComponent implements OnDestroy {
     effect(() => {
       // When path changes, load the note for the new path.
       this.path();
-      this.loadNote();
+      if (this.isNoteAvailable()) {
+        this.loadNote();
+      } else {
+        this.isLoading.set(false);
+        this.noteContent.set('# Disconnected\n\nConnect to the server to view or edit notes for this folder.');
+      }
     }, { allowSignalWrites: true });
-
-    effect(() => {
-      // When content changes, schedule a save.
-      const content = this.noteContent();
-      this.scheduleSave(content);
-    });
   }
 
   ngOnDestroy(): void {
@@ -88,7 +87,11 @@ export class NotesComponent implements OnDestroy {
   }
 
   onInput(event: Event): void {
-    this.noteContent.set((event.target as HTMLTextAreaElement).value);
+    const newContent = (event.target as HTMLTextAreaElement).value;
+    this.noteContent.set(newContent);
+    if (this.isNoteAvailable()) {
+      this.scheduleSave(newContent);
+    }
   }
 
   openInDialog(): void {
@@ -98,7 +101,7 @@ export class NotesComponent implements OnDestroy {
   }
 
   applyMarkdown(prefix: string, suffix: string = prefix, placeholder: string = 'text'): void {
-    if (!this.isNoteAvailable) return;
+    if (!this.isNoteAvailable()) return;
     const textarea = this.editorTextarea?.nativeElement;
     if (!textarea) return;
 
@@ -121,6 +124,7 @@ export class NotesComponent implements OnDestroy {
 
     const newText = currentText.substring(0, start) + replacement + currentText.substring(end);
     this.noteContent.set(newText);
+    this.scheduleSave(newText);
     
     // After render, focus and select the text
     setTimeout(() => {
@@ -130,7 +134,7 @@ export class NotesComponent implements OnDestroy {
   }
 
   addLink(): void {
-    if (!this.isNoteAvailable) return;
+    if (!this.isNoteAvailable()) return;
     const url = prompt('Enter URL:');
     if (url) {
       this.applyMarkdown('[', `](${url})`, 'link text');
@@ -138,7 +142,7 @@ export class NotesComponent implements OnDestroy {
   }
 
   applyCode(): void {
-    if (!this.isNoteAvailable) return;
+    if (!this.isNoteAvailable()) return;
     const textarea = this.editorTextarea?.nativeElement;
     if (!textarea) return;
 

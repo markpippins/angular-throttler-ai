@@ -69,7 +69,7 @@ export class ToolbarComponent {
   filterChange = output<string>();
   splitViewClick = output<void>();
   detailPaneClick = output<void>();
-  themeMenuClick = output<MouseEvent>();
+  themeMenuClick = output<HTMLElement>();
   rssFeedsMenuClick = output<void>();
   preferencesMenuClick = output<void>();
   
@@ -111,8 +111,8 @@ export class ToolbarComponent {
     this.isHamburgerMenuOpen.update(v => !v);
   }
   
-  onThemeMenuItemClick(event: MouseEvent): void {
-    this.themeMenuClick.emit(event);
+  onThemeMenuItemClick(buttonElement: HTMLElement): void {
+    this.themeMenuClick.emit(buttonElement);
     this.isHamburgerMenuOpen.set(false);
   }
 
