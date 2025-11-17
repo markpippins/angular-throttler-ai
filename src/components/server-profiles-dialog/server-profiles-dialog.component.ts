@@ -10,7 +10,6 @@ type FormState = {
   id: string | null;
   name: string;
   brokerUrl: string;
-  imageUrl: string;
   autoConnect: boolean;
 }
 
@@ -68,7 +67,6 @@ export class ServerProfilesDialogComponent implements OnInit {
       id: null,
       name: '',
       brokerUrl: '',
-      imageUrl: '',
       autoConnect: false,
     });
     this.selectedProfileId.set(null);
@@ -77,7 +75,9 @@ export class ServerProfilesDialogComponent implements OnInit {
   
   startEdit(profile: ServerProfile): void {
     this.formState.set({
-      ...profile,
+      id: profile.id,
+      name: profile.name,
+      brokerUrl: profile.brokerUrl,
       autoConnect: profile.autoConnect ?? false,
     });
     this.selectedProfileId.set(profile.id);
@@ -101,7 +101,6 @@ export class ServerProfilesDialogComponent implements OnInit {
         id: state.id,
         name: state.name.trim(),
         brokerUrl: state.brokerUrl.trim(),
-        imageUrl: state.imageUrl.trim(),
         autoConnect: state.autoConnect,
       };
 
@@ -116,7 +115,6 @@ export class ServerProfilesDialogComponent implements OnInit {
       const newProfileData = {
         name: state.name.trim(),
         brokerUrl: state.brokerUrl.trim(),
-        imageUrl: state.imageUrl.trim(),
         autoConnect: state.autoConnect,
       };
 

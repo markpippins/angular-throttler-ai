@@ -1,5 +1,6 @@
 
 
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -151,7 +152,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private academicSearchService = inject(AcademicSearchService);
   private notesService = inject(NotesService);
   
-  private imageService: ImageService;
+  public imageService: ImageService;
 
   private initialAutoConnectAttempted = false;
 
@@ -256,8 +257,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   pane1Provider = computed<FileSystemProvider>(() => this.getProvider(this.pane1Path()));
   pane2Provider = computed<FileSystemProvider>(() => this.getProvider(this.pane2Path()));
-  pane1ImageService = computed<ImageService>(() => this.imageService);
-  pane2ImageService = computed<ImageService>(() => this.imageService);
 
   // --- Toolbar State Management ---
   toolbarAction = signal<{ name: string; payload?: any; id: number } | null>(null);
@@ -533,10 +532,6 @@ export class AppComponent implements OnInit, OnDestroy {
     
     // If the path does not point to a server, it must be the local session.
     return this.sessionFs;
-  }
-
-  getImageService = (path: string[]): ImageService => {
-    return this.imageService;
   }
 
   async buildCombinedFolderTree(): Promise<FileSystemNode> {
