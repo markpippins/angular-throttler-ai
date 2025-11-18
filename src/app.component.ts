@@ -1,5 +1,6 @@
 
 
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -1445,7 +1446,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
         const promises: Promise<StreamItem[]>[] = [];
 
-        // Google Search (Simple) - only for server paths
+        // If we have a profile and token, we are in a "real search" context.
+        // We will only call the real services (Google Search) and potentially real services (Gemini).
         if (profile && token) {
             const searchParams: GoogleSearchParams = {
                 brokerUrl: profile.brokerUrl,
@@ -1456,31 +1458,35 @@ export class AppComponent implements OnInit, OnDestroy {
                 this.googleSearchService.search(searchParams)
                     .then(results => results.map(r => ({ ...r, type: 'web' as const, paneId: id })))
             );
+
+            // Gemini Search (could be real or mock depending on API key)
+            promises.push(
+                this.geminiService.search(query)
+                    .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
+            );
+        } else {
+            // Otherwise, we are in a "mock search" context (e.g., Local Session).
+            // Call all the mock services.
+            promises.push(
+                this.unsplashService.search(query)
+                    .then(results => results.map(r => ({ ...r, type: 'image' as const, paneId: id })))
+            );
+
+            promises.push(
+                this.youtubeSearchService.search(query)
+                    .then(results => results.map(r => ({ ...r, type: 'youtube' as const, paneId: id })))
+            );
+            
+            promises.push(
+                this.academicSearchService.search(query)
+                    .then(results => results.map(r => ({ ...r, type: 'academic' as const, paneId: id })))
+            );
+
+            promises.push(
+                this.geminiService.search(query)
+                    .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
+            );
         }
-
-        // Unsplash Image Search
-        promises.push(
-            this.unsplashService.search(query)
-                .then(results => results.map(r => ({ ...r, type: 'image' as const, paneId: id })))
-        );
-
-        // YouTube Search
-        promises.push(
-            this.youtubeSearchService.search(query)
-                .then(results => results.map(r => ({ ...r, type: 'youtube' as const, paneId: id })))
-        );
-        
-        // Academic Search
-        promises.push(
-            this.academicSearchService.search(query)
-                .then(results => results.map(r => ({ ...r, type: 'academic' as const, paneId: id })))
-        );
-
-        // Gemini Search
-        promises.push(
-            this.geminiService.search(query)
-                .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
-        );
 
         try {
             const results = await Promise.all(promises);
