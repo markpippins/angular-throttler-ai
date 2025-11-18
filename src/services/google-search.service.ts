@@ -8,6 +8,19 @@ export interface GoogleSearchParams {
   query: string;
 }
 
+// Based on the user's provided Java class
+interface SearchResultItem {
+  title: string;
+  link: string;
+  snippet: string;
+  displayLink: string;
+  // Other fields from the backend are not used in the frontend GoogleSearchResult model.
+}
+
+interface SearchResult {
+  items: SearchResultItem[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -48,15 +61,26 @@ export class GoogleSearchService {
         query: params.query,
       };
 
-      const results = await this.brokerService.submitRequest<GoogleSearchResult[]>(
+      const result = await this.brokerService.submitRequest<SearchResult>(
         this.constructBrokerUrl(params.brokerUrl), 
         'googleSearchService', 
         'simpleSearch', 
         brokerParams
       );
 
-      // The backend might return null or not an array.
-      return Array.isArray(results) ? results : [];
+      // The backend returns a SearchResult object which contains an `items` array.
+      if (result && Array.isArray(result.items)) {
+        return result.items.map((item, index) => ({
+          title: item.title,
+          link: item.link,
+          snippet: item.snippet,
+          source: item.displayLink,
+          // The backend model doesn't seem to include a date, so we'll create one.
+          publishedAt: new Date(Date.now() - (index * 1000 * 3600)).toISOString(),
+        }));
+      }
+
+      return [];
 
     } catch (error) {
       console.error('Google search via broker failed:', error);
