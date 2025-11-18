@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-vertical-toolbar',
+  standalone: true,
   templateUrl: './vertical-toolbar.component.html',
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -9,6 +9,7 @@ import { FileSystemProvider } from '../../services/file-system-provider.js';
 
 @Component({
   selector: 'app-tree-view',
+  standalone: true,
   templateUrl: './tree-view.component.html',
   imports: [CommonModule, TreeNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,

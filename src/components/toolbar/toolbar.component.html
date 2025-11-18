@@ -3,7 +3,7 @@
   <div class="flex items-center space-x-2">
     <!-- New Item Dropdown -->
     <div class="relative inline-block text-left">
-      <button (click)="toggleNewDropdown($event)" type="button" title="New" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))]">
+      <button [disabled]="!canCreate()" (click)="toggleNewDropdown($event)" type="button" title="New" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[rgb(var(--color-text-muted))]" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
         </svg>
@@ -255,7 +255,7 @@
 
             <div class="my-1 h-px bg-[rgb(var(--color-border-base))]"></div>
             <div class="px-4 py-2 text-xs uppercase text-[rgb(var(--color-text-subtle))]">Settings</div>
-            <div #themeMenuButton (click)="onThemeMenuItemClick(themeMenuButton)" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer" role="menuitem">
+            <div #themeMenuButton (click)="onThemeMenuItemClick(themeMenuButton)" data-theme-menu-trigger class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer" role="menuitem">
               <span>Theme</span>
             </div>
             <div (click)="onRssFeedsMenuItemClick()" class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer" role="menuitem">

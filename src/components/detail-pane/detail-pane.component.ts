@@ -8,6 +8,7 @@ import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 
 @Component({
   selector: 'app-detail-pane',
+  standalone: true,
   templateUrl: './detail-pane.component.html',
   imports: [CommonModule, RssFeedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,

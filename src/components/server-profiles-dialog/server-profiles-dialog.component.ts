@@ -17,6 +17,7 @@ type FormState = {
 
 @Component({
   selector: 'app-server-profiles-dialog',
+  standalone: true,
   templateUrl: './server-profiles-dialog.component.html',
   imports: [CommonModule, LoginDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,

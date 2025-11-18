@@ -4,6 +4,7 @@ import { FileSystemNode } from '../../models/file-system.model.js';
 
 @Component({
   selector: 'app-destination-node',
+  standalone: true,
   imports: [CommonModule, DestinationNodeComponent], // Recursive import
   templateUrl: './destination-node.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

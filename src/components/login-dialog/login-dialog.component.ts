@@ -4,6 +4,7 @@ import { ServerProfile } from '../../models/server-profile.model.js';
 
 @Component({
   selector: 'app-login-dialog',
+  standalone: true,
   imports: [CommonModule],
   templateUrl: './login-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

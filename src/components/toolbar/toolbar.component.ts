@@ -12,6 +12,7 @@ export interface SortCriteria {
 
 @Component({
   selector: 'app-toolbar',
+  standalone: true,
   templateUrl: './toolbar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DestinationNodeComponent],
@@ -28,6 +29,7 @@ export class ToolbarComponent {
   isHamburgerMenuOpen = signal(false);
 
   // Inputs for button states
+  canCreate = input(true);
   canCut = input(false);
   canCopy = input(false);
   canCopyToMoveTo = input(false);

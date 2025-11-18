@@ -17,7 +17,6 @@ export class WebviewDialogComponent {
   title = input.required<string>();
   close = output<void>();
 
-  // FIX: Explicitly type the injected service to help the TypeScript compiler.
   private sanitizer: DomSanitizer = inject(DomSanitizer);
 
   safeUrl = computed<SafeResourceUrl>(() => {

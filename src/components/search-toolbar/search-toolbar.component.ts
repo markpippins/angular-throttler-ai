@@ -1,9 +1,9 @@
-
 import { Component, ChangeDetectionStrategy, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-search-toolbar',
+  standalone: true,
   templateUrl: './search-toolbar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],

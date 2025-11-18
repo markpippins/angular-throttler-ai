@@ -58,6 +58,7 @@
       </div>
 
       <app-toolbar
+        [canCreate]="isActionableContext()"
         [canCut]="canCutCopyShareDelete()"
         [canCopy]="canCutCopyShareDelete()"
         [canCopyToMoveTo]="canCutCopyShareDelete()"
@@ -214,11 +215,11 @@
                 @if (isStreamPaneCollapsed()) {
                   <span class="text-xs text-[rgb(var(--color-text-muted))] px-2">Idea Stream</span>
                 } @else {
-                  <div class="flex items-center gap-2">
+                  <fieldset [disabled]="!isActionableContext()" class="flex items-center gap-2">
                     <!-- View Toggles -->
                     <div class="flex items-center rounded-md bg-[rgb(var(--color-surface))] p-0.5 border border-[rgb(var(--color-border-muted))]">
                       <button (click)="streamDisplayMode.set('grid')" title="Grid View" 
-                              class="p-1.5 rounded-sm transition-colors"
+                              class="p-1.5 rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               [class.bg-[rgb(var(--color-accent-solid-bg))]]="streamDisplayMode() === 'grid'"
                               [class.text-white]="streamDisplayMode() === 'grid'"
                               [class.text-[rgb(var(--color-text-muted))]]="streamDisplayMode() !== 'grid'"
@@ -228,7 +229,7 @@
                         </svg>
                       </button>
                       <button (click)="streamDisplayMode.set('list')" title="List View"
-                              class="p-1.5 rounded-sm transition-colors"
+                              class="p-1.5 rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               [class.bg-[rgb(var(--color-accent-solid-bg))]]="streamDisplayMode() === 'list'"
                               [class.text-white]="streamDisplayMode() === 'list'"
                               [class.text-[rgb(var(--color-text-muted))]]="streamDisplayMode() !== 'list'"
@@ -242,7 +243,7 @@
                     <!-- Active Search Toggle -->
                     <div class="flex items-center rounded-md bg-[rgb(var(--color-surface))] p-0.5 border border-[rgb(var(--color-border-muted))]">
                       <button (click)="toggleStreamActiveSearch()" [title]="isStreamActiveSearchEnabled() ? 'Active Search Enabled' : 'Active Search Disabled'"
-                              class="p-1.5 rounded-sm transition-colors"
+                              class="p-1.5 rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               [class.bg-[rgb(var(--color-accent-solid-bg))]]="isStreamActiveSearchEnabled()"
                               [class.text-white]="isStreamActiveSearchEnabled()"
                               [class.text-[rgb(var(--color-text-muted))]]="!isStreamActiveSearchEnabled()"
@@ -256,17 +257,17 @@
 
                     @if (isSplitView()) {
                       <div class="flex items-center rounded-md bg-[rgb(var(--color-surface))] p-0.5 border border-[rgb(var(--color-border-muted))] text-xs font-medium">
-                        <button (click)="streamSourceToggle.set('all')" title="Show from all panes" class="px-2 py-1 rounded-sm" [class.bg-[rgb(var(--color-accent-bg))]]="streamSourceToggle() === 'all'" [class.text-[rgb(var(--color-accent-text))]]="streamSourceToggle() === 'all'">All</button>
-                        <button (click)="streamSourceToggle.set('active')" title="Show from active pane" class="px-2 py-1 rounded-sm" [class.bg-[rgb(var(--color-accent-bg))]]="streamSourceToggle() === 'active'" [class.text-[rgb(var(--color-accent-text))]]="streamSourceToggle() === 'active'">Active</button>
-                        <button (click)="streamSourceToggle.set('left')" title="Show from left pane" class="px-2 py-1 rounded-sm" [class.bg-[rgb(var(--color-accent-bg))]]="streamSourceToggle() === 'left'" [class.text-[rgb(var(--color-accent-text))]]="streamSourceToggle() === 'left'">Left</button>
-                        <button (click)="streamSourceToggle.set('right')" title="Show from right pane" class="px-2 py-1 rounded-sm" [class.bg-[rgb(var(--color-accent-bg))]]="streamSourceToggle() === 'right'" [class.text-[rgb(var(--color-accent-text))]]="streamSourceToggle() === 'right'">Right</button>
+                        <button (click)="streamSourceToggle.set('all')" title="Show from all panes" class="px-2 py-1 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed" [class.bg-[rgb(var(--color-accent-bg))]]="streamSourceToggle() === 'all'" [class.text-[rgb(var(--color-accent-text))]]="streamSourceToggle() === 'all'">All</button>
+                        <button (click)="streamSourceToggle.set('active')" title="Show from active pane" class="px-2 py-1 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed" [class.bg-[rgb(var(--color-accent-bg))]]="streamSourceToggle() === 'active'" [class.text-[rgb(var(--color-accent-text))]]="streamSourceToggle() === 'active'">Active</button>
+                        <button (click)="streamSourceToggle.set('left')" title="Show from left pane" class="px-2 py-1 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed" [class.bg-[rgb(var(--color-accent-bg))]]="streamSourceToggle() === 'left'" [class.text-[rgb(var(--color-accent-text))]]="streamSourceToggle() === 'left'">Left</button>
+                        <button (click)="streamSourceToggle.set('right')" title="Show from right pane" class="px-2 py-1 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed" [class.bg-[rgb(var(--color-accent-bg))]]="streamSourceToggle() === 'right'" [class.text-[rgb(var(--color-accent-text))]]="streamSourceToggle() === 'right'">Right</button>
                       </div>
                     }
 
                     <!-- Filter Buttons -->
                     <div class="flex items-center rounded-md bg-[rgb(var(--color-surface))] p-0.5 border border-[rgb(var(--color-border-muted))] space-x-0.5">
                         <button (click)="toggleAllStreamFilters()" title="Toggle All Filters" 
-                                class="p-1.5 rounded-sm transition-colors text-[rgb(var(--color-text-muted))]"
+                                class="p-1.5 rounded-sm transition-colors text-[rgb(var(--color-text-muted))] disabled:opacity-50 disabled:cursor-not-allowed"
                                 [class.bg-[rgb(var(--color-accent-solid-bg))]]="activeStreamFilters().size === streamFilterTypes.length"
                                 [class.text-white]="activeStreamFilters().size === streamFilterTypes.length"
                                 [class.hover:bg-[rgb(var(--color-surface-hover))]]="activeStreamFilters().size !== streamFilterTypes.length">
@@ -277,7 +278,7 @@
                         <div class="w-px h-5 bg-[rgb(var(--color-border-muted))] mx-1"></div>
                         @for(filter of streamFilterTypes; track filter.type) {
                             <button (click)="toggleStreamFilter(filter.type)" [title]="filter.label"
-                                    class="p-1.5 rounded-sm transition-colors"
+                                    class="p-1.5 rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     [class.bg-[rgb(var(--color-accent-bg))]]="activeStreamFilters().has(filter.type)"
                                     [class.text-[rgb(var(--color-accent-text))]]="activeStreamFilters().has(filter.type)"
                                     [class.text-[rgb(var(--color-text-muted))]]="!activeStreamFilters().has(filter.type)"
@@ -291,7 +292,7 @@
                     
                     <!-- Sort Dropdown -->
                     <div class="relative inline-block text-left">
-                      <button (click)="toggleStreamSortDropdown($event)" type="button" title="Sort Stream" class="p-2 rounded-md text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
+                      <button (click)="toggleStreamSortDropdown($event)" type="button" title="Sort Stream" class="p-2 rounded-md text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h13M3 8h9M3 12h9m-9 4h9m5-4v.01M18 8v.01M18 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -321,32 +322,34 @@
                         </div>
                       }
                     </div>
-                  </div>
+                  </fieldset>
                 }
                 <div class="flex items-center gap-2">
                   @if (!isStreamPaneCollapsed()) {
-                    <!-- Complex Search Button -->
-                    <button (click)="openComplexSearchDialog()" title="Complex Search" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))]">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.562L16.5 21.75l-.398-1.188a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.188-.398a2.25 2.25 0 001.423-1.423L16.5 15.75l.398 1.188a2.25 2.25 0 001.423 1.423L19.5 18.75l-1.188.398a2.25 2.25 0 00-1.423 1.423z" />
-                      </svg>
-                    </button>
-                    <!-- Gemini Search Button -->
-                    <button (click)="openGeminiSearchDialog()" title="Gemini Search" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))]">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                           <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                    <fieldset [disabled]="!isActionableContext()" class="flex items-center gap-2">
+                      <!-- Complex Search Button -->
+                      <button (click)="openComplexSearchDialog()" title="Complex Search" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.562L16.5 21.75l-.398-1.188a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.188-.398a2.25 2.25 0 001.423-1.423L16.5 15.75l.398 1.188a2.25 2.25 0 001.423 1.423L19.5 18.75l-1.188.398a2.25 2.25 0 00-1.423 1.423z" />
                         </svg>
-                    </button>
-                    <!-- Search Input -->
-                    <div class="relative">
-                        <input type="search" placeholder="Search stream..." 
-                          [value]="streamSearchQuery()"
-                          (input)="onStreamSearchChange($event)"
-                          class="w-48 pl-8 pr-2 py-1 rounded-md border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface))] focus:ring-1 focus:ring-[rgb(var(--color-accent-ring))] focus:outline-none">
-                        <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-text-subtle))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        </div>
-                    </div>
+                      </button>
+                      <!-- Gemini Search Button -->
+                      <button (click)="openGeminiSearchDialog()" title="Gemini Search" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] disabled:opacity-50 disabled:cursor-not-allowed">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                          </svg>
+                      </button>
+                      <!-- Search Input -->
+                      <div class="relative">
+                          <input type="search" placeholder="Search stream..." 
+                            [value]="streamSearchQuery()"
+                            (input)="onStreamSearchChange($event)"
+                            class="w-48 pl-8 pr-2 py-1 rounded-md border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface))] focus:ring-1 focus:ring-[rgb(var(--color-accent-ring))] focus:outline-none disabled:bg-[rgb(var(--color-disabled-bg))] disabled:cursor-not-allowed">
+                          <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[rgb(var(--color-text-subtle))]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                          </div>
+                      </div>
+                    </fieldset>
                   }
 
                   <button (click)="toggleStreamPaneCollapse()" [title]="isStreamPaneCollapsed() ? 'Expand Stream' : 'Collapse Stream'" class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))]">

@@ -14,6 +14,7 @@ import { NotesComponent } from '../notes/notes.component.js';
 
 @Component({
   selector: 'app-sidebar',
+  standalone: true,
   templateUrl: './sidebar.component.html',
   imports: [CommonModule, ChatComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent, NotesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,

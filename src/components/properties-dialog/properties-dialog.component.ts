@@ -7,6 +7,7 @@ import { FolderProperties } from '../../models/folder-properties.model.js';
 
 @Component({
   selector: 'app-properties-dialog',
+  standalone: true,
   templateUrl: './properties-dialog.component.html',
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,

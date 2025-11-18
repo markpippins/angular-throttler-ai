@@ -200,6 +200,7 @@
                       (drop)="onListItemDrop($event, item)"
                       class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group"
                       [class.bg-[rgb(var(--color-accent-bg-selected))]]="selectedItems().has(item.name)"
+                      [class.font-semibold]="selectedItems().has(item.name)"
                       [class.bg-[rgb(var(--color-accent-bg-dragover))]]="dragOverListItemName() === item.name"
                       data-is-selectable-item="true"
                       [attr.data-item-name]="item.name">
@@ -223,7 +224,9 @@
                         </svg>
                       }
                     </td>
-                    <td class="px-2 py-1.5 w-full">
+                    <td 
+                      class="px-2 py-1.5 w-full"
+                      [class.text-[rgb(var(--color-status-blue-text))]]="selectedItems().has(item.name)">
                       @if (editingItemName() === item.name) {
                         <input type="text" [value]="getDisplayName(item)"
                               autoFocusSelect
@@ -237,8 +240,18 @@
                         <span class="truncate">{{ getDisplayName(item) }}</span>
                       }
                     </td>
-                    <td class="px-2 py-1.5 whitespace-nowrap">{{ item.modified | date:'short' }}</td>
-                    <td class="px-2 py-1.5 whitespace-nowrap">{{ item.type === 'folder' ? 'File folder' : (getFileExtension(item.name) ?? 'File') }}</td>
+                    <td 
+                      class="px-2 py-1.5 whitespace-nowrap"
+                      [class.text-[rgb(var(--color-status-blue-text))]]="selectedItems().has(item.name)"
+                      [class.text-[rgb(var(--color-text-muted))]]="!selectedItems().has(item.name)">
+                      {{ item.modified | date:'short' }}
+                    </td>
+                    <td 
+                      class="px-2 py-1.5 whitespace-nowrap"
+                      [class.text-[rgb(var(--color-status-blue-text))]]="selectedItems().has(item.name)"
+                      [class.text-[rgb(var(--color-text-muted))]]="!selectedItems().has(item.name)">
+                      {{ item.type === 'folder' ? 'File folder' : (getFileExtension(item.name) ?? 'File') }}
+                    </td>
                   </tr>
                 } @empty {
                   <tr>

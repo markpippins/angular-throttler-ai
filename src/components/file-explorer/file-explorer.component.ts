@@ -38,6 +38,7 @@ const SPECIAL_FOLDERS = new Set(["libraries", "build", "dev", "source", "repo", 
 
 @Component({
   selector: 'app-file-explorer',
+  standalone: true,
   templateUrl: './file-explorer.component.html',
   imports: [CommonModule, DatePipe, FolderComponent, PropertiesDialogComponent, DestinationNodeComponent, InputDialogComponent, ConfirmDialogComponent, AutoFocusSelectDirective, ConflictDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,

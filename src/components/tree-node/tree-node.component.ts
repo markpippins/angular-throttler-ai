@@ -9,9 +9,8 @@ import { FolderPropertiesService } from '../../services/folder-properties.servic
 
 @Component({
   selector: 'app-tree-node',
+  standalone: true,
   templateUrl: './tree-node.component.html',
-  // FIX: For recursive components, the component itself must be included in the imports.
-  // The self-import statement was removed from the top of the file to resolve a name conflict.
   imports: [CommonModule, TreeNodeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

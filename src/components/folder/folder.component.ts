@@ -7,6 +7,7 @@ import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-folder',
+  standalone: true,
   templateUrl: './folder.component.html',
   imports: [CommonModule, AutoFocusSelectDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,

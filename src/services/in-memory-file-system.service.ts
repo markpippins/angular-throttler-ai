@@ -16,8 +16,6 @@ function cloneNode(node: FileSystemNode): FileSystemNode {
     name: node.name,
     type: node.type,
     modified: node.modified,
-    // FIX: For an in-memory provider, if the children array exists, its contents are loaded.
-    // This prevents the tree view from trying to lazy-load nodes that are already present.
     childrenLoaded: !!node.children,
     isMagnet: node.isMagnet,
     magnetFile: node.magnetFile,

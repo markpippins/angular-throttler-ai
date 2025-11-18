@@ -1,9 +1,5 @@
 
 
-
-
-
-
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -121,6 +117,7 @@ const disconnectedProvider: FileSystemProvider = {
 
 @Component({
   selector: 'app-root',
+  standalone: true,
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent],
@@ -287,11 +284,29 @@ export class AppComponent implements OnInit, OnDestroy {
   pane2FilterQuery = signal('');
   activeFilterQuery = computed(() => this.activePaneId() === 1 ? this.pane1FilterQuery() : this.pane2FilterQuery());
   
+  isActionableContext = computed(() => {
+    const path = this.activePanePath();
+    if (path.length === 0) {
+      return false; // Home root is not actionable
+    }
+
+    const rootName = path[0];
+    const profile = this.profileService.profiles().find(p => p.name === rootName);
+
+    if (profile) {
+      // It's a server profile path, check if it's mounted
+      return this.mountedProfileIds().includes(profile.id);
+    }
+
+    // It's not a server profile path, so it must be the local session, which is always actionable.
+    return true;
+  });
+
   // States computed from active pane status for toolbar
-  canCutCopyShareDelete = computed(() => this.activePaneStatus().selectedItemsCount > 0);
-  canRename = computed(() => this.activePaneStatus().selectedItemsCount === 1);
-  canPaste = computed(() => !!this.clipboardService.clipboard());
-  canMagnetize = computed(() => this.activePaneStatus().selectedItemsCount > 0);
+  canCutCopyShareDelete = computed(() => this.isActionableContext() && this.activePaneStatus().selectedItemsCount > 0);
+  canRename = computed(() => this.isActionableContext() && this.activePaneStatus().selectedItemsCount === 1);
+  canPaste = computed(() => this.isActionableContext() && !!this.clipboardService.clipboard());
+  canMagnetize = computed(() => this.isActionableContext() && this.activePaneStatus().selectedItemsCount > 0);
 
   // --- Split View Resizing ---
   pane1Width = signal(this.uiPreferencesService.splitViewPaneWidth() ?? 50); // percentage
@@ -1132,7 +1147,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }).catch(e => this.toastService.show(`Delete failed: ${(e as Error).message}`, 'error'));
   }
 
-  onItemsMoved(event: { sourcePath: string[], destPath: string[], items: ItemReference[] }): void {
+  onItemsMoved(event: { sourcePath: string[]; destPath: string[]; items: ItemReference[] }): void {
     for (const item of event.items) {
       if (item.type === 'folder') {
         const oldFullPath = [...event.sourcePath, item.name];
@@ -1141,6 +1156,7 @@ export class AppComponent implements OnInit, OnDestroy {
       }
     }
     this.loadFolderTree();
+    this.triggerRefresh();
   }
 
   onSidebarItemsMoved(event: { destPath: string[]; payload: DragDropPayload }): void {
@@ -1208,7 +1224,14 @@ export class AppComponent implements OnInit, OnDestroy {
   // --- Global Click for closing menus ---
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-    // Close theme dropdown
+
+    // If the click is on the button that opens the theme menu, do nothing.
+    // This prevents the menu from closing immediately after opening.
+    if (target.closest('[data-theme-menu-trigger]')) {
+      return;
+    }
+
+    // Close theme dropdown if clicking outside of it
     if (this.isThemeDropdownOpen() && !target.closest('.theme-menu')) {
       this.isThemeDropdownOpen.set(false);
     }
