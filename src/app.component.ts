@@ -4,6 +4,10 @@
 
 
 
+
+
+
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -43,9 +47,9 @@ import { TextEditorService } from './services/note-dialog.service.js';
 import { TextEditorDialogComponent } from './components/note-view-dialog/note-view-dialog.component.js';
 import { DbService } from './services/db.service.js';
 import { GoogleSearchService, GoogleSearchParams } from './services/google-search.service.js';
-import { UnsplashService } from './services/unsplash.service.js';
+import { UnsplashService, UnsplashSearchParams } from './services/unsplash.service.js';
 import { GeminiService, GeminiSearchParams } from './services/gemini.service.js';
-import { YoutubeSearchService } from './services/youtube-search.service.js';
+import { YoutubeSearchService, YoutubeSearchParams } from './services/youtube-search.service.js';
 import { AcademicSearchService } from './services/academic-search.service.js';
 import { GoogleSearchResult } from './models/google-search-result.model.js';
 import { ImageSearchResult } from './models/image-search-result.model.js';
@@ -1465,7 +1469,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
         // If we have a profile and token, we are in a "real search" context.
         if (profile && token) {
-            const searchParams: GoogleSearchParams = {
+            const searchParams = {
                 brokerUrl: profile.brokerUrl,
                 token: token,
                 query: searchQuery
@@ -1474,21 +1478,22 @@ export class AppComponent implements OnInit, OnDestroy {
                 this.googleSearchService.search(searchParams)
                     .then(results => results.map(r => ({ ...r, type: 'web' as const, paneId: id })))
             );
-
+            promises.push(
+                this.youtubeSearchService.search(searchParams)
+                    .then(results => results.map(r => ({ ...r, type: 'youtube' as const, paneId: id })))
+            );
+            promises.push(
+                this.unsplashService.search(searchParams)
+                    .then(results => results.map(r => ({ ...r, type: 'image' as const, paneId: id })))
+            );
             promises.push(
                 this.geminiService.search(searchQuery)
                     .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
             );
         } else {
             // Otherwise, we are in a "mock search" context (e.g., Local Session).
-            promises.push(
-                this.unsplashService.search(searchQuery)
-                    .then(results => results.map(r => ({ ...r, type: 'image' as const, paneId: id })))
-            );
-            promises.push(
-                this.youtubeSearchService.search(searchQuery)
-                    .then(results => results.map(r => ({ ...r, type: 'youtube' as const, paneId: id })))
-            );
+            // The real services for images and videos have been moved to the "connected" block.
+            // Only mockable or API-key based services remain.
             promises.push(
                 this.academicSearchService.search(searchQuery)
                     .then(results => results.map(r => ({ ...r, type: 'academic' as const, paneId: id })))
