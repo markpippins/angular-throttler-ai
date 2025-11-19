@@ -1,6 +1,9 @@
 
 
 
+
+
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -508,10 +511,17 @@ export class AppComponent implements OnInit, OnDestroy {
       const profiles = this.profileService.profiles();
       profiles.forEach(p => {
         if (p.imageUrl) {
-          this.healthCheckService.monitorService({
-            imageUrl: p.imageUrl,
-            healthCheckDelayMinutes: p.healthCheckDelayMinutes
-          });
+          this.healthCheckService.monitorService(p.imageUrl, p.healthCheckDelayMinutes);
+        }
+        if (p.brokerUrl) {
+          let brokerBaseUrl = p.brokerUrl.trim();
+          if (!brokerBaseUrl.startsWith('http://') && !brokerBaseUrl.startsWith('https://')) {
+            brokerBaseUrl = `http://${brokerBaseUrl}`;
+          }
+          if (brokerBaseUrl.endsWith('/api/broker/submitRequest')) {
+            brokerBaseUrl = brokerBaseUrl.replace('/api/broker/submitRequest', '');
+          }
+          this.healthCheckService.monitorService(brokerBaseUrl, p.healthCheckDelayMinutes);
         }
       });
     });
@@ -1419,71 +1429,72 @@ export class AppComponent implements OnInit, OnDestroy {
     for (const context of contexts) {
         const { id, path, profile, token } = context;
 
-        let isMagnetFolder = false;
-        if (path.length > 0) {
-            const provider = this.getProvider(path);
-            // The provider's internal path does not include the root name (e.g., 'Local Session')
-            const providerPath = path.slice(1);
-            isMagnetFolder = await provider.hasFile(providerPath, '.magnet');
+        // A search can only be performed if the path is at least one level deep
+        // inside a root, and if active search is enabled.
+        if (path.length <= 1 || !this.isStreamActiveSearchEnabled()) {
+            if (id === 1) this.streamResultsForPane1.set([]);
+            else this.streamResultsForPane2.set([]);
+            continue;
         }
 
-        // If not a magnet folder OR active search is disabled, clear results.
-        if (!isMagnetFolder || !this.isStreamActiveSearchEnabled()) {
-            if (id === 1) {
-                this.streamResultsForPane1.set([]);
-            } else {
-                this.streamResultsForPane2.set([]);
-            }
-            continue; // Move to the next pane context
-        }
-
-        // --- If it IS a magnet folder AND active search is enabled, proceed with the existing search logic ---
-        const rootName = path[0];
+        const provider = this.getProvider(path);
         const relativePath = path.slice(1);
+        const magnetFolderNames: string[] = [];
+        
+        // Asynchronously check each folder in the path to see if it's a magnet folder.
+        for (let i = 0; i < relativePath.length; i++) {
+            const subPathToCheck = relativePath.slice(0, i + 1);
+            const isMagnet = await provider.hasFile(subPathToCheck, '.magnet');
+            if (isMagnet) {
+                magnetFolderNames.push(relativePath[i]);
+            }
+        }
 
-        const query = relativePath.length > 0 ? relativePath[relativePath.length - 1] : rootName;
-        const simpleSearchQuery = relativePath.join(', ');
+        // If no magnet folders were found in the path, there's no query to run.
+        if (magnetFolderNames.length === 0) {
+            if (id === 1) this.streamResultsForPane1.set([]);
+            else this.streamResultsForPane2.set([]);
+            continue;
+        }
+        
+        // Construct the search query from the names of the magnet folders.
+        const searchQuery = magnetFolderNames.join(', ');
+        const query = searchQuery; // Used for Gemini result object
 
         const promises: Promise<StreamItem[]>[] = [];
 
         // If we have a profile and token, we are in a "real search" context.
-        // We will only call the real services (Google Search) and potentially real services (Gemini).
         if (profile && token) {
             const searchParams: GoogleSearchParams = {
                 brokerUrl: profile.brokerUrl,
                 token: token,
-                query: simpleSearchQuery
+                query: searchQuery
             };
             promises.push(
                 this.googleSearchService.search(searchParams)
                     .then(results => results.map(r => ({ ...r, type: 'web' as const, paneId: id })))
             );
 
-            // Gemini Search (could be real or mock depending on API key)
             promises.push(
-                this.geminiService.search(query)
+                this.geminiService.search(searchQuery)
                     .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
             );
         } else {
             // Otherwise, we are in a "mock search" context (e.g., Local Session).
-            // Call all the mock services.
             promises.push(
-                this.unsplashService.search(query)
+                this.unsplashService.search(searchQuery)
                     .then(results => results.map(r => ({ ...r, type: 'image' as const, paneId: id })))
             );
-
             promises.push(
-                this.youtubeSearchService.search(query)
+                this.youtubeSearchService.search(searchQuery)
                     .then(results => results.map(r => ({ ...r, type: 'youtube' as const, paneId: id })))
             );
-            
             promises.push(
-                this.academicSearchService.search(query)
+                this.academicSearchService.search(searchQuery)
                     .then(results => results.map(r => ({ ...r, type: 'academic' as const, paneId: id })))
             );
-
             promises.push(
-                this.geminiService.search(query)
+                this.geminiService.search(searchQuery)
                     .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
             );
         }

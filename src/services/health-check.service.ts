@@ -24,16 +24,15 @@ export class HealthCheckService {
     return this.serviceStatuses().get(baseUrl) ?? 'UNKNOWN';
   }
 
-  monitorService(profile: Pick<ServerProfile, 'imageUrl' | 'healthCheckDelayMinutes'>): void {
-    const baseUrl = profile.imageUrl;
+  monitorService(baseUrl: string, delayMinutes?: number): void {
     if (!baseUrl || this.serviceStatuses().has(baseUrl)) {
       return; // Already monitoring or no URL to monitor
     }
 
     this.serviceStatuses.update(map => new Map(map).set(baseUrl, 'CHECKING'));
     
-    const delayMinutes = profile.healthCheckDelayMinutes ?? this.localConfigService.currentConfig().healthCheckDelayMinutes;
-    const delayMs = delayMinutes * 60 * 1000;
+    const effectiveDelayMinutes = delayMinutes ?? this.localConfigService.currentConfig().healthCheckDelayMinutes;
+    const delayMs = effectiveDelayMinutes * 60 * 1000;
 
     this._checkHealth(baseUrl, delayMs);
   }

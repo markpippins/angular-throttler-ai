@@ -28,7 +28,15 @@
                  [class.bg-[rgb(var(--color-accent-bg))]]="selectedProfileId() === profile.id"
                  [class.hover:bg-[rgb(var(--color-surface-hover-subtle))]]="selectedProfileId() !== profile.id">
               <div class="flex justify-between items-center">
-                <span class="font-semibold text-[rgb(var(--color-text-base))] truncate">{{ profile.name }}</span>
+                <div class="flex items-center gap-2 min-w-0">
+                  @switch (getBrokerHealthStatus(profile)) {
+                    @case ('UP') { <div class="w-2.5 h-2.5 rounded-full bg-green-500 flex-shrink-0" title="Broker: UP"></div> }
+                    @case ('DOWN') { <div class="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" title="Broker: DOWN"></div> }
+                    @case ('CHECKING') { <div class="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse flex-shrink-0" title="Broker: CHECKING"></div> }
+                    @default { <div class="w-2.5 h-2.5 rounded-full bg-gray-400 flex-shrink-0" title="Broker: UNKNOWN"></div> }
+                  }
+                  <span class="font-semibold text-[rgb(var(--color-text-base))] truncate">{{ profile.name }}</span>
+                </div>
                 <div class="flex items-center space-x-2">
                   @if(mountedProfileIds().includes(profile.id)) {
                     <span class="text-xs font-bold text-[rgb(var(--color-status-blue-text))] bg-[rgb(var(--color-status-blue-bg))] px-2 py-0.5 rounded-full">MOUNTED</span>

@@ -5,6 +5,7 @@ import { ServerProfile } from '../../models/server-profile.model.js';
 import { User } from '../../models/user.model.js';
 import { LoginDialogComponent } from '../login-dialog/login-dialog.component.js';
 import { ToastService } from '../../services/toast.service.js';
+import { HealthCheckService, ServiceStatus } from '../../services/health-check.service.js';
 
 type FormState = {
   id: string | null;
@@ -28,6 +29,7 @@ type FormState = {
 export class ServerProfilesDialogComponent implements OnInit {
   profileService = inject(ServerProfileService);
   toastService = inject(ToastService);
+  healthCheckService = inject(HealthCheckService);
   
   mountedProfileIds = input<string[]>([]);
   mountedProfileUsers = input<Map<string, User>>(new Map());
@@ -183,5 +185,19 @@ export class ServerProfilesDialogComponent implements OnInit {
   onCheckboxChange(event: Event, field: 'autoConnect'): void {
     const checked = (event.target as HTMLInputElement).checked;
     this.formState.update(state => state ? { ...state, [field]: checked } : null);
+  }
+
+  getBrokerHealthStatus(profile: ServerProfile): ServiceStatus {
+    if (!profile.brokerUrl) return 'UNKNOWN';
+
+    let brokerBaseUrl = profile.brokerUrl.trim();
+    if (!brokerBaseUrl.startsWith('http://') && !brokerBaseUrl.startsWith('https://')) {
+      brokerBaseUrl = `http://${brokerBaseUrl}`;
+    }
+    if (brokerBaseUrl.endsWith('/api/broker/submitRequest')) {
+      brokerBaseUrl = brokerBaseUrl.replace('/api/broker/submitRequest', '');
+    }
+    
+    return this.healthCheckService.getServiceStatus(brokerBaseUrl);
   }
 }
