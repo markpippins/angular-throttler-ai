@@ -73,11 +73,6 @@ export class FileExplorerComponent implements OnDestroy {
   directoryChanged = output<string[]>();
   itemsDeleted = output<string[][]>();
   itemsMoved = output<{ sourcePath: string[]; destPath: string[]; items: ItemReference[] }>();
-  statusChanged = output<{
-    selectedItemsCount: number;
-    totalItemsCount: number;
-    filteredItemsCount: number | null;
-  }>();
   sortChange = output<SortCriteria>();
   bookmarkDropped = output<{ bookmark: NewBookmark, dropOn: FileSystemNode }>();
   connectToServer = output<string>();
@@ -252,6 +247,42 @@ export class FileExplorerComponent implements OnDestroy {
     return items.filter(item => item.name.toLowerCase().includes(query));
   });
 
+  statusBarSelectionInfo = computed(() => {
+    const selectedNodes = this.getSelectedNodes();
+    if (selectedNodes.length !== 1) {
+      const selectionCount = this.selectedItems().size;
+      return selectionCount > 1 ? `${selectionCount} items selected` : 'Ready';
+    }
+    const item = selectedNodes[0];
+
+    if (this.path().length === 0 && item.isServerRoot) {
+      return `Server Profile: ${item.name}`;
+    }
+    
+    const itemType = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+    let info = `${itemType}: ${item.name} | Modified: ${item.modified ? new Date(item.modified).toLocaleString() : 'N/A'}`;
+    
+    if (item.isMagnet) {
+        info += ' | 🧲 Magnet Folder';
+    }
+
+    return info;
+  });
+
+  statusBarItemCounts = computed(() => {
+    const status = this.status();
+    let message = `${status.totalItemsCount} items`;
+
+    if (status.filteredItemsCount !== null) {
+        message = `${status.filteredItemsCount} of ${status.totalItemsCount} items`;
+    }
+
+    if (status.selectedItemsCount > 1) { // Only show this if more than one is selected
+      message += ` | ${status.selectedItemsCount} selected`;
+    }
+    return message;
+  });
+
   constructor() {
     effect(() => {
       this.refresh();
@@ -264,7 +295,6 @@ export class FileExplorerComponent implements OnDestroy {
     });
 
     effect(() => {
-        // By reading the signals here, we ensure Angular tracks them as dependencies for this effect.
         const selectionSize = this.selectedItems().size;
         const totalItems = this.state().items.length;
         const filteredItemsCount = this.filteredItems().length;
@@ -277,11 +307,6 @@ export class FileExplorerComponent implements OnDestroy {
         };
 
         this.status.set(newStatus);
-
-        // We emit the output in a microtask to prevent ExpressionChangedAfterItHasBeenCheckedError.
-        Promise.resolve().then(() => {
-            this.statusChanged.emit(newStatus);
-        });
     });
     
     effect(() => {

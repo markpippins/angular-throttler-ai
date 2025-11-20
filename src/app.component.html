@@ -137,7 +137,6 @@
                   (pathChanged)="onPane1PathChanged($event)"
                   (itemSelected)="onItemSelectedInPane($event)"
                   (directoryChanged)="onDirectoryChanged($event)"
-                  (statusChanged)="onPane1StatusChanged($event)"
                   (sortChange)="onSortChange($event)"
                   (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
                   (itemRenamed)="onPaneItemRenamed($event, pane1Path())"
@@ -177,7 +176,6 @@
                     (pathChanged)="onPane2PathChanged($event)"
                     (itemSelected)="onItemSelectedInPane($event)"
                     (directoryChanged)="onDirectoryChanged($event)"
-                    (statusChanged)="onPane2StatusChanged($event)"
                     (sortChange)="onSortChange($event)"
                     (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
                     (itemRenamed)="onPaneItemRenamed($event, pane2Path())"
@@ -527,7 +525,7 @@
 
   <!-- Footer/Status Bar -->
   <div class="h-7 p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface))] flex items-center">
-    <span class="truncate">{{ statusBarSelectionInfo() }}</span>
+    <span>{{ brokerStatusMessage() }}</span>
   </div>
 
   @if(isServerProfilesDialogOpen()) {

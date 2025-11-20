@@ -290,6 +290,12 @@
     </div>
   </div>
 
+  <!-- New Status Bar for File Explorer -->
+  <div class="flex-shrink-0 h-7 p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex items-center justify-between">
+    <span class="truncate">{{ statusBarSelectionInfo() }}</span>
+    <span class="flex-shrink-0 ml-4">{{ statusBarItemCounts() }}</span>
+  </div>
+
   <!-- Context Menu -->
   @if (contextMenu(); as cm) {
     <div 

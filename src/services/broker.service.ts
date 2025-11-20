@@ -1,12 +1,33 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { ServerProfileService } from './server-profile.service.js';
 import { LocalConfigService } from './local-config.service.js';
+
+export interface BrokerRequestInfo {
+  service: string;
+  operation: string;
+  requestId: string;
+  timestamp: number;
+}
+
+export interface BrokerResponseInfo {
+  service: string;
+  operation: string;
+  requestId: string;
+  status: 'success' | 'error';
+  message?: string;
+  timestamp: number;
+  duration: number;
+}
+
 
 @Injectable({
   providedIn: 'root',
 })
 export class BrokerService {
   private localConfigService = inject(LocalConfigService);
+
+  lastRequest = signal<BrokerRequestInfo | null>(null);
+  lastResponse = signal<BrokerResponseInfo | null>(null);
   
   private generateUUID(): string {
     var d = new Date().getTime();
@@ -31,6 +52,14 @@ export class BrokerService {
         params,
         requestId: this.generateUUID()
     };
+    const startTime = Date.now();
+
+    this.lastRequest.set({
+      service,
+      operation,
+      requestId: request.requestId,
+      timestamp: startTime,
+    });
 
     const shouldLog = this.localConfigService.currentConfig().logBrokerMessages;
 
@@ -57,6 +86,7 @@ export class BrokerService {
       }
 
       const serviceResponse = await response.json();
+      const duration = Date.now() - startTime;
 
       if (shouldLog) {
           console.timeEnd(`[Broker Response] ${request.requestId}`);
@@ -64,15 +94,28 @@ export class BrokerService {
       }
 
       if (serviceResponse.ok) {
+          this.lastResponse.set({
+            service, operation, requestId: request.requestId,
+            status: 'success', timestamp: Date.now(), duration
+          });
           if (shouldLog) {
             console.groupEnd();
           }
           return serviceResponse.data as T;
       } else {
           const errorDetails = serviceResponse.errors.map((e: any) => e.message || `${e.code}: ${e.path}`).join(', ');
+          this.lastResponse.set({
+            service, operation, requestId: request.requestId,
+            status: 'error', message: errorDetails, timestamp: Date.now(), duration
+          });
           throw new Error(`Service operation ${service}/${operation} failed: ${errorDetails}`);
       }
     } catch (error) {
+      const duration = Date.now() - startTime;
+       this.lastResponse.set({
+            service, operation, requestId: request.requestId,
+            status: 'error', message: (error as Error).message, timestamp: Date.now(), duration
+        });
       if (shouldLog) {
         console.timeEnd(`[Broker Response] ${request.requestId}`);
         console.error('Request Failed:', error);

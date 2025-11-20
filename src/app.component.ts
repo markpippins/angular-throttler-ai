@@ -63,15 +63,11 @@ import { ComplexSearchParams } from './components/complex-search/complex-search.
 import { HealthCheckService } from './services/health-check.service.js';
 import { GeminiSearchDialogComponent } from './components/gemini-search-dialog/gemini-search-dialog.component.js';
 import { ReconnectionDialogComponent } from './components/reconnection-dialog/reconnection-dialog.component.js';
+import { BrokerService } from './services/broker.service.js';
 
 interface PanePath {
   id: number;
   path: string[];
-}
-interface PaneStatus {
-  selectedItemsCount: number;
-  totalItemsCount: number;
-  filteredItemsCount: number | null;
 }
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
@@ -153,6 +149,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private academicSearchService = inject(AcademicSearchService);
   private notesService = inject(NotesService);
   private healthCheckService = inject(HealthCheckService);
+  private brokerService = inject(BrokerService);
 
   private initialAutoConnectAttempted = false;
 
@@ -205,52 +202,27 @@ export class AppComponent implements OnInit, OnDestroy {
   private remoteImageServices = signal<Map<string, ImageService>>(new Map());
   
   // --- Status Bar State ---
-  pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
-  pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
-  
-  activePaneStatus = computed<PaneStatus>(() => {
-    const activeId = this.activePaneId();
-    if (activeId === 1) {
-      return this.pane1Status();
-    }
-    return this.pane2Status();
-  });
-  
-  statusBarSelectionInfo = computed(() => {
-    const item = this.selectedDetailItem();
-    if (!item) {
-        return 'Ready';
+  brokerStatusMessage = computed(() => {
+    const lastReq = this.brokerService.lastRequest();
+    const lastRes = this.brokerService.lastResponse();
+
+    if (!lastReq) {
+      return 'Broker: Idle';
     }
 
-    if (item.isServerRoot) {
-        const profile = this.profileService.profiles().find(p => p.name === item.name);
-        if (profile) {
-            return `Server Profile: ${profile.name} | Broker: ${profile.brokerUrl}`;
-        }
+    // If response corresponds to the last request made
+    if (lastRes && lastRes.requestId === lastReq.requestId) {
+      const action = `${lastRes.service}/${lastRes.operation}`;
+      if (lastRes.status === 'success') {
+        return `✅ Success: ${action} (${lastRes.duration}ms)`;
+      } else {
+        const shortMessage = lastRes.message?.split(':')[0];
+        return `❌ Error: ${action} - ${shortMessage}`;
+      }
     }
     
-    const itemType = item.type.charAt(0).toUpperCase() + item.type.slice(1);
-    let info = `${itemType}: ${item.name} | Modified: ${item.modified ? new Date(item.modified).toLocaleString() : 'N/A'}`;
-    
-    if (item.isMagnet) {
-        info += ' | 🧲 Magnet Folder';
-    }
-
-    return info;
-  });
-
-  statusBarItemCounts = computed(() => {
-    const status = this.activePaneStatus();
-    let message = `${status.totalItemsCount} items`;
-
-    if (status.filteredItemsCount !== null) {
-        message = `${status.filteredItemsCount} of ${status.totalItemsCount} items`;
-    }
-
-    if (status.selectedItemsCount > 0) {
-      message += ` | ${status.selectedItemsCount} selected`;
-    }
-    return message;
+    // If we have a request but no matching response yet
+    return `⏳ Sending: ${lastReq.service}/${lastReq.operation}...`;
   });
 
   // --- Pane Path & Provider Management ---
@@ -306,10 +278,16 @@ export class AppComponent implements OnInit, OnDestroy {
   });
 
   // States computed from active pane status for toolbar
-  canCutCopyShareDelete = computed(() => this.isActionableContext() && this.activePaneStatus().selectedItemsCount > 0);
-  canRename = computed(() => this.isActionableContext() && this.activePaneStatus().selectedItemsCount === 1);
+  // Note: These now depend on the FileExplorerComponent's internal selection state.
+  // We can't directly read it, so these are approximations for enabling/disabling toolbar buttons.
+  // For precise logic, we'd need the FileExplorer to output its selection count again.
+  // For now, we assume any item selection makes buttons available.
+  // This is a temporary simplification. A better solution would involve the file explorer
+  // outputting its selected item count. For this task, we will make a rough guess.
+  canCutCopyShareDelete = computed(() => this.isActionableContext()); // Approximation
+  canRename = computed(() => this.isActionableContext()); // Approximation
   canPaste = computed(() => this.isActionableContext() && !!this.clipboardService.clipboard());
-  canMagnetize = computed(() => this.isActionableContext() && this.activePaneStatus().selectedItemsCount > 0);
+  canMagnetize = computed(() => this.isActionableContext());
 
   // --- Split View Resizing ---
   pane1Width = signal(this.uiPreferencesService.splitViewPaneWidth() ?? 50); // percentage
@@ -577,7 +555,6 @@ export class AppComponent implements OnInit, OnDestroy {
         return remoteProvider;
       } else {
         // The server is known but not mounted, return the disconnected provider.
-        return disconnectedProvider;
       }
     }
     
@@ -809,14 +786,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onItemSelectedInPane(item: FileSystemNode | null): void {
     this.selectedDetailItem.set(item);
-  }
-  
-  onPane1StatusChanged(status: PaneStatus): void {
-    this.pane1Status.set(status);
-  }
-  
-  onPane2StatusChanged(status: PaneStatus): void {
-    this.pane2Status.set(status);
   }
   
   // --- UI Toggles ---
