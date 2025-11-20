@@ -35,7 +35,7 @@ interface Thumbnail {
   isLoading: boolean;
 }
 
-const SPECIAL_FOLDERS = new Set(["library", "libraries", "repo", "repos", "build", "tools", "source", "src"]);
+const SPECIAL_FOLDERS = new Set(["library", "libraries", "framework", "frameworks", "repo", "repos", "build", "runtime", "tools", "testing", "source", "src"]);
 
 @Component({
   selector: 'app-file-explorer',
