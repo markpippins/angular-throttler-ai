@@ -62,7 +62,23 @@ export class DetailPaneComponent implements OnDestroy {
   }
 
   openBookmark(bookmark: Bookmark): void {
-    this.webviewService.open(bookmark.link, bookmark.title);
+    if (bookmark.type === 'youtube') {
+      // Attempt to convert youtube watch link to embed link
+      try {
+        const url = new URL(bookmark.link);
+        const videoId = url.searchParams.get('v');
+        if (videoId) {
+          const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+          this.webviewService.open(embedUrl, bookmark.title);
+          return;
+        }
+      } catch (e) {
+        console.error('Could not parse YouTube URL for embedding', e);
+      }
+    }
+
+    // Fallback for youtube if ID extraction fails, and default for all other types
+    window.open(bookmark.link, '_blank', 'noopener,noreferrer');
   }
   
   startResize(event: MouseEvent): void {

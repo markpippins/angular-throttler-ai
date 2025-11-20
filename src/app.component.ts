@@ -1,3 +1,4 @@
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -259,35 +260,42 @@ export class AppComponent implements OnInit, OnDestroy {
   pane2FilterQuery = signal('');
   activeFilterQuery = computed(() => this.activePaneId() === 1 ? this.pane1FilterQuery() : this.pane2FilterQuery());
   
+  // Pane Selection State
+  pane1SelectionCount = signal(0);
+  pane2SelectionCount = signal(0);
+  activePaneSelectionCount = computed(() => this.activePaneId() === 1 ? this.pane1SelectionCount() : this.pane2SelectionCount());
+  
   isActionableContext = computed(() => {
     const path = this.activePanePath();
     if (path.length === 0) {
       return false; // Home root is not actionable
     }
-
+  
     const rootName = path[0];
+    const localSessionName = this.localConfigService.sessionName();
+  
+    if (rootName === localSessionName) {
+      // Local session is always considered an actionable context.
+      // The individual button states will handle enabling/disabling.
+      return true;
+    }
+  
     const profile = this.profileService.profiles().find(p => p.name === rootName);
-
+  
     if (profile) {
       // It's a server profile path, check if it's mounted
       return this.mountedProfileIds().includes(profile.id);
     }
-
-    // It's not a server profile path, so it must be the local session, which is always actionable.
-    return true;
+  
+    // Fallback for any other case.
+    return false;
   });
 
   // States computed from active pane status for toolbar
-  // Note: These now depend on the FileExplorerComponent's internal selection state.
-  // We can't directly read it, so these are approximations for enabling/disabling toolbar buttons.
-  // For precise logic, we'd need the FileExplorer to output its selection count again.
-  // For now, we assume any item selection makes buttons available.
-  // This is a temporary simplification. A better solution would involve the file explorer
-  // outputting its selected item count. For this task, we will make a rough guess.
-  canCutCopyShareDelete = computed(() => this.isActionableContext()); // Approximation
-  canRename = computed(() => this.isActionableContext()); // Approximation
+  canCutCopyShareDelete = computed(() => this.isActionableContext() && this.activePaneSelectionCount() > 0);
+  canRename = computed(() => this.isActionableContext() && this.activePaneSelectionCount() === 1);
   canPaste = computed(() => this.isActionableContext() && !!this.clipboardService.clipboard());
-  canMagnetize = computed(() => this.isActionableContext());
+  canMagnetize = computed(() => this.isActionableContext() && this.activePaneSelectionCount() > 0);
 
   // --- Split View Resizing ---
   pane1Width = signal(this.uiPreferencesService.splitViewPaneWidth() ?? 50); // percentage

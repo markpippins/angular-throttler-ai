@@ -1,3 +1,4 @@
+
 <div class="flex flex-col h-screen antialiased text-[rgb(var(--color-text-base))] bg-[rgb(var(--color-background))]">
   <!-- Main Content -->
   <main class="flex-1 flex flex-row overflow-hidden">
@@ -142,6 +143,7 @@
                   (itemRenamed)="onPaneItemRenamed($event, pane1Path())"
                   (itemsDeleted)="onItemsDeleted($event)"
                   (itemsMoved)="onItemsMoved($event)"
+                  (selectionCountChanged)="pane1SelectionCount.set($event)"
                   (connectToServer)="onConnectToServer($event)"
                   (disconnectFromServer)="onDisconnectFromServer($event)"
                   (editServerProfile)="onEditServerProfile($event)"
@@ -181,6 +183,7 @@
                     (itemRenamed)="onPaneItemRenamed($event, pane2Path())"
                     (itemsDeleted)="onItemsDeleted($event)"
                     (itemsMoved)="onItemsMoved($event)"
+                    (selectionCountChanged)="pane2SelectionCount.set($event)"
                     (connectToServer)="onConnectToServer($event)"
                     (disconnectFromServer)="onDisconnectFromServer($event)"
                     (editServerProfile)="onEditServerProfile($event)"

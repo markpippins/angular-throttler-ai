@@ -1,3 +1,4 @@
+
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChildren, QueryList, ElementRef, Renderer2, OnDestroy, ViewChild, input, output, WritableSignal, Injector, EffectRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
@@ -69,6 +70,7 @@ export class FileExplorerComponent implements OnDestroy {
   activated = output<number>();
   pathChanged = output<string[]>();
   itemSelected = output<FileSystemNode | null>();
+  selectionCountChanged = output<number>();
   itemRenamed = output<{ oldName: string, newName: string }>();
   directoryChanged = output<string[]>();
   itemsDeleted = output<string[][]>();
@@ -292,6 +294,10 @@ export class FileExplorerComponent implements OnDestroy {
       this.selectedItems.set(new Set());
       this.itemSelected.emit(null);
       this._loadContents();
+    });
+
+    effect(() => {
+      this.selectionCountChanged.emit(this.selectedItems().size);
     });
 
     effect(() => {
