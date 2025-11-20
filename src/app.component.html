@@ -136,7 +136,7 @@
                   (activated)="setActivePane($event)"
                   (pathChanged)="onPane1PathChanged($event)"
                   (itemSelected)="onItemSelectedInPane($event)"
-                  (directoryChanged)="loadFolderTree()"
+                  (directoryChanged)="onDirectoryChanged($event)"
                   (statusChanged)="onPane1StatusChanged($event)"
                   (sortChange)="onSortChange($event)"
                   (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
@@ -147,7 +147,8 @@
                   (disconnectFromServer)="onDisconnectFromServer($event)"
                   (editServerProfile)="onEditServerProfile($event)"
                   (addServerProfile)="openServerProfilesDialog()"
-                  (editLocalConfig)="openLocalConfigDialog()">
+                  (editLocalConfig)="openLocalConfigDialog()"
+                  (connectionLost)="onConnectionLost(1)">
                 </app-file-explorer>
               </div>
 
@@ -175,7 +176,7 @@
                     (activated)="setActivePane($event)"
                     (pathChanged)="onPane2PathChanged($event)"
                     (itemSelected)="onItemSelectedInPane($event)"
-                    (directoryChanged)="loadFolderTree()"
+                    (directoryChanged)="onDirectoryChanged($event)"
                     (statusChanged)="onPane2StatusChanged($event)"
                     (sortChange)="onSortChange($event)"
                     (bookmarkDropped)="onBookmarkDroppedOnPane($event)"
@@ -186,7 +187,8 @@
                     (disconnectFromServer)="onDisconnectFromServer($event)"
                     (editServerProfile)="onEditServerProfile($event)"
                     (addServerProfile)="openServerProfilesDialog()"
-                    (editLocalConfig)="openLocalConfigDialog()">
+                    (editLocalConfig)="openLocalConfigDialog()"
+                    (connectionLost)="onConnectionLost(2)">
                   </app-file-explorer>
                 </div>
               }
@@ -592,6 +594,15 @@
 
   @if (isGeminiSearchDialogOpen()) {
     <app-gemini-search-dialog (close)="closeGeminiSearchDialog()" (search)="onGeminiSearch($event)"></app-gemini-search-dialog>
+  }
+
+  @if (reconnectingState(); as state) {
+    <app-reconnection-dialog
+      [profile]="state.profile"
+      [status]="reconnectStatus()"
+      (reconnect)="handleReconnectAttempt($event)"
+      (cancel)="handleReconnectCancel()">
+    </app-reconnection-dialog>
   }
 
   <app-toasts></app-toasts>

@@ -24,7 +24,7 @@ declare var marked: { parse(markdown: string): string; };
 declare var DOMPurify: { sanitize(dirty: string): string; };
 
 interface FileSystemState {
-  status: 'loading' | 'success' | 'error';
+  status: 'loading' | 'success' | 'error' | 'reconnecting';
   items: FileSystemNode[];
   error?: string;
 }
@@ -70,7 +70,7 @@ export class FileExplorerComponent implements OnDestroy {
   pathChanged = output<string[]>();
   itemSelected = output<FileSystemNode | null>();
   itemRenamed = output<{ oldName: string, newName: string }>();
-  directoryChanged = output<void>();
+  directoryChanged = output<string[]>();
   itemsDeleted = output<string[][]>();
   itemsMoved = output<{ sourcePath: string[]; destPath: string[]; items: ItemReference[] }>();
   statusChanged = output<{
@@ -85,6 +85,7 @@ export class FileExplorerComponent implements OnDestroy {
   editServerProfile = output<string>();
   addServerProfile = output<void>();
   editLocalConfig = output<void>();
+  connectionLost = output<void>();
 
   state = signal<FileSystemState>({ status: 'loading', items: [] });
   status = signal<{
@@ -332,7 +333,13 @@ export class FileExplorerComponent implements OnDestroy {
       }
 
     } catch (e: unknown) {
-      this.state.set({ status: 'error', items: [], error: (e as Error).message });
+      const errorMessage = (e as Error).message.toLowerCase();
+      if (errorMessage.includes('failed to fetch') || errorMessage.includes('networkerror')) {
+        this.state.set({ status: 'reconnecting', items: [] });
+        this.connectionLost.emit();
+      } else {
+        this.state.set({ status: 'error', items: [], error: (e as Error).message });
+      }
     }
   }
 
@@ -656,7 +663,7 @@ export class FileExplorerComponent implements OnDestroy {
     if (name) {
       try {
         await this.fileSystemProvider().createDirectory(this.providerPath(), name);
-        this.directoryChanged.emit();
+        this.directoryChanged.emit(this.path());
       } catch (e) {
         alert(`Error creating folder: ${(e as Error).message}`);
       }
@@ -673,7 +680,7 @@ export class FileExplorerComponent implements OnDestroy {
     if (name) {
       try {
         await this.fileSystemProvider().createFile(this.providerPath(), name);
-        this.directoryChanged.emit();
+        this.directoryChanged.emit(this.path());
       } catch (e) {
         alert(`Error creating file: ${(e as Error).message}`);
       }
@@ -687,7 +694,7 @@ export class FileExplorerComponent implements OnDestroy {
     } catch (e) {
       alert(`Error uploading files: ${(e as Error).message}`);
     } finally {
-      this.directoryChanged.emit();
+      this.directoryChanged.emit(this.path());
     }
   }
   
@@ -719,7 +726,7 @@ export class FileExplorerComponent implements OnDestroy {
     } catch (e) {
       alert(`Paste failed: ${(e as Error).message}`);
     } finally {
-      this.directoryChanged.emit();
+      this.directoryChanged.emit(this.path());
     }
   }
 
@@ -742,7 +749,7 @@ export class FileExplorerComponent implements OnDestroy {
     try {
       await this.fileSystemProvider().rename(this.providerPath(), oldName, trimmedNewName);
       this.itemRenamed.emit({ oldName, newName: trimmedNewName });
-      this.directoryChanged.emit();
+      this.directoryChanged.emit(this.path());
     } catch (e) {
       alert(`Rename failed: ${(e as Error).message}`);
     } finally {
@@ -774,7 +781,7 @@ export class FileExplorerComponent implements OnDestroy {
     this.isLoading.set(true);
     try {
         await Promise.all(foldersToMagnetize.map(folder => this.onMagnetize(folder)));
-        this.directoryChanged.emit();
+        this.directoryChanged.emit(this.path());
     } catch (e) {
         alert(`Failed to magnetize one or more folders: ${(e as Error).message}`);
     } finally {
@@ -798,7 +805,7 @@ export class FileExplorerComponent implements OnDestroy {
         alert(`${operation} failed: ${(e as Error).message}`);
     } finally {
         this.closeDestinationSubMenu();
-        this.directoryChanged.emit();
+        this.directoryChanged.emit(this.path());
     }
   }
   
@@ -847,7 +854,7 @@ export class FileExplorerComponent implements OnDestroy {
       this.updateSingleSelectedItem();
       if (successfullyDeletedPaths.length > 0) {
         this.itemsDeleted.emit(successfullyDeletedPaths);
-        this.directoryChanged.emit();
+        this.directoryChanged.emit(this.path());
       }
     }
   }
@@ -859,7 +866,7 @@ export class FileExplorerComponent implements OnDestroy {
       this.isLoading.set(true);
       try {
         await this.onMagnetize(item);
-        this.directoryChanged.emit();
+        this.directoryChanged.emit(this.path());
       } catch (e) {
         alert(`Failed to magnetize folder: ${(e as Error).message}`);
       } finally {
@@ -887,7 +894,7 @@ export class FileExplorerComponent implements OnDestroy {
       const fullPath = [...this.path(), item.name];
       await this.folderPropertiesService.updateProperties(fullPath, props);
       this.closePropertiesDialog();
-      this.directoryChanged.emit();
+      this.directoryChanged.emit(this.path());
     }
   }
 
@@ -1054,7 +1061,7 @@ export class FileExplorerComponent implements OnDestroy {
       
       if (successfullyMovedItems.length > 0) {
         this.itemsMoved.emit({ sourcePath, destPath, items: successfullyMovedItems });
-        this.directoryChanged.emit();
+        this.directoryChanged.emit(this.path());
       }
 
     } catch (e) {

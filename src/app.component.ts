@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -72,6 +62,7 @@ import { ComplexSearchDialogComponent } from './components/complex-search-dialog
 import { ComplexSearchParams } from './components/complex-search/complex-search.component.js';
 import { HealthCheckService } from './services/health-check.service.js';
 import { GeminiSearchDialogComponent } from './components/gemini-search-dialog/gemini-search-dialog.component.js';
+import { ReconnectionDialogComponent } from './components/reconnection-dialog/reconnection-dialog.component.js';
 
 interface PanePath {
   id: number;
@@ -128,7 +119,7 @@ const disconnectedProvider: FileSystemProvider = {
   standalone: true,
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent, ReconnectionDialogComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -180,6 +171,10 @@ export class AppComponent implements OnInit, OnDestroy {
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
   refreshPanes = signal(0);
+  
+  // --- Reconnection State ---
+  reconnectingState = signal<{ profile: ServerProfile; originalPath: string[]; paneId: number } | null>(null);
+  reconnectStatus = signal<'idle' | 'connecting' | 'failed'>('idle');
   
   // --- Pane Visibility State (from service) ---
   isSidebarVisible = this.uiPreferencesService.isSidebarVisible;
@@ -789,8 +784,23 @@ export class AppComponent implements OnInit, OnDestroy {
   navigatePathActivePane(index: number): void {
     const activeId = this.activePaneId();
     const currentPath = this.activePanePath();
-    const newPath = currentPath.slice(0, index + 1);
-
+    let newPath: string[];
+  
+    // The `index` corresponds to a segment in the address bar.
+    // -1: the root name (e.g., "MyServer")
+    // 0..n: segments after the root from `activeDisplayPath`.
+  
+    // Clicking the root name when you are already in the root folder (path length 1) should navigate up to Home (empty path).
+    if (index === -1 && currentPath.length === 1) {
+      newPath = [];
+    } else {
+      // Otherwise, navigate TO the folder that was clicked.
+      // The index `i` in display path corresponds to index `i+1` in the full path.
+      // We slice up to and including that segment. The end of slice is exclusive, so we need `i+2`.
+      // For the root button (index -1), this becomes `slice(0, 1)`, navigating to the root folder, which is correct for paths longer than 1.
+      newPath = currentPath.slice(0, index + 2);
+    }
+  
     this.panePaths.update(paths => {
       const otherPanes = paths.filter(p => p.id !== activeId);
       return [...otherPanes, { id: activeId, path: newPath }];
@@ -960,31 +970,35 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   // --- Login and Connection Management ---
-  async onLoginAndMount({ profile, username, password }: { profile: ServerProfile, username: string, password: string }): Promise<void> {
+  private async _mountProfile({ profile, username, password }: { profile: ServerProfile, username: string, password: string }): Promise<void> {
+    const { user, token } = await this.loginService.login(profile, username, password);
+    
+    const provider = new RemoteFileSystemService(profile, this.fsService, token);
+    const imageService = new ImageService(profile, this.imageClientService, this.preferencesService, this.healthCheckService, this.localConfigService);
+
+    this.mountedProfiles.update(p => [...p, profile]);
+    this.mountedProfileUsers.update(m => new Map(m).set(profile.id, user));
+    this.mountedProfileTokens.update(m => new Map(m).set(profile.id, token));
+    this.remoteProviders.update(m => new Map(m).set(profile.name, provider));
+    this.remoteImageServices.update(m => new Map(m).set(profile.name, imageService));
+    this.notesService.setToken(profile.id, token);
+
+    await this.loadFolderTree();
+  }
+
+  async onLoginAndMount(loginData: { profile: ServerProfile, username: string, password: string }): Promise<void> {
     try {
-      const { user, token } = await this.loginService.login(profile, username, password);
-      
-      const provider = new RemoteFileSystemService(profile, this.fsService, token);
-      const imageService = new ImageService(profile, this.imageClientService, this.preferencesService, this.healthCheckService, this.localConfigService);
-
-      this.mountedProfiles.update(p => [...p, profile]);
-      this.mountedProfileUsers.update(m => new Map(m).set(profile.id, user));
-      this.mountedProfileTokens.update(m => new Map(m).set(profile.id, token));
-      this.remoteProviders.update(m => new Map(m).set(profile.name, provider));
-      this.remoteImageServices.update(m => new Map(m).set(profile.name, imageService));
-      this.notesService.setToken(profile.id, token);
-
-      await this.loadFolderTree();
-
-      this.toastService.show(`Successfully connected to ${profile.name}.`);
-
+      await this._mountProfile(loginData);
+      this.toastService.show(`Successfully connected to ${loginData.profile.name}.`);
     } catch (e) {
-      const profileName = profile ? profile.name : 'the server';
+      const profileName = loginData.profile ? loginData.profile.name : 'the server';
       this.toastService.show(`Login to ${profileName} failed: ${(e as Error).message}`, 'error');
+      // Re-throw so callers (like reconnection logic) know it failed.
+      throw e;
     }
   }
 
-  onUnmountProfile(profile: ServerProfile): void {
+  onUnmountProfile(profile: ServerProfile, silent: boolean = false): void {
     this.mountedProfiles.update(p => p.filter(item => item.id !== profile.id));
     
     this.mountedProfileUsers.update(m => {
@@ -1024,7 +1038,9 @@ export class AppComponent implements OnInit, OnDestroy {
     });
 
     this.loadFolderTree();
-    this.toastService.show(`Disconnected from ${profile.name}.`);
+    if (!silent) {
+      this.toastService.show(`Disconnected from ${profile.name}.`);
+    }
   }
   
   onConnectToServer(profileId: string): void {
@@ -1113,7 +1129,6 @@ export class AppComponent implements OnInit, OnDestroy {
     const oldFullPath = [...path, event.oldName];
     const newFullPath = [...path, event.newName];
     this.folderPropertiesService.handleRename(oldFullPath, newFullPath);
-    this.loadFolderTree();
   }
   
   onSidebarRenameItem(event: { path: string[], newName: string }): void {
@@ -1135,7 +1150,11 @@ export class AppComponent implements OnInit, OnDestroy {
     for (const path of paths) {
       this.folderPropertiesService.handleDelete(path);
     }
-    this.loadFolderTree();
+  }
+
+  onDirectoryChanged(path: string[]): void {
+    this.onLoadChildren(path);
+    this.triggerRefresh();
   }
 
   onSidebarDeleteItem(path: string[]): void {
@@ -1603,5 +1622,66 @@ export class AppComponent implements OnInit, OnDestroy {
         this.bookmarkService.addBookmark(this.activePanePath(), newBookmark);
         this.toastService.show('Bookmark saved to current folder.');
     }
+  }
+
+  // --- Reconnection Logic ---
+  onConnectionLost(paneId: number): void {
+    const path = paneId === 1 ? this.pane1Path() : this.pane2Path();
+    if (path.length === 0) return; // Not a remote path
+
+    const profileName = path[0];
+    const profile = this.profileService.profiles().find(p => p.name === profileName);
+
+    if (profile) {
+      if (this.reconnectingState()?.profile.id === profile.id) {
+        return; // Already trying to reconnect this profile
+      }
+
+      this.onUnmountProfile(profile, true); // Unmount silently
+      
+      this.reconnectStatus.set('idle');
+      this.reconnectingState.set({ profile, originalPath: path, paneId });
+    }
+  }
+  
+  async handleReconnectAttempt(credentials: { username: string, password: string }): Promise<void> {
+    const state = this.reconnectingState();
+    if (!state) return;
+
+    this.reconnectStatus.set('connecting');
+    
+    try {
+      const loginData = { ...credentials, profile: state.profile };
+      await this._mountProfile(loginData);
+      
+      this.toastService.show(`Reconnected to ${state.profile.name} successfully.`);
+      
+      this.reconnectStatus.set('idle');
+      this.reconnectingState.set(null); // Close dialog
+
+      // Navigate pane back to original path to trigger reload
+      this.panePaths.update(paths => {
+        const otherPanes = paths.filter(p => p.id !== state.paneId);
+        return [...otherPanes, { id: state.paneId, path: state.originalPath }];
+      });
+    } catch (error) {
+      console.error("Reconnect attempt failed:", error);
+      this.reconnectStatus.set('failed');
+    }
+  }
+  
+  handleReconnectCancel(): void {
+    const state = this.reconnectingState();
+    if (!state) return;
+
+    // Navigate the affected pane back to the home/root directory
+    this.panePaths.update(paths => {
+      const otherPanes = paths.filter(p => p.id !== state.paneId);
+      return [...otherPanes, { id: state.paneId, path: [] }];
+    });
+    
+    // Close the dialog
+    this.reconnectStatus.set('idle');
+    this.reconnectingState.set(null);
   }
 }

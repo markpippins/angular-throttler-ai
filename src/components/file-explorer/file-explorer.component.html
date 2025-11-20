@@ -48,6 +48,15 @@
             </svg>
           </div>
         }
+        @case ('reconnecting') {
+          <div class="absolute inset-0 flex flex-col items-center justify-center bg-[rgb(var(--color-surface))]/50 z-30">
+            <svg class="animate-spin h-10 w-10 text-[rgb(var(--color-accent-text))]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-4 text-[rgb(var(--color-text-muted))]">Connection lost. Attempting to reconnect...</p>
+          </div>
+        }
         @case ('error') {
           <div class="col-span-full text-center py-12 text-[rgb(var(--color-danger-text))]">
             <p>Error loading files: {{ state().error }}</p>
