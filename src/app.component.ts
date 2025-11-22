@@ -1,4 +1,9 @@
 
+
+
+
+
+
 import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, Renderer2, ElementRef, OnDestroy, Injector, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
@@ -186,6 +191,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isConsoleCollapsed = this.uiPreferencesService.isConsoleCollapsed;
   isStreamPaneCollapsed = this.uiPreferencesService.isStreamPaneCollapsed;
   isStreamActiveSearchEnabled = this.uiPreferencesService.isStreamActiveSearchEnabled;
+  isStreamActiveSearchEffectivelyEnabled = computed(() => this.isStreamActiveSearchEnabled() && !this.isStreamPaneCollapsed());
   
   // Keep track of each pane's path
   panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
@@ -554,15 +560,16 @@ export class AppComponent implements OnInit, OnDestroy {
     const rootName = path[0];
 
     // Check if the root of the path corresponds to a known server profile.
-    const isServerProfile = this.profileService.profiles().some(p => p.name === rootName);
+    const profile = this.profileService.profiles().find(p => p.name === rootName);
 
-    if (isServerProfile) {
+    if (profile) {
       const remoteProvider = this.remoteProviders().get(rootName);
       if (remoteProvider) {
         // The server is mounted, return its specific provider.
         return remoteProvider;
       } else {
         // The server is known but not mounted, return the disconnected provider.
+        return disconnectedProvider;
       }
     }
     
@@ -582,6 +589,7 @@ export class AppComponent implements OnInit, OnDestroy {
       brokerUrl: '', // not used for images
       imageUrl: this.localConfigService.defaultImageUrl(),
     };
+    // Fix: Use the defined 'localProfile' variable instead of the undefined 'profile'.
     return new ImageService(localProfile, this.imageClientService, this.preferencesService, this.healthCheckService, this.localConfigService);
   }
 
@@ -660,15 +668,17 @@ export class AppComponent implements OnInit, OnDestroy {
     this.folderTree.set(await this.buildCombinedFolderTree());
   }
 
-  onLoadChildren = async (path: string[]) => {
+  onLoadChildren = async (path: string[], forceRefresh: boolean = false) => {
     const provider = this.getProvider(path);
-    if (provider === this.homeProvider || provider === this.sessionFs) {
-      // SessionFS is fully loaded, no need to lazy load.
+
+    // For lazy-loading, we don't need to reload for providers that are fully in memory.
+    // For a forced refresh, we bypass this check.
+    if (!forceRefresh && (provider === this.homeProvider || provider === this.sessionFs)) {
       return;
     }
 
     try {
-      // Provider path doesn't include the root name
+      // Provider path doesn't include the root name. For homeProvider, path is [], path.slice(1) is []. Correct.
       const children = await provider.getContents(path.slice(1));
       
       this.folderTree.update(currentTree => {
@@ -842,6 +852,9 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   triggerRefresh(): void {
+    // This method is the single source of truth for a full refresh action.
+    // It refreshes the tree in the sidebar and the content in the file explorer.
+    this.onLoadChildren(this.activePanePath(), true);
     this.refreshPanes.update(v => v + 1);
   }
 
@@ -1129,8 +1142,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  onDirectoryChanged(path: string[]): void {
-    this.onLoadChildren(path);
+  onDirectoryChanged(): void {
     this.triggerRefresh();
   }
 
@@ -1431,7 +1443,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
         // A search can only be performed if the path is at least one level deep
         // inside a root, and if active search is enabled.
-        if (path.length <= 1 || !this.isStreamActiveSearchEnabled()) {
+        if (path.length <= 1 || !this.isStreamActiveSearchEffectivelyEnabled()) {
             if (id === 1) this.streamResultsForPane1.set([]);
             else this.streamResultsForPane2.set([]);
             continue;
