@@ -27,18 +27,6 @@ interface SearchResult {
 export class GoogleSearchService {
   private brokerService = inject(BrokerService);
 
-  private constructBrokerUrl(baseUrl: string): string {
-    let fullUrl = baseUrl.trim();
-    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-        fullUrl = `http://${fullUrl}`;
-    }
-    if (fullUrl.endsWith('/')) {
-        fullUrl = fullUrl.slice(0, -1);
-    }
-    fullUrl += '/api/broker/submitRequest';
-    return fullUrl;
-  }
-
   async search(params: GoogleSearchParams): Promise<GoogleSearchResult[]> {
     if (!params.brokerUrl) {
       console.warn('GoogleSearchService: No brokerUrl provided. Returning empty results.');
@@ -62,7 +50,7 @@ export class GoogleSearchService {
       };
 
       const result = await this.brokerService.submitRequest<SearchResult>(
-        this.constructBrokerUrl(params.brokerUrl), 
+        this.brokerService.resolveUrl(params.brokerUrl), 
         'googleSearchService', 
         'simpleSearch', 
         brokerParams

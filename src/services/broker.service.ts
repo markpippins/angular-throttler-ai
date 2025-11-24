@@ -45,6 +45,18 @@ export class BrokerService {
     });
   }
 
+  resolveUrl(baseUrl: string): string {
+    let fullUrl = baseUrl.trim();
+    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        fullUrl = `http://${fullUrl}`;
+    }
+    if (fullUrl.endsWith('/')) {
+        fullUrl = fullUrl.slice(0, -1);
+    }
+    fullUrl += '/api/broker/submitRequest';
+    return fullUrl;
+  }
+
   async submitRequest<T>(brokerUrl: string, service: string, operation: string, params: object = {}): Promise<T> {
     const request = {
         service,
