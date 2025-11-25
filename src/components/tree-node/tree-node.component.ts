@@ -168,11 +168,22 @@ export class TreeNodeComponent implements OnInit {
         return;
     }
 
-    const expanding = !this.isExpanded();
-    this.isExpanded.set(expanding);
+    const isCurrentlyExpanded = this.isExpanded();
 
-    if (expanding && !node.childrenLoaded) {
-      this.loadChildren.emit(this.path());
+    if (isCurrentlyExpanded) { // We are collapsing
+      const myPath = this.path();
+      const current = this.currentPath();
+      const isCurrentPathDescendant = current.length > myPath.length && myPath.every((segment, index) => segment === current[index]);
+
+      if (isCurrentPathDescendant) {
+        this.pathChange.emit(myPath);
+      }
+      this.isExpanded.set(false);
+    } else { // We are expanding
+      this.isExpanded.set(true);
+      if (!node.childrenLoaded) {
+        this.loadChildren.emit(this.path());
+      }
     }
   }
 
