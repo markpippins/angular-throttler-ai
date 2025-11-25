@@ -1,3 +1,4 @@
+
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, firstValueFrom, of } from 'rxjs';
@@ -44,7 +45,9 @@ export class HealthCheckService {
       const response$ = this.http.get<HealthCheckResponse>(healthUrl).pipe(
         catchError(() => of({ status: 'DOWN' } as HealthCheckResponse))
       );
-      const response = await firstValueFrom(response$);
+      // Fix: Explicitly type `response` to correct the type inference where it was considered `unknown`.
+      // This resolves the error on `response.status` and likely the preceding error on the http.get call.
+      const response: HealthCheckResponse = await firstValueFrom(response$);
       
       if (response.status === 'UP') {
         this.serviceStatuses.update(map => new Map(map).set(baseUrl, 'UP'));
